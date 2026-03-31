@@ -273,6 +273,46 @@ export class ShareService {
     };
   }
 
+  async getForOwner(id: string, userId: string): Promise<any> {
+    const share = await this.getOwnerShareEntity(id, userId);
+
+    return {
+      ...share,
+      hasPassword: !!share.security?.password,
+      size: share.files.reduce((acc, file) => acc + parseInt(file.size), 0),
+    };
+  }
+
+  async getDetailedSharesByOwner(userId: string) {
+    const shares = await this.prisma.share.findMany({
+      where: {
+        creatorId: userId,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        recipients: true,
+        files: {
+          orderBy: {
+            name: "asc",
+          },
+        },
+        security: true,
+      },
+    });
+
+    return shares.map((share) => this.toDetailedOwnerShare(share));
+  }
+
+  async getDetailedShareByOwner(id: string, userId: string) {
+    return this.toDetailedOwnerShare(await this.getOwnerShareEntity(id, userId));
+  }
+
+  async assertShareOwnership(id: string, userId: string) {
+    await this.getOwnerShareEntity(id, userId);
+  }
+
   async getMetaData(id: string) {
     const share = await this.prisma.share.findUnique({
       where: { id },
@@ -392,5 +432,70 @@ export class ShareService {
     } catch {
       return false;
     }
+  }
+
+  private async getOwnerShareEntity(id: string, userId: string) {
+    const share = await this.prisma.share.findUnique({
+      where: { id },
+      include: {
+        recipients: true,
+        files: {
+          orderBy: {
+            name: "asc",
+          },
+        },
+        security: true,
+      },
+    });
+
+    if (!share || share.creatorId !== userId) {
+      throw new NotFoundException("Share not found");
+    }
+
+    if (share.removedReason) {
+      throw new NotFoundException(share.removedReason, "share_removed");
+    }
+
+    return share;
+  }
+
+  private toDetailedOwnerShare(share: {
+    createdAt: Date;
+    description: string | null;
+    expiration: Date;
+    files: {
+      createdAt: Date;
+      id: string;
+      name: string;
+      shareId: string;
+      size: string;
+    }[];
+    id: string;
+    isZipReady: boolean;
+    name: string | null;
+    recipients: { email: string }[];
+    security: { maxViews: number | null; password: string | null } | null;
+    uploadLocked: boolean;
+    views: number;
+  }) {
+    return {
+      id: share.id,
+      name: share.name,
+      createdAt: share.createdAt,
+      expiration: share.expiration,
+      description: share.description,
+      views: share.views,
+      uploadLocked: share.uploadLocked,
+      isZipReady: share.isZipReady,
+      recipients: share.recipients.map((recipient) => recipient.email),
+      files: share.files,
+      size: share.files.reduce((acc, file) => acc + parseInt(file.size), 0),
+      security: share.security
+        ? {
+            maxViews: share.security.maxViews,
+            passwordProtected: !!share.security.password,
+          }
+        : undefined,
+    };
   }
 }

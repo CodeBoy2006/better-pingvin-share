@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import * as moment from "moment";
 import { ConfigService } from "src/config/config.service";
 import { FileService } from "src/file/file.service";
@@ -108,5 +108,17 @@ export class ReverseShareService {
     }
 
     await this.prisma.reverseShare.delete({ where: { id } });
+  }
+
+  async getByIdAndOwner(id: string, userId: string) {
+    const reverseShare = await this.prisma.reverseShare.findUnique({
+      where: { id },
+    });
+
+    if (!reverseShare || reverseShare.creatorId !== userId) {
+      throw new NotFoundException("Reverse share not found");
+    }
+
+    return reverseShare;
   }
 }

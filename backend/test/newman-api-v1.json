@@ -1,0 +1,434 @@
+{
+  "info": {
+    "_postman_id": "5aa14eb4-cd67-4c49-b1f2-automation-api-v1",
+    "name": "Pingvin Share Automation API v1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "API_URL", "value": "http://localhost:8080/api" },
+    { "key": "COOKIES", "value": "" },
+    { "key": "API_TOKEN", "value": "" },
+    { "key": "SHARE_ID", "value": "api-v1-share" },
+    { "key": "FILE_ID", "value": "" },
+    { "key": "MULTIPART_SHARE_ID", "value": "api-v1-multipart-share" },
+    { "key": "MULTIPART_FILE_ID", "value": "" },
+    { "key": "REVERSE_SHARE_TOKEN", "value": "" },
+    { "key": "REVERSE_SHARE_ID", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Setup",
+      "item": [
+        {
+          "name": "Sign Up",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
+                  "const cookies = pm.response.headers",
+                  "  .all()",
+                  "  .filter((header) => header.key.toLowerCase() === 'set-cookie')",
+                  "  .map((header) => header.value.split(';')[0])",
+                  "  .join('; ');",
+                  "pm.collectionVariables.set('COOKIES', cookies);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"automation@test.org\",\n  \"username\": \"automation.test\",\n  \"password\": \"VerySecure123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{API_URL}}/auth/signUp",
+              "host": ["{{API_URL}}"],
+              "path": ["auth", "signUp"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tokens",
+      "item": [
+        {
+          "name": "Create API Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.expect(body).to.have.property('token');",
+                  "pm.collectionVariables.set('API_TOKEN', body.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Cookie", "value": "{{COOKIES}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"System automation token\",\n  \"scopes\": [\n    \"shares:read\",\n    \"shares:write\",\n    \"files:read\",\n    \"files:write\",\n    \"reverseShares:read\",\n    \"reverseShares:write\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{API_URL}}/v1/tokens",
+              "host": ["{{API_URL}}"],
+              "path": ["v1", "tokens"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Shares",
+      "item": [
+        {
+          "name": "Create Draft Share",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.expect(body.uploadLocked).to.eql(false);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{API_TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{SHARE_ID}}\",\n  \"expiration\": \"1-day\",\n  \"recipients\": [],\n  \"security\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{API_URL}}/v1/shares",
+              "host": ["{{API_URL}}"],
+              "path": ["v1", "shares"]
+            }
+          }
+        },
+        {
+          "name": "Upload Chunk File",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.expect(body).to.have.property('id');",
+                  "pm.collectionVariables.set('FILE_ID', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{API_TOKEN}}" },
+              { "key": "Content-Type", "value": "application/octet-stream" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "data:application/octet-stream;base64,VGhpcyBpcyBhbiBhdXRvbWF0aW9uIEFQSSB2MSBjaHVuayB1cGxvYWQgZml4dHVyZS4="
+            },
+            "url": {
+              "raw": "{{API_URL}}/v1/shares/{{SHARE_ID}}/files?name=chunk-file.txt&chunkIndex=0&totalChunks=1",
+              "host": ["{{API_URL}}"],
+              "path": ["v1", "shares", "{{SHARE_ID}}", "files"],
+              "query": [
+                { "key": "name", "value": "chunk-file.txt" },
+                { "key": "chunkIndex", "value": "0" },
+                { "key": "totalChunks", "value": "1" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Draft Share",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.expect(body.uploadLocked).to.eql(false);",
+                  "pm.expect(body.files.length).to.eql(1);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{API_TOKEN}}" }
+            ],
+            "url": {
+              "raw": "{{API_URL}}/v1/shares/{{SHARE_ID}}",
+              "host": ["{{API_URL}}"],
+              "path": ["v1", "shares", "{{SHARE_ID}}"]
+            }
+          }
+        },
+        {
+          "name": "Complete Share",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 202\", () => pm.response.to.have.status(202));",
+                  "const body = pm.response.json();",
+                  "pm.expect(body.uploadLocked).to.eql(true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{API_TOKEN}}" }
+            ],
+            "url": {
+              "raw": "{{API_URL}}/v1/shares/{{SHARE_ID}}/complete",
+              "host": ["{{API_URL}}"],
+              "path": ["v1", "shares", "{{SHARE_ID}}", "complete"]
+            }
+          }
+        },
+        {
+          "name": "Download File",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{API_TOKEN}}" }
+            ],
+            "url": {
+              "raw": "{{API_URL}}/v1/shares/{{SHARE_ID}}/files/{{FILE_ID}}",
+              "host": ["{{API_URL}}"],
+              "path": ["v1", "shares", "{{SHARE_ID}}", "files", "{{FILE_ID}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Multipart Share",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{API_TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{MULTIPART_SHARE_ID}}\",\n  \"expiration\": \"1-day\",\n  \"recipients\": [],\n  \"security\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{API_URL}}/v1/shares",
+              "host": ["{{API_URL}}"],
+              "path": ["v1", "shares"]
+            }
+          }
+        },
+        {
+          "name": "Upload Multipart File",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('MULTIPART_FILE_ID', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{API_TOKEN}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "test/fixtures/api-v1-multipart.txt"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{API_URL}}/v1/shares/{{MULTIPART_SHARE_ID}}/files/multipart",
+              "host": ["{{API_URL}}"],
+              "path": [
+                "v1",
+                "shares",
+                "{{MULTIPART_SHARE_ID}}",
+                "files",
+                "multipart"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reverse Shares",
+      "item": [
+        {
+          "name": "Create Reverse Share",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('REVERSE_SHARE_TOKEN', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{API_TOKEN}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shareExpiration\": \"1-day\",\n  \"maxShareSize\": \"1000000\",\n  \"maxUseCount\": 2,\n  \"sendEmailNotification\": false,\n  \"simplified\": false,\n  \"publicAccess\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{API_URL}}/v1/reverse-shares",
+              "host": ["{{API_URL}}"],
+              "path": ["v1", "reverse-shares"]
+            }
+          }
+        },
+        {
+          "name": "List Reverse Shares",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "const reverseShare = pm.response.json().find((item) => item.token === pm.collectionVariables.get('REVERSE_SHARE_TOKEN'));",
+                  "pm.expect(reverseShare).to.exist;",
+                  "pm.collectionVariables.set('REVERSE_SHARE_ID', reverseShare.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{API_TOKEN}}" }
+            ],
+            "url": {
+              "raw": "{{API_URL}}/v1/reverse-shares",
+              "host": ["{{API_URL}}"],
+              "path": ["v1", "reverse-shares"]
+            }
+          }
+        },
+        {
+          "name": "Delete Reverse Share",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{API_TOKEN}}" }
+            ],
+            "url": {
+              "raw": "{{API_URL}}/v1/reverse-shares/{{REVERSE_SHARE_ID}}",
+              "host": ["{{API_URL}}"],
+              "path": ["v1", "reverse-shares", "{{REVERSE_SHARE_ID}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -22,7 +22,7 @@ import {
 
 function generateNestJsLogLevels(): LogLevel[] {
   if (LOG_LEVEL_ENV) {
-    const levelIndex = LOG_LEVEL_AVAILABLE.indexOf(LOG_LEVEL_ENV as any);
+    const levelIndex = LOG_LEVEL_AVAILABLE.indexOf(LOG_LEVEL_ENV as LogLevel);
     if (levelIndex === -1) {
       throw new Error(`log level ${LOG_LEVEL_ENV} unknown`);
     }
@@ -31,6 +31,20 @@ function generateNestJsLogLevels(): LogLevel[] {
   } else {
     const levelIndex = LOG_LEVEL_AVAILABLE.indexOf(LOG_LEVEL_DEFAULT);
     return LOG_LEVEL_AVAILABLE.slice(levelIndex, LOG_LEVEL_AVAILABLE.length);
+  }
+}
+
+function parseApiCorsAllowedOrigins(config: ConfigService) {
+  try {
+    return new Set(
+      config
+        .get("api.corsAllowedOrigins")
+        .split(",")
+        .map((origin: string) => origin.trim())
+        .filter(Boolean),
+    );
+  } catch {
+    return new Set<string>();
   }
 }
 
@@ -64,11 +78,49 @@ async function bootstrap() {
 
   app.setGlobalPrefix("api");
 
+  const allowedApiOrigins = parseApiCorsAllowedOrigins(config);
+
+  app.use("/api/v1", (req: Request, res: Response, next: NextFunction) => {
+    const origin = req.headers.origin;
+
+    if (!origin || !allowedApiOrigins.has(origin)) {
+      return next();
+    }
+
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Vary", "Origin");
+    res.header(
+      "Access-Control-Allow-Methods",
+      "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+    );
+    res.header("Access-Control-Allow-Headers", "Authorization, Content-Type");
+
+    if (req.method === "OPTIONS") {
+      res.status(204).send();
+      return;
+    }
+
+    next();
+  });
+
   // Setup Swagger in development mode
   if (process.env.NODE_ENV == "development") {
     const config = new DocumentBuilder()
       .setTitle("Pingvin Share API")
       .setVersion("1.0")
+      .addBearerAuth(
+        {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "API Token",
+          description: "Automation API token",
+        },
+        "api-token",
+      )
+      .addCookieAuth("access_token", {
+        type: "apiKey",
+        in: "cookie",
+      }, "web-session")
       .build();
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup("api/swagger", app, document);

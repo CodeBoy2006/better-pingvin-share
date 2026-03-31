@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { LocalFileService } from "./local.service";
 import { S3FileService } from "./s3.service";
 import { ConfigService } from "src/config/config.service";
@@ -45,11 +45,31 @@ export class FileService {
     const share = await this.prisma.share.findFirst({
       where: { id: shareId },
     });
+    const fileMetaData = await this.prisma.file.findUnique({
+      where: { id: fileId },
+    });
+
+    if (!fileMetaData || fileMetaData.shareId !== shareId) {
+      throw new NotFoundException("File not found");
+    }
+
+    if (!share) {
+      throw new NotFoundException("Share not found");
+    }
+
     const storageService = this.getStorageService(share.storageProvider);
     return storageService.get(shareId, fileId);
   }
 
   async remove(shareId: string, fileId: string) {
+    const fileMetaData = await this.prisma.file.findUnique({
+      where: { id: fileId },
+    });
+
+    if (!fileMetaData || fileMetaData.shareId !== shareId) {
+      throw new NotFoundException("File not found");
+    }
+
     const storageService = this.getStorageService();
     return storageService.remove(shareId, fileId);
   }

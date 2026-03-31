@@ -1,0 +1,1 @@
+Pingvin Share automation API multipart upload fixture.

@@ -8,6 +8,18 @@ export const configVariables = {
       value: crypto.randomBytes(256).toString("base64"),
       locked: true,
     },
+    apiTokenSecret: {
+      type: "string",
+      value: crypto.randomBytes(256).toString("base64"),
+      locked: true,
+    },
+  },
+  api: {
+    corsAllowedOrigins: {
+      type: "string",
+      defaultValue: "",
+      secret: false,
+    },
   },
   general: {
     appName: {

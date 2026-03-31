@@ -59,8 +59,8 @@ export class ShareController {
 
   @Get(":id/from-owner")
   @UseGuards(ShareOwnerGuard)
-  async getFromOwner(@Param("id") id: string) {
-    return new ShareDTO().from(await this.shareService.get(id));
+  async getFromOwner(@Param("id") id: string, @GetUser() user: User) {
+    return new ShareDTO().from(await this.shareService.getForOwner(id, user.id));
   }
 
   @Get(":id/metaData")

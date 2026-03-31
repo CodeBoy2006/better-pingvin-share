@@ -49,6 +49,36 @@ The website is now listening on `http://localhost:3000`, have fun with Pingvin S
 
 For more installation options and advanced configurations, please refer to the [documentation](https://stonith404.github.io/pingvin-share).
 
+## 🤖 Automation API
+
+Pingvin Share now includes an automation-focused API under `/api/v1`.
+
+- Authentication for `/api/v1` uses bearer tokens, not the browser `access_token` cookie
+- Bearer tokens can be created from the account page and are shown only once
+- Small uploads can use `multipart/form-data`; large or resumable uploads can keep using chunked `application/octet-stream`
+- Browser-based cross-origin access to `/api/v1` is disabled by default and can be enabled with `api.corsAllowedOrigins`
+
+Example small upload:
+
+```bash
+curl -X POST \
+  -H "Authorization: Bearer $PINGVIN_API_TOKEN" \
+  -F "file=@artifact.zip" \
+  http://localhost:3000/api/v1/shares/my-share/files/multipart
+```
+
+Example chunk upload:
+
+```bash
+curl -X POST \
+  -H "Authorization: Bearer $PINGVIN_API_TOKEN" \
+  -H "Content-Type: application/octet-stream" \
+  --data-binary @chunk.bin \
+  "http://localhost:3000/api/v1/shares/my-share/files?name=artifact.zip&chunkIndex=0&totalChunks=1"
+```
+
+In development mode, Swagger documents both the legacy routes and the new automation endpoints at `/api/swagger`.
+
 ## 🖤 Contribute
 
 We would love it if you want to help make Pingvin Share better! You can either [help to translate](https://stonith404.github.io/pingvin-share/help-out/translate) Pingvin Share or [contribute to the codebase](https://stonith404.github.io/pingvin-share/help-out/contribute).

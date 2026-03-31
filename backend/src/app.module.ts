@@ -1,6 +1,8 @@
 import { Module } from "@nestjs/common";
 
 import { ScheduleModule } from "@nestjs/schedule";
+import { ApiTokenModule } from "./apiToken/apiToken.module";
+import { ApiV1Module } from "./apiV1/apiV1.module";
 import { AuthModule } from "./auth/auth.module";
 
 import { APP_GUARD } from "@nestjs/core";
@@ -21,6 +23,8 @@ import { UserModule } from "./user/user.module";
 @Module({
   imports: [
     ConfigModule,
+    ApiTokenModule,
+    ApiV1Module,
     AuthModule,
     ShareModule,
     FileModule,

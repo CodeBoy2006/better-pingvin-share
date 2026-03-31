@@ -22,6 +22,7 @@ model User {
   refreshTokens RefreshToken[]
   loginTokens   LoginToken[]
   reverseShares ReverseShare[]
+  apiTokens     ApiToken[]
 
   totpEnabled        Boolean             @default(false)
   totpVerified       Boolean             @default(false)
@@ -29,6 +30,23 @@ model User {
   resetPasswordToken ResetPasswordToken?
 
   oAuthUsers OAuthUser[]
+}
+
+model ApiToken {
+  id         String    @id @default(uuid())
+  createdAt  DateTime  @default(now())
+  name       String
+  secretHash String
+  scopes     String
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+  lastUsedIp String?
+  revokedAt  DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model RefreshToken {

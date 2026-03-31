@@ -1,12 +1,14 @@
 import {
   Badge,
   Button,
+  Checkbox,
   Center,
   Container,
   Group,
   Paper,
   PasswordInput,
   Stack,
+  Table,
   Tabs,
   Text,
   TextInput,
@@ -22,13 +24,23 @@ import Meta from "../../components/Meta";
 import LanguagePicker from "../../components/account/LanguagePicker";
 import ThemeSwitcher from "../../components/account/ThemeSwitcher";
 import showEnableTotpModal from "../../components/account/showEnableTotpModal";
-import useConfig from "../../hooks/config.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
 import useUser from "../../hooks/user.hook";
+import apiTokenService from "../../services/apiToken.service";
 import authService from "../../services/auth.service";
 import userService from "../../services/user.service";
+import { ApiToken, ApiTokenScope } from "../../types/apiToken.type";
 import { getOAuthIcon, getOAuthUrl, unlinkOAuth } from "../../utils/oauth.util";
 import toast from "../../utils/toast.util";
+
+const API_TOKEN_SCOPE_OPTIONS: ApiTokenScope[] = [
+  "shares:read",
+  "shares:write",
+  "files:read",
+  "files:write",
+  "reverseShares:read",
+  "reverseShares:write",
+];
 
 const Account = () => {
   const [oauth, setOAuth] = useState<string[]>([]);
@@ -39,11 +51,11 @@ const Account = () => {
       providerUsername: string;
     }
   > | null>(null);
+  const [apiTokens, setApiTokens] = useState<ApiToken[]>([]);
 
   const { user, refreshUser } = useUser();
   const modals = useModals();
   const t = useTranslate();
-  const config = useConfig();
 
   const accountForm = useForm({
     initialValues: {
@@ -114,6 +126,21 @@ const Account = () => {
     ),
   });
 
+  const apiTokenForm = useForm({
+    initialValues: {
+      name: "",
+      scopes: [] as ApiTokenScope[],
+      expiresAt: "",
+    },
+    validate: yupResolver(
+      yup.object().shape({
+        name: yup.string().required().max(64),
+        scopes: yup.array().of(yup.string()).min(1, "Select at least one scope"),
+        expiresAt: yup.string().optional(),
+      }),
+    ),
+  });
+
   const refreshOAuthStatus = () => {
     authService
       .getOAuthStatus()
@@ -121,6 +148,42 @@ const Account = () => {
         setOAuthStatus(data.data);
       })
       .catch(toast.axiosError);
+  };
+
+  const refreshApiTokens = () => {
+    apiTokenService
+      .list()
+      .then(setApiTokens)
+      .catch(toast.axiosError);
+  };
+
+  const formatDateTime = (value?: string | null) => {
+    if (!value) return "Never";
+    return new Date(value).toLocaleString();
+  };
+
+  const showCreatedTokenModal = (token: string) => {
+    modals.openModal({
+      title: "New API Token",
+      children: (
+        <Stack>
+          <Text size="sm">
+            Copy this token now. You will not be able to see it again.
+          </Text>
+          <TextInput value={token} readOnly />
+          <Group position="right">
+            <Button
+              onClick={() => {
+                navigator.clipboard.writeText(token);
+                toast.success("Token copied");
+              }}
+            >
+              Copy token
+            </Button>
+          </Group>
+        </Stack>
+      ),
+    });
   };
 
   useEffect(() => {
@@ -131,6 +194,7 @@ const Account = () => {
       })
       .catch(toast.axiosError);
     refreshOAuthStatus();
+    refreshApiTokens();
   }, []);
 
   return (
@@ -384,6 +448,142 @@ const Account = () => {
             <FormattedMessage id="account.card.language.title" />
           </Title>
           <LanguagePicker />
+        </Paper>
+        <Paper withBorder p="xl" mt="lg">
+          <Title order={5} mb="xs">
+            API Tokens
+          </Title>
+          <Text size="sm" color="dimmed" mb="md">
+            Create bearer tokens for scripts, CI jobs, and other automation.
+          </Text>
+          <form
+            onSubmit={apiTokenForm.onSubmit((values) => {
+              apiTokenService
+                .create({
+                  name: values.name,
+                  scopes: values.scopes,
+                  expiresAt: values.expiresAt
+                    ? new Date(values.expiresAt).toISOString()
+                    : undefined,
+                })
+                .then((token) => {
+                  apiTokenForm.reset();
+                  refreshApiTokens();
+                  showCreatedTokenModal(token.token);
+                })
+                .catch(toast.axiosError);
+            })}
+          >
+            <Stack>
+              <TextInput
+                label="Token name"
+                placeholder="CI deploy token"
+                {...apiTokenForm.getInputProps("name")}
+              />
+              <Checkbox.Group
+                label="Scopes"
+                {...apiTokenForm.getInputProps("scopes")}
+              >
+                <Stack spacing="xs" mt="xs">
+                  {API_TOKEN_SCOPE_OPTIONS.map((scope) => (
+                    <Checkbox key={scope} value={scope} label={scope} />
+                  ))}
+                </Stack>
+              </Checkbox.Group>
+              <TextInput
+                label="Expires at"
+                description="Optional. Leave empty to keep the token active until it is revoked."
+                type="datetime-local"
+                {...apiTokenForm.getInputProps("expiresAt")}
+              />
+              <Group position="right">
+                <Button type="submit">Create token</Button>
+              </Group>
+            </Stack>
+          </form>
+          <Table verticalSpacing="sm" mt="lg">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Scopes</th>
+                <th>Created</th>
+                <th>Last used</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {apiTokens.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>
+                    <Text size="sm" color="dimmed">
+                      No API tokens yet.
+                    </Text>
+                  </td>
+                </tr>
+              ) : (
+                apiTokens.map((token) => (
+                  <tr key={token.id}>
+                    <td>{token.name}</td>
+                    <td>{token.scopes.join(", ")}</td>
+                    <td>{formatDateTime(token.createdAt)}</td>
+                    <td>
+                      {token.lastUsedAt
+                        ? `${formatDateTime(token.lastUsedAt)}${
+                            token.lastUsedIp ? ` (${token.lastUsedIp})` : ""
+                          }`
+                        : "Never"}
+                    </td>
+                    <td>
+                      {token.revokedAt ? (
+                        <Badge color="red">Revoked</Badge>
+                      ) : token.expiresAt &&
+                        new Date(token.expiresAt).getTime() <= Date.now() ? (
+                        <Badge color="yellow">Expired</Badge>
+                      ) : (
+                        <Badge color="green">Active</Badge>
+                      )}
+                    </td>
+                    <td>
+                      <Group position="right">
+                        <Button
+                          color="red"
+                          variant="light"
+                          disabled={!!token.revokedAt}
+                          onClick={() =>
+                            modals.openConfirmModal({
+                              title: "Revoke API Token",
+                              children: (
+                                <Text size="sm">
+                                  This token will stop working immediately.
+                                </Text>
+                              ),
+                              labels: {
+                                confirm: "Revoke",
+                                cancel: t("common.button.cancel"),
+                              },
+                              confirmProps: { color: "red" },
+                              onConfirm: () => {
+                                apiTokenService
+                                  .remove(token.id)
+                                  .then(() => {
+                                    toast.success("API token revoked");
+                                    refreshApiTokens();
+                                  })
+                                  .catch(toast.axiosError);
+                              },
+                            })
+                          }
+                        >
+                          Revoke
+                        </Button>
+                      </Group>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </Table>
         </Paper>
         <Paper withBorder p="xl" mt="lg">
           <Title order={5} mb="xs">
