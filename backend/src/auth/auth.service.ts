@@ -176,11 +176,18 @@ export class AuthService {
     if (this.config.get("oauth.disablePassword"))
       throw new ForbiddenException("Password sign in is disabled");
 
-    const user = await this.prisma.user.findFirst({
-      where: { resetPasswordToken: { token } },
+    const resetPasswordToken = await this.prisma.resetPasswordToken.findFirst({
+      where: {
+        token,
+        expiresAt: { gt: new Date() },
+      },
+      include: {
+        user: true,
+      },
     });
 
-    if (!user) throw new BadRequestException("Token invalid or expired");
+    if (!resetPasswordToken)
+      throw new BadRequestException("Token invalid or expired");
 
     const newPasswordHash = await argon.hash(newPassword);
 
@@ -189,7 +196,7 @@ export class AuthService {
     });
 
     await this.prisma.user.update({
-      where: { id: user.id },
+      where: { id: resetPasswordToken.user.id },
       data: { password: newPasswordHash },
     });
   }

@@ -13,3 +13,8 @@
 - **Status:** Completed
 - **Next Steps:** If desired, clean up the existing frontend warning set separately; it does not currently block CI because `next lint` exits successfully.
 - **Context:** DeepWiki was rate-limited during verification, so the migration was validated against the official ESLint v9 flat-config guide and typescript-eslint flat-config docs instead.
+## [$(date '+%Y-%m-%d %H:%M')] Reset password token expiry enforcement
+- **Changes:** Updated `backend/src/auth/auth.service.ts` so password resets load `ResetPasswordToken` records directly and only accept tokens whose `expiresAt` is still in the future before changing the password.
+- **Status:** Completed
+- **Next Steps:** Fix the remaining auth issues: TOTP password confirmation and LDAP password verification.
+- **Context:** Backend verification succeeded after regenerating the local Prisma client and rebuilding; the regression check now confirms expired reset tokens are rejected without mutating user state.
