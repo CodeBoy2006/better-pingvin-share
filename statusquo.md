@@ -33,3 +33,8 @@
 - **Status:** Completed
 - **Next Steps:** Push the four security-fix commits to the remote branch.
 - **Context:** Verified with backend/frontend production builds plus a backend regression script that anonymous owner actions are denied without the dedicated token and accepted with it; owner distribution links now use URL fragments so the token is not sent to the server in the request URL.
+## [$(date '+%Y-%m-%d %H:%M')] Anonymous owner follow-up flow fix
+- **Changes:** Updated `backend/src/share/share.controller.ts` and `backend/src/share/share.service.ts` so anonymous owner-token holders can reopen `/shares/:id/from-owner` without a logged-in user and can delete their own anonymous shares once the guard has already validated the dedicated owner token.
+- **Status:** Completed
+- **Next Steps:** No additional follow-up is required for the anonymous owner-token flow unless we want to add end-to-end browser tests later.
+- **Context:** Verified with a backend regression script that anonymous owners can now load the owner payload and delete their shares when explicitly authorized, while logged-in share ownership checks still reject requests without the creator identity.

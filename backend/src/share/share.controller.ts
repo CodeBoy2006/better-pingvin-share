@@ -69,8 +69,8 @@ export class ShareController {
 
   @Get(":id/from-owner")
   @UseGuards(ShareOwnerGuard)
-  async getFromOwner(@Param("id") id: string, @GetUser() user: User) {
-    return new ShareDTO().from(await this.shareService.getForOwner(id, user.id));
+  async getFromOwner(@Param("id") id: string, @GetUser() user?: User) {
+    return new ShareDTO().from(await this.shareService.getForOwner(id, user?.id));
   }
 
   @Get(":id/metaData")
@@ -124,9 +124,11 @@ export class ShareController {
 
   @Delete(":id")
   @UseGuards(ShareOwnerGuard)
-  async remove(@Param("id") id: string, @GetUser() user: User) {
-    const isDeleterAdmin = user?.isAdmin === true;
-    await this.shareService.remove(id, isDeleterAdmin);
+  async remove(@Param("id") id: string, @GetUser() user?: User) {
+    await this.shareService.remove(id, {
+      isDeleterAdmin: user?.isAdmin === true,
+      allowAnonymousOwner: !user,
+    });
   }
 
   @Throttle({

@@ -289,7 +289,7 @@ export class ShareService {
     };
   }
 
-  async getForOwner(id: string, userId: string): Promise<any> {
+  async getForOwner(id: string, userId?: string): Promise<any> {
     const share = await this.getOwnerShareEntity(id, userId);
 
     return {
@@ -340,14 +340,21 @@ export class ShareService {
     return share;
   }
 
-  async remove(shareId: string, isDeleterAdmin = false) {
+  async remove(
+    shareId: string,
+    options?: { isDeleterAdmin?: boolean; allowAnonymousOwner?: boolean },
+  ) {
     const share = await this.prisma.share.findUnique({
       where: { id: shareId },
     });
 
     if (!share) throw new NotFoundException("Share not found");
 
-    if (!share.creatorId && !isDeleterAdmin)
+    if (
+      !share.creatorId &&
+      !options?.isDeleterAdmin &&
+      !options?.allowAnonymousOwner
+    )
       throw new ForbiddenException("Anonymous shares can't be deleted");
 
     await this.fileService.deleteAllFiles(shareId);
@@ -493,7 +500,7 @@ export class ShareService {
     }
   }
 
-  private async getOwnerShareEntity(id: string, userId: string) {
+  private async getOwnerShareEntity(id: string, userId?: string) {
     const share = await this.prisma.share.findUnique({
       where: { id },
       include: {
@@ -507,7 +514,7 @@ export class ShareService {
       },
     });
 
-    if (!share || share.creatorId !== userId) {
+    if (!share || (share.creatorId && share.creatorId !== userId)) {
       throw new NotFoundException("Share not found");
     }
 
