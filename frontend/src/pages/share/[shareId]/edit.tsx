@@ -29,6 +29,15 @@ const Share = ({ shareId }: { shareId: string }) => {
   });
 
   useEffect(() => {
+    const ownerToken = new URLSearchParams(
+      window.location.hash.replace(/^#/, ""),
+    ).get("ownerToken");
+
+    if (ownerToken) {
+      shareService.setShareOwnerToken(shareId, ownerToken);
+      window.history.replaceState(null, "", `/share/${shareId}/edit`);
+    }
+
     shareService
       .getFromOwner(shareId)
       .then((share) => {
@@ -63,7 +72,7 @@ const Share = ({ shareId }: { shareId: string }) => {
       .finally(() => {
         setIsLoading(false);
       });
-  }, []);
+  }, [shareId]);
 
   if (isLoading) return <LoadingOverlay visible />;
 

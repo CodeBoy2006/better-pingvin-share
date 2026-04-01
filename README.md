@@ -49,6 +49,9 @@ The website is now listening on `http://localhost:3000`, have fun with Pingvin S
 
 For more installation options and advanced configurations, please refer to the [documentation](https://stonith404.github.io/pingvin-share).
 
+> [!IMPORTANT]
+> Anonymous browser uploads now generate a dedicated edit link for the uploader. Treat that link as a secret because it grants owner-level access to the share.
+
 ## 🤖 Automation API
 
 Pingvin Share now includes an automation-focused API under `/api/v1`.

@@ -36,6 +36,22 @@ const Body = ({ share }: { share: CompletedShare }) => {
   return (
     <Stack align="stretch">
       <CopyTextField link={link} />
+      {share.ownerManagementLink && (
+        <>
+          <Text
+            size="sm"
+            sx={(theme) => ({
+              color:
+                theme.colorScheme === "dark"
+                  ? theme.colors.gray[3]
+                  : theme.colors.dark[4],
+            })}
+          >
+            {t("share.edit.title", { shareId: share.id })}
+          </Text>
+          <CopyTextField link={share.ownerManagementLink} />
+        </>
+      )}
       {share.notifyReverseShareCreator === true && (
         <Text
           size="sm"

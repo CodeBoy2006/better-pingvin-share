@@ -11,6 +11,16 @@ import {
 } from "../types/share.type";
 import api from "./api.service";
 
+const getOwnerTokenCookieName = (shareId: string) =>
+  `share_${shareId}_owner_token`;
+
+const setShareOwnerToken = (shareId: string, ownerToken: string) => {
+  setCookie(getOwnerTokenCookieName(shareId), ownerToken, {
+    path: "/",
+    sameSite: "lax",
+  });
+};
+
 const list = async (): Promise<MyShare[]> => {
   return (await api.get(`shares/all`)).data;
 };
@@ -19,12 +29,23 @@ const create = async (share: CreateShare, isReverseShare = false) => {
   if (!isReverseShare) {
     deleteCookie("reverse_share_token");
   }
-  return (await api.post("shares", share)).data;
+  const response = (await api.post("shares", share)).data;
+
+  if (response.ownerToken) {
+    setShareOwnerToken(response.id, response.ownerToken);
+  }
+
+  return response;
 };
 
 const completeShare = async (id: string) => {
   const response = (await api.post(`shares/${id}/complete`)).data;
   deleteCookie("reverse_share_token");
+
+  if (response.ownerToken) {
+    setShareOwnerToken(response.id, response.ownerToken);
+  }
+
   return response;
 };
 
@@ -46,6 +67,7 @@ const getMetaData = async (id: string): Promise<ShareMetaData> => {
 
 const remove = async (id: string) => {
   await api.delete(`shares/${id}`);
+  deleteCookie(getOwnerTokenCookieName(id), { path: "/" });
 };
 
 const getMyShares = async (): Promise<MyShare[]> => {
@@ -161,4 +183,5 @@ export default {
   createReverseShare,
   getMyReverseShares,
   removeReverseShare,
+  setShareOwnerToken,
 };

@@ -28,3 +28,8 @@
 - **Status:** Completed
 - **Next Steps:** Implement dedicated anonymous share owner tokens so unauthenticated uploads can be managed without treating everyone as the owner.
 - **Context:** Verified with a regression script that failed LDAP binds now return `false` and successful binds return `true` instead of every Promise being treated as truthy.
+## [$(date '+%Y-%m-%d %H:%M')] Anonymous share owner token hardening
+- **Changes:** Added dedicated anonymous-share owner capability tokens in `backend/src/share/share.service.ts`, enforced them in `backend/src/share/guard/shareOwner.guard.ts`, exposed owner-management links from `backend/src/share/share.controller.ts`, updated the frontend upload/edit flow to store and consume those tokens securely, and documented the new anonymous edit-link behavior in `README.md`.
+- **Status:** Completed
+- **Next Steps:** Push the four security-fix commits to the remote branch.
+- **Context:** Verified with backend/frontend production builds plus a backend regression script that anonymous owner actions are denied without the dedicated token and accepted with it; owner distribution links now use URL fragments so the token is not sent to the server in the request URL.

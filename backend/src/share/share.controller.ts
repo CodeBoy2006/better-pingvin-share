@@ -30,6 +30,16 @@ import { ShareSecurityGuard } from "./guard/shareSecurity.guard";
 import { ShareTokenSecurity } from "./guard/shareTokenSecurity.guard";
 import { ShareService } from "./share.service";
 import { CompletedShareDTO } from "./dto/shareComplete.dto";
+
+function hasAnonymousOwnerAccess(
+  value: object,
+): value is {
+  ownerToken: string;
+  ownerManagementLink: string;
+} {
+  return "ownerToken" in value && "ownerManagementLink" in value;
+}
+
 @Controller("shares")
 export class ShareController {
   constructor(
@@ -77,9 +87,16 @@ export class ShareController {
     @GetUser() user: User,
   ) {
     const { reverse_share_token } = request.cookies;
-    return new ShareDTO().from(
-      await this.shareService.create(body, user, reverse_share_token),
-    );
+    const share = await this.shareService.create(body, user, reverse_share_token);
+    return {
+      ...new ShareDTO().from(share),
+      ...(hasAnonymousOwnerAccess(share)
+        ? {
+            ownerToken: share.ownerToken,
+            ownerManagementLink: share.ownerManagementLink,
+          }
+        : {}),
+    };
   }
 
   @Post(":id/complete")
@@ -87,9 +104,16 @@ export class ShareController {
   @UseGuards(CreateShareGuard, ShareOwnerGuard)
   async complete(@Param("id") id: string, @Req() request: Request) {
     const { reverse_share_token } = request.cookies;
-    return new CompletedShareDTO().from(
-      await this.shareService.complete(id, reverse_share_token),
-    );
+    const share = await this.shareService.complete(id, reverse_share_token);
+    return {
+      ...new CompletedShareDTO().from(share),
+      ...(hasAnonymousOwnerAccess(share)
+        ? {
+            ownerToken: share.ownerToken,
+            ownerManagementLink: share.ownerManagementLink,
+          }
+        : {}),
+    };
   }
 
   @Delete(":id/complete")

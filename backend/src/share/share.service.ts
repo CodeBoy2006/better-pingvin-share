@@ -102,6 +102,13 @@ export class ShareService {
       });
     }
 
+    if (!shareTuple.creatorId) {
+      return {
+        ...shareTuple,
+        ...(await this.getAnonymousOwnerAccess(shareTuple.id)),
+      };
+    }
+
     return shareTuple;
   }
 
@@ -189,10 +196,19 @@ export class ShareService {
       data: { uploadLocked: true },
     });
 
-    return {
+    const result = {
       ...updatedShare,
       notifyReverseShareCreator,
     };
+
+    if (!share.creatorId) {
+      return {
+        ...result,
+        ...(await this.getAnonymousOwnerAccess(id)),
+      };
+    }
+
+    return result;
   }
 
   async revertComplete(id: string) {
@@ -413,6 +429,28 @@ export class ShareService {
     return this.jwtService.sign(tokenPayload, tokenOptions);
   }
 
+  async generateShareOwnerToken(shareId: string) {
+    const { expiration, createdAt } = await this.prisma.share.findUnique({
+      where: { id: shareId },
+    });
+
+    const tokenPayload = {
+      shareId,
+      shareCreatedAt: moment(createdAt).unix(),
+      tokenType: "share-owner",
+    };
+
+    const tokenOptions: JwtSignOptions = {
+      secret: this.config.get("internal.jwtSecret"),
+    };
+
+    if (!moment(expiration).isSame(0)) {
+      tokenOptions.expiresIn = moment(expiration).diff(new Date(), "seconds");
+    }
+
+    return this.jwtService.sign(tokenPayload, tokenOptions);
+  }
+
   async verifyShareToken(shareId: string, token: string) {
     const { expiration, createdAt } = await this.prisma.share.findUnique({
       where: { id: shareId },
@@ -426,6 +464,27 @@ export class ShareService {
       });
 
       return (
+        claims.shareId == shareId &&
+        claims.shareCreatedAt == moment(createdAt).unix()
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  async verifyShareOwnerToken(shareId: string, token: string) {
+    const { expiration, createdAt } = await this.prisma.share.findUnique({
+      where: { id: shareId },
+    });
+
+    try {
+      const claims = this.jwtService.verify(token, {
+        secret: this.config.get("internal.jwtSecret"),
+        ignoreExpiration: moment(expiration).isSame(0),
+      });
+
+      return (
+        claims.tokenType === "share-owner" &&
         claims.shareId == shareId &&
         claims.shareCreatedAt == moment(createdAt).unix()
       );
@@ -494,8 +553,19 @@ export class ShareService {
         ? {
             maxViews: share.security.maxViews,
             passwordProtected: !!share.security.password,
-          }
+      }
         : undefined,
+    };
+  }
+
+  private async getAnonymousOwnerAccess(shareId: string) {
+    const ownerToken = await this.generateShareOwnerToken(shareId);
+
+    return {
+      ownerToken,
+      ownerManagementLink: `${this.config.get(
+        "general.appUrl",
+      )}/share/${shareId}/edit#ownerToken=${encodeURIComponent(ownerToken)}`,
     };
   }
 }

@@ -9,6 +9,8 @@ export type Share = {
   expiration: Date;
   size: number;
   hasPassword: boolean;
+  ownerToken?: string;
+  ownerManagementLink?: string;
 };
 
 export type CompletedShare = Share & {
