@@ -18,3 +18,8 @@
 - **Status:** Completed
 - **Next Steps:** Fix the remaining auth issues: TOTP password confirmation and LDAP password verification.
 - **Context:** Backend verification succeeded after regenerating the local Prisma client and rebuilding; the regression check now confirms expired reset tokens are rejected without mutating user state.
+## [$(date '+%Y-%m-%d %H:%M')] TOTP password confirmation await fix
+- **Changes:** Updated `backend/src/auth/authTotp.service.ts` so enable/verify/disable TOTP paths now await `AuthService.verifyPassword(...)` before allowing any TOTP state change.
+- **Status:** Completed
+- **Next Steps:** Fix the LDAP branch of `AuthService.verifyPassword` so directory-backed accounts are checked correctly.
+- **Context:** Verified with a regression script that mocked async password failures now throw `ForbiddenException` and prevent TOTP state writes.
