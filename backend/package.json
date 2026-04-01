@@ -7,7 +7,7 @@
     "prod": "prisma migrate deploy && prisma db seed && node dist/src/main",
     "lint": "eslint 'src/**/*.ts'",
     "format": "prettier --end-of-line=auto --write 'src/**/*.ts'",
-    "test:system": "mkdir -p data && touch data/pingvin-share.db && prisma migrate reset -f && nest start & wait-on http://localhost:8080/api/configs && newman run ./test/newman-system-tests.json",
+    "test:system": "mkdir -p data && touch data/pingvin-share.db && prisma migrate reset -f && nest start & wait-on http://localhost:8080/api/configs && newman run ./test/newman-system-tests.json && node ./test/anonymous-owner-flow.e2e.js",
     "test:system:v1": "mkdir -p data && touch data/pingvin-share.db && prisma migrate reset -f && nest start & wait-on http://localhost:8080/api/configs && newman run ./test/newman-api-v1.json"
   },
   "prisma": {

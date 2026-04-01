@@ -38,3 +38,8 @@
 - **Status:** Completed
 - **Next Steps:** No additional follow-up is required for the anonymous owner-token flow unless we want to add end-to-end browser tests later.
 - **Context:** Verified with a backend regression script that anonymous owners can now load the owner payload and delete their shares when explicitly authorized, while logged-in share ownership checks still reject requests without the creator identity.
+## [$(date '+%Y-%m-%d %H:%M')] Anonymous owner end-to-end regression coverage
+- **Changes:** Added `backend/test/anonymous-owner-flow.e2e.js` to exercise the anonymous owner-token lifecycle against the running API, and updated `backend/package.json` so `npm run test:system` now runs both the existing Newman suite and the new anonymous-owner regression.
+- **Status:** Completed
+- **Next Steps:** If desired, mirror this coverage in a browser-level test later; the current API-level regression already protects the security-critical owner-token flow.
+- **Context:** I initially tried to extend the Newman collection, but its cookie handling was unreliable for this capability-token scenario, so the final test uses a dedicated Node script with explicit cookie control and was verified by a full passing `backend npm run test:system` run.
