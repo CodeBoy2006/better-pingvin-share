@@ -23,3 +23,8 @@
 - **Status:** Completed
 - **Next Steps:** Fix the LDAP branch of `AuthService.verifyPassword` so directory-backed accounts are checked correctly.
 - **Context:** Verified with a regression script that mocked async password failures now throw `ForbiddenException` and prevent TOTP state writes.
+## [$(date '+%Y-%m-%d %H:%M')] LDAP password verification await fix
+- **Changes:** Updated `backend/src/auth/auth.service.ts` so LDAP-backed password checks now await `ldapService.authenticateUser(...)` and return a real boolean based on the bind result.
+- **Status:** Completed
+- **Next Steps:** Implement dedicated anonymous share owner tokens so unauthenticated uploads can be managed without treating everyone as the owner.
+- **Context:** Verified with a regression script that failed LDAP binds now return `false` and successful binds return `true` instead of every Promise being treated as truthy.

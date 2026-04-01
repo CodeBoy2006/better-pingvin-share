@@ -382,7 +382,11 @@ export class AuthService {
 
   async verifyPassword(user: User, password: string) {
     if (!user.password && this.config.get("ldap.enabled")) {
-      return !!this.ldapService.authenticateUser(user.username, password);
+      const ldapUser = await this.ldapService.authenticateUser(
+        user.username,
+        password,
+      );
+      return !!ldapUser;
     }
 
     return argon.verify(user.password, password);
