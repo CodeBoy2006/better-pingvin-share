@@ -296,7 +296,7 @@ export default {
   // Dropzone.tsx
   "upload.dropzone.title": "Upload files",
   "upload.dropzone.description":
-    "Drag'n'drop files here to start your share. We only accept files up to {maxSize} in total.",
+    "Drag'n'drop files here to start your share, or paste files/text with Ctrl+V. We only accept files up to {maxSize} in total.",
   "upload.dropzone.notify.file-too-big":
     "Your files exceed the maximum share size of {maxSize}.",
 

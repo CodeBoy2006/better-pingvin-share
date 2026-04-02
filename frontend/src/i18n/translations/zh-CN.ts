@@ -220,7 +220,8 @@ export default {
   "upload.reverse-share.error.invalid.description": "这个预留分享已过期或无效。",
   // Dropzone.tsx
   "upload.dropzone.title": "上传文件",
-  "upload.dropzone.description": "拖放至此以上传文件，文件大小不能超过 {maxSize}。",
+  "upload.dropzone.description":
+    "拖放文件到这里开始分享，或使用 Ctrl+V 粘贴文件/文本。文件总大小不能超过 {maxSize}。",
   "upload.dropzone.notify.file-too-big": "你的文件超过了最大上传限制 {maxSize}",
   // FileList.tsx
   "upload.filelist.name": "文件名",

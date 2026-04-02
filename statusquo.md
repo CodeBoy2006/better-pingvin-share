@@ -98,3 +98,8 @@
 - **Status:** Completed
 - **Next Steps:** Finish batch 1 by adding clipboard paste support for uploads.
 - **Context:** Verified with `frontend npm run lint` and `frontend npm run build`; lint still reports the repository's pre-existing warnings plus the same generic callback-name warnings from this new modal code, but the build passed.
+## [2026-04-02 22:29] Paste uploads from the clipboard
+- **Changes:** Added upload-page clipboard handling for pasted files and plain text, while explicitly ignoring pastes into editable form fields so normal typing is not hijacked. Updated the dropzone copy to advertise Ctrl+V support.
+- **Status:** Completed
+- **Next Steps:** Move on to batch 2: admin-wide share access, retention, and delete scheduling.
+- **Context:** Verified with `frontend npm run lint` and `frontend npm run build`; lint still reports the repo's pre-existing warnings plus generic callback-name warnings in upload components, and the build passed.

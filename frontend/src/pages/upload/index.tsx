@@ -152,14 +152,81 @@ const Upload = ({
     );
   };
 
-  const handleDropzoneFilesChanged = (files: FileUpload[]) => {
+  const appendPendingFiles = (pendingFiles: FileUpload[]) => {
     if (autoOpenCreateUploadModal) {
-      setFiles(files);
-      showCreateUploadModalCallback(files);
+      setFiles(pendingFiles);
+      showCreateUploadModalCallback(pendingFiles);
     } else {
-      setFiles((oldArr) => [...oldArr, ...files]);
+      setFiles((oldArr) => [...oldArr, ...pendingFiles]);
     }
   };
+
+  const handleDropzoneFilesChanged = (pendingFiles: FileUpload[]) => {
+    appendPendingFiles(pendingFiles);
+  };
+
+  useEffect(() => {
+    const handlePaste = (event: ClipboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const tagName = target?.tagName?.toLowerCase();
+      const isEditableTarget =
+        target?.isContentEditable ||
+        tagName === "input" ||
+        tagName === "textarea";
+
+      if (isEditableTarget) {
+        return;
+      }
+
+      const clipboardData = event.clipboardData;
+      if (!clipboardData) {
+        return;
+      }
+
+      const pastedFiles = Array.from(clipboardData.items)
+        .filter((item) => item.kind === "file")
+        .map((item) => item.getAsFile())
+        .filter((file): file is File => file !== null)
+        .map((file) => {
+          const uploadableFile = file as FileUpload;
+          uploadableFile.uploadingProgress = 0;
+          return uploadableFile;
+        });
+
+      if (pastedFiles.length > 0) {
+        event.preventDefault();
+        appendPendingFiles(pastedFiles);
+        return;
+      }
+
+      const pastedText = clipboardData.getData("text/plain");
+      if (!pastedText) {
+        return;
+      }
+
+      event.preventDefault();
+
+      const safeName = pastedText
+        .substring(0, 50)
+        .replace(/[^a-zA-Z0-9 ]/g, "")
+        .trim();
+      const fileName = `${safeName || "clipboard_paste"}.txt`;
+
+      const file = new File([pastedText], fileName, {
+        type: "text/plain",
+      });
+      const uploadableFile = file as FileUpload;
+      uploadableFile.uploadingProgress = 0;
+
+      appendPendingFiles([uploadableFile]);
+    };
+
+    window.addEventListener("paste", handlePaste);
+
+    return () => {
+      window.removeEventListener("paste", handlePaste);
+    };
+  }, [autoOpenCreateUploadModal]);
 
   useEffect(() => {
     // Check if there are any files that failed to upload
