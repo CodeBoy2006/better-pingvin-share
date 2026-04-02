@@ -402,10 +402,14 @@ export default {
   "share.modal.file-link": "File link",
   "share.table.name": "Name",
   "share.table.size": "Size",
+  "share.modal.file-preview.loading": "Loading preview…",
+  "share.modal.file-preview.view-original": "View original file",
 
   "share.modal.file-preview.error.not-supported.title": "Preview not supported",
   "share.modal.file-preview.error.not-supported.description":
     "Previews are not supported for this type of files. Please download the file to view it.",
+  "share.modal.file-preview.error.too-large.description":
+    "This file is too large for inline preview. Preview is available for files up to {maxSize}.",
 
   // END /share/[id]
 

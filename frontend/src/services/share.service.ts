@@ -10,6 +10,7 @@ import {
   ShareStorageStats,
   ShareMetaData,
 } from "../types/share.type";
+import { guessFilePreviewDescriptor } from "../utils/filePreview.util";
 import api from "./api.service";
 
 const getOwnerTokenCookieName = (shareId: string) =>
@@ -88,27 +89,16 @@ const isShareIdAvailable = async (id: string): Promise<boolean> => {
 };
 
 const doesFileSupportPreview = (fileName: string) => {
-  const mimeType = (mime.contentType(fileName) || "").split(";")[0];
-
-  if (!mimeType) return false;
-
-  const supportedMimeTypes = [
-    mimeType.startsWith("video/"),
-    mimeType.startsWith("image/"),
-    mimeType.startsWith("audio/"),
-    mimeType.startsWith("text/"),
-    mimeType == "application/pdf",
-  ];
-
-  return supportedMimeTypes.some((isSupported) => isSupported);
+  return guessFilePreviewDescriptor(fileName).kind !== "unsupported";
 };
 
 const isShareTextFile = (fileName: string) => {
   const mimeType = (mime.contentType(fileName) || "").split(";")[0];
 
-  if (!mimeType) return false;
+  if (mimeType.startsWith("text/")) return true;
 
-  return mimeType.startsWith("text/");
+  const previewKind = guessFilePreviewDescriptor(fileName).kind;
+  return ["markdown", "code", "text"].includes(previewKind);
 };
 
 const downloadFile = async (shareId: string, fileId: string) => {

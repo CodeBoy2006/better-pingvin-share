@@ -300,8 +300,12 @@ export default {
   "share.modal.file-link": "文件链接",
   "share.table.name": "文件名",
   "share.table.size": "文件大小",
+  "share.modal.file-preview.loading": "正在加载预览…",
+  "share.modal.file-preview.view-original": "查看原始文件",
   "share.modal.file-preview.error.not-supported.title": "该文件类型不支持预览",
   "share.modal.file-preview.error.not-supported.description": "这种类型的文件不支持预览。请下载文件查看。",
+  "share.modal.file-preview.error.too-large.description":
+    "该文件过大，无法内联预览。当前仅支持预览不超过 {maxSize} 的文件。",
   // END /share/[id]
   // /share/[id]/edit
   "share.edit.title": "编辑 {shareId}",

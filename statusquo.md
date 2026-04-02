@@ -138,3 +138,8 @@
 - **Status:** Completed
 - **Next Steps:** Monitor for any other upgrade-time data migrations that should be promoted from manual seed runs into automatic startup backfills.
 - **Context:** Verified with `backend npm run build` and a temporary SQLite application-context test that deleted `share.fileRetentionPeriod` after seeding, then confirmed app startup recreated the row and `JobsService.deleteExpiredShares()` ran without throwing.
+## [2026-04-02 23:26] Enhanced share file previews
+- **Changes:** Reworked the share preview modal to classify files by extension plus lightweight content sniffing, added a dedicated preview utility for text/code/markdown/media detection, and upgraded previews to support syntax-highlighted code, Markdown with GFM + LaTeX math, inline PDF, and native image/audio/video rendering. Also localized the new preview/loading messages, imported KaTeX styles globally, and widened preview availability for small unknown files that can be identified from their contents.
+- **Status:** Completed
+- **Next Steps:** If desired, add a browser-level smoke test around the share preview modal to catch future regressions in rendered markdown/media behavior.
+- **Context:** Verified with `frontend npm run lint`, `frontend npm run build`, and a targeted Node assertion script for the new preview detection helpers. Frontend lint still reports the repository's existing warnings only, and the `/share/[shareId]` bundle grew noticeably because of the richer preview dependencies.

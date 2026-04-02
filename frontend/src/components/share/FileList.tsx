@@ -14,11 +14,11 @@ import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { TbClipboard, TbDownload, TbEye, TbLink } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import api from "../../services/api.service";
-import useConfig from "../../hooks/config.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
 import shareService from "../../services/share.service";
 import { FileMetaData } from "../../types/File.type";
 import { Share } from "../../types/share.type";
+import { canPreviewFileByName } from "../../utils/filePreview.util";
 import { byteToHumanSizeString } from "../../utils/fileSize.util";
 import toast from "../../utils/toast.util";
 import TableSortIcon, { TableSort } from "../core/SortIcon";
@@ -38,7 +38,6 @@ const FileList = ({
   isLoading: boolean;
 }) => {
   const clipboard = useClipboard();
-  const config = useConfig();
   const modals = useModals();
   const t = useTranslate();
 
@@ -154,7 +153,10 @@ const FileList = ({
                           </ActionIcon>
                         </Tooltip>
                       )}
-                      {shareService.doesFileSupportPreview(file.name) && (
+                      {canPreviewFileByName(
+                        file.name,
+                        parseInt(file.size),
+                      ) && (
                         <ActionIcon
                           onClick={() =>
                             showFilePreviewModal(share.id, file, modals)

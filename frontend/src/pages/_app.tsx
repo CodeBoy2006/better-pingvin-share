@@ -10,6 +10,7 @@ import { ModalsProvider } from "@mantine/modals";
 import { Notifications } from "@mantine/notifications";
 import axios from "axios";
 import { getCookie, setCookie } from "cookies-next";
+import "katex/dist/katex.min.css";
 import moment from "moment";
 import "moment/min/locales";
 import { GetServerSidePropsContext } from "next";
