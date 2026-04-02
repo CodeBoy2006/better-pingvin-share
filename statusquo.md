@@ -63,3 +63,8 @@
 - **Status:** Completed
 - **Next Steps:** Commit the release bump, push `main`, create/push the `v1.14.0` tag, and publish the release so the GHCR workflow can emit the versioned image.
 - **Context:** This is a metadata-only release bump; verification consisted of checking all package versions and confirming the diffs are version-only with `git diff --check`.
+## [2026-04-02 20:34] Tighten Docker image publish triggers
+- **Changes:** Updated `.github/workflows/build-docker-image.yml` so `main` pushes publish `edge`, `main`, and `sha-*` tags, version tag pushes publish `latest` and the pushed `v*` tag, and pure docs/Markdown pushes no longer trigger the image workflow.
+- **Status:** Completed
+- **Next Steps:** Watch the next `main` push and next `v*` tag workflow run in GitHub Actions to confirm the expected tag set is published to GHCR.
+- **Context:** `workflow_dispatch` is still available for manual runs; `latest` now comes from version tag builds instead of every `main` update.

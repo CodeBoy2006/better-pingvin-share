@@ -6,8 +6,9 @@ on:
       - main
     tags:
       - "v*"
-  release:
-    types: [published]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
   workflow_dispatch:
 
 permissions:
@@ -27,11 +28,13 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
+          flavor: |
+            latest=auto
           tags: |
-            type=semver,pattern={{version}},prefix=v
-            type=semver,pattern={{major}}.{{minor}},prefix=v
-            type=semver,pattern={{major}},prefix=v
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=edge,branch=main
+            type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
+            type=sha,enable=${{ github.ref == 'refs/heads/main' }}
+            type=ref,event=tag
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
