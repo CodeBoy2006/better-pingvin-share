@@ -35,6 +35,25 @@ async function request(path, options = {}) {
   };
 }
 
+async function requestAbsolute(url, options = {}) {
+  const response = await fetch(url, options);
+  const contentType = response.headers.get("content-type") || "";
+  const text = await response.text();
+
+  let json;
+  if (contentType.includes("application/json") && text.length > 0) {
+    json = JSON.parse(text);
+  }
+
+  return {
+    response,
+    status: response.status,
+    headers: response.headers,
+    text,
+    json,
+  };
+}
+
 async function main() {
   const signIn = await request("/auth/signIn", {
     method: "POST",
@@ -144,6 +163,47 @@ async function main() {
       `/share/${shareId}/edit#ownerToken=`,
     ),
     "completed share should still expose the owner management link",
+  );
+
+  const machineReadableList = await request(`/shares/${shareId}/files.json`);
+  assert.equal(machineReadableList.status, 200, "machine-readable share listing should be public");
+  assert.match(
+    machineReadableList.headers.get("content-type") || "",
+    /^application\/json\b/,
+    "machine-readable listing should use JSON",
+  );
+  assert.equal(
+    machineReadableList.json.type,
+    "pingvin-share-file-list",
+    "unexpected machine-readable listing type",
+  );
+  assert.equal(machineReadableList.json.version, 1, "unexpected machine-readable listing version");
+  assert.equal(machineReadableList.json.share.id, shareId);
+  assert.equal(machineReadableList.json.share.totalFiles, 1);
+  assert.equal(
+    machineReadableList.json.share.machineReadableUrl,
+    `http://localhost:3000/s/${shareId}/files.json`,
+    "machine-readable URL should point to the share alias",
+  );
+  assert.equal(machineReadableList.json.files.length, 1);
+  assert.equal(machineReadableList.json.files[0].name, "anonymous-owner.txt");
+  assert.match(
+    machineReadableList.json.files[0].downloadUrl,
+    new RegExp(`/api/shares/${shareId}/files/${uploadFile.json.id}\\?token=`),
+    "download URL should expose a tokenized direct link",
+  );
+
+  const backendOrigin = API_URL.replace(/\/api$/, "");
+  const downloadUrl = new URL(machineReadableList.json.files[0].downloadUrl);
+  const directDownload = await requestAbsolute(
+    `${backendOrigin}${downloadUrl.pathname}${downloadUrl.search}`,
+  );
+
+  assert.equal(directDownload.status, 200, "direct link from machine-readable listing should download");
+  assert.equal(
+    directDownload.text,
+    "Anonymous owner system test file.",
+    "direct link should return the uploaded file contents",
   );
 
   const deleteShare = await request(`/shares/${shareId}`, {

@@ -18,22 +18,24 @@ import * as moment from "moment";
 import { GetUser } from "src/auth/decorator/getUser.decorator";
 import { AdministratorGuard } from "src/auth/guard/isAdmin.guard";
 import { JwtGuard } from "src/auth/guard/jwt.guard";
+import { ConfigService } from "src/config/config.service";
+import * as mime from "mime-types";
 import { AdminShareDTO } from "./dto/adminShare.dto";
+import { CompletedShareDTO } from "./dto/shareComplete.dto";
 import { CreateShareDTO } from "./dto/createShare.dto";
 import { MyShareDTO } from "./dto/myShare.dto";
 import { ShareDTO } from "./dto/share.dto";
+import { ShareFileListDTO } from "./dto/shareFileList.dto";
 import { ShareMetaDataDTO } from "./dto/shareMetaData.dto";
 import { SharePasswordDto } from "./dto/sharePassword.dto";
 import { CreateShareGuard } from "./guard/createShare.guard";
 import { ShareOwnerGuard } from "./guard/shareOwner.guard";
 import { ShareSecurityGuard } from "./guard/shareSecurity.guard";
 import { ShareTokenSecurity } from "./guard/shareTokenSecurity.guard";
+import { getShareTokenFromRequest } from "./shareRequest.util";
 import { ShareService } from "./share.service";
-import { CompletedShareDTO } from "./dto/shareComplete.dto";
 
-function hasAnonymousOwnerAccess(
-  value: object,
-): value is {
+function hasAnonymousOwnerAccess(value: object): value is {
   ownerToken: string;
   ownerManagementLink: string;
 } {
@@ -45,6 +47,7 @@ export class ShareController {
   constructor(
     private shareService: ShareService,
     private jwtService: JwtService,
+    private configService: ConfigService,
   ) {}
 
   @Get("all")
@@ -70,13 +73,77 @@ export class ShareController {
   @Get(":id/from-owner")
   @UseGuards(ShareOwnerGuard)
   async getFromOwner(@Param("id") id: string, @GetUser() user?: User) {
-    return new ShareDTO().from(await this.shareService.getForOwner(id, user?.id));
+    return new ShareDTO().from(
+      await this.shareService.getForOwner(id, user?.id),
+    );
   }
 
   @Get(":id/metaData")
   @UseGuards(ShareSecurityGuard)
   async getMetaData(@Param("id") id: string) {
     return new ShareMetaDataDTO().from(await this.shareService.getMetaData(id));
+  }
+
+  @Get(":id/files.json")
+  async getFileList(
+    @Param("id") id: string,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const shareToken = getShareTokenFromRequest(request, id);
+    const fileList = await this.shareService.getFileList(id, {
+      shareToken,
+      userId: this.getUserIdFromRequest(request),
+    });
+    const appUrl = this.configService.get("general.appUrl");
+    const tokenQuery = `token=${encodeURIComponent(fileList.shareToken)}`;
+
+    if (fileList.generatedShareToken) {
+      this.clearShareTokenCookies(request, response);
+      response.cookie(`share_${id}_token`, fileList.shareToken, {
+        path: "/",
+        httpOnly: true,
+      });
+    }
+
+    response.set({
+      "Cache-Control": "private, no-store",
+      "Content-Type": "application/json; charset=utf-8",
+      Vary: "Cookie",
+      "X-Robots-Tag": "noindex, nofollow",
+    });
+
+    return new ShareFileListDTO().from({
+      type: "pingvin-share-file-list",
+      version: 1,
+      share: {
+        id: fileList.share.id,
+        name: fileList.share.name,
+        description: fileList.share.description,
+        expiration: fileList.share.expiration,
+        hasPassword: fileList.share.hasPassword,
+        isZipReady: fileList.share.isZipReady,
+        totalFiles: fileList.share.files.length,
+        totalSizeBytes: fileList.share.files
+          .reduce((total, file) => total + BigInt(file.size), BigInt(0))
+          .toString(),
+        url: `${appUrl}/s/${fileList.share.id}`,
+        machineReadableUrl: `${appUrl}/s/${fileList.share.id}/files.json`,
+        zipDownloadUrl:
+          fileList.share.isZipReady && fileList.share.files.length > 1
+            ? `${appUrl}/api/shares/${fileList.share.id}/files/zip?${tokenQuery}`
+            : undefined,
+      },
+      files: fileList.share.files.map((file) => ({
+        id: file.id,
+        name: file.name,
+        sizeBytes: file.size,
+        createdAt: file.createdAt,
+        contentType: mime.lookup(file.name) || "application/octet-stream",
+        downloadUrl: `${appUrl}/api/shares/${fileList.share.id}/files/${file.id}?${tokenQuery}`,
+        inlineUrl: `${appUrl}/api/shares/${fileList.share.id}/files/${file.id}?download=false&${tokenQuery}`,
+      })),
+    });
   }
 
   @Post()
@@ -87,7 +154,11 @@ export class ShareController {
     @GetUser() user: User,
   ) {
     const { reverse_share_token } = request.cookies;
-    const share = await this.shareService.create(body, user, reverse_share_token);
+    const share = await this.shareService.create(
+      body,
+      user,
+      reverse_share_token,
+    );
     return {
       ...new ShareDTO().from(share),
       ...(hasAnonymousOwnerAccess(share)
@@ -193,6 +264,24 @@ export class ShareController {
         .sort((a, b) => a.payload.exp - b.payload.exp)
         .slice(0, -10)
         .forEach((cookie) => response.clearCookie(cookie.key));
+    }
+  }
+
+  private getUserIdFromRequest(request: Request) {
+    const accessToken = request.cookies.access_token;
+
+    if (!accessToken) {
+      return undefined;
+    }
+
+    try {
+      const payload = this.jwtService.verify<{ sub: string }>(accessToken, {
+        secret: this.configService.get("internal.jwtSecret"),
+      });
+
+      return payload.sub;
+    } catch {
+      return undefined;
     }
   }
 }

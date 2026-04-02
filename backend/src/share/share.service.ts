@@ -299,6 +299,88 @@ export class ShareService {
     };
   }
 
+  async getFileList(
+    id: string,
+    options?: { shareToken?: string; userId?: string },
+  ) {
+    const share = await this.prisma.share.findUnique({
+      where: { id },
+      include: {
+        files: {
+          orderBy: {
+            name: "asc",
+          },
+        },
+        security: true,
+        reverseShare: true,
+      },
+    });
+
+    if (!share || !share.uploadLocked) {
+      throw new NotFoundException("Share not found");
+    }
+
+    if (share.removedReason) {
+      throw new NotFoundException(share.removedReason, "share_removed");
+    }
+
+    if (
+      moment().isAfter(share.expiration) &&
+      !moment(share.expiration).isSame(0)
+    ) {
+      throw new NotFoundException("Share not found");
+    }
+
+    if (
+      share.reverseShare &&
+      !share.reverseShare.publicAccess &&
+      share.creatorId !== options?.userId &&
+      share.reverseShare.creatorId !== options?.userId
+    ) {
+      throw new ForbiddenException(
+        "Only reverse share creator can access this share",
+        "private_share",
+      );
+    }
+
+    const hasValidShareToken =
+      options?.shareToken != undefined &&
+      (await this.verifyShareToken(id, options.shareToken));
+
+    if (!hasValidShareToken && share.security?.password) {
+      throw new ForbiddenException(
+        options?.shareToken
+          ? "Share token required"
+          : "This share is password protected",
+        options?.shareToken
+          ? "share_token_required"
+          : "share_password_required",
+      );
+    }
+
+    if (!hasValidShareToken) {
+      if (share.security?.maxViews && share.security.maxViews <= share.views) {
+        throw new ForbiddenException(
+          "Maximum views exceeded",
+          "share_max_views_exceeded",
+        );
+      }
+
+      await this.increaseViewCount(share);
+    }
+
+    return {
+      share: {
+        ...share,
+        hasPassword: !!share.security?.password,
+      },
+      shareToken: hasValidShareToken
+        ? options?.shareToken
+        : await this.generateShareToken(id),
+      generatedShareToken: !hasValidShareToken,
+    };
+  }
+
   async getDetailedSharesByOwner(userId: string) {
     const shares = await this.prisma.share.findMany({
       where: {
@@ -322,7 +404,9 @@ export class ShareService {
   }
 
   async getDetailedShareByOwner(id: string, userId: string) {
-    return this.toDetailedOwnerShare(await this.getOwnerShareEntity(id, userId));
+    return this.toDetailedOwnerShare(
+      await this.getOwnerShareEntity(id, userId),
+    );
   }
 
   async assertShareOwnership(id: string, userId: string) {
@@ -560,7 +644,7 @@ export class ShareService {
         ? {
             maxViews: share.security.maxViews,
             passwordProtected: !!share.security.password,
-      }
+          }
         : undefined,
     };
   }

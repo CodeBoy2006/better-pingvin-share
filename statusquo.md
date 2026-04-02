@@ -43,3 +43,13 @@
 - **Status:** Completed
 - **Next Steps:** If desired, mirror this coverage in a browser-level test later; the current API-level regression already protects the security-critical owner-token flow.
 - **Context:** I initially tried to extend the Newman collection, but its cookie handling was unreliable for this capability-token scenario, so the final test uses a dedicated Node script with explicit cookie control and was verified by a full passing `backend npm run test:system` run.
+## [2026-04-02 10:34] Machine-readable share file listings
+- **Changes:** Added `GET /api/shares/:id/files.json` in `backend/src/share/share.controller.ts` and `backend/src/share/share.service.ts`, introduced `backend/src/share/dto/shareFileList.dto.ts` plus `backend/src/share/shareRequest.util.ts`, taught the share/file guards to accept `token` query parameters for direct links, added public proxy pages at `frontend/src/pages/s/[shareId]/files.json.ts` and `frontend/src/pages/share/[shareId]/files.json.ts`, and documented the new `<share-url>/files.json` endpoint in `README.md`.
+- **Status:** Completed
+- **Next Steps:** If we want browser-level coverage later, add a frontend/integration test that fetches `/s/:shareId/files.json` through the Next.js layer once the existing frontend type-check issue is cleaned up.
+- **Context:** Backend build and a targeted end-to-end verification passed, including tokenized direct downloads from the new JSON listing. `frontend npm run build` still fails on the pre-existing `frontend/src/hooks/useTranslate.hook.ts` type error, and the legacy Newman-based `backend npm run test:system` flow remains flaky for unrelated auth/bootstrap reasons.
+## [2026-04-02 10:35] Machine-readable share listing log correction
+- **Changes:** No new code changes; this note corrects the previous ledger entry.
+- **Status:** Completed
+- **Next Steps:** None.
+- **Context:** The `<share-url>/files.json` README note was already present on this branch before the implementation work, so the actual code changes for this task are limited to the backend/frontend route, DTO, guard, utility, and regression-test files plus `statusquo.md`.

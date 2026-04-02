@@ -11,6 +11,7 @@ import { ShareService } from "src/share/share.service";
 import { ConfigService } from "src/config/config.service";
 import { JwtGuard } from "src/auth/guard/jwt.guard";
 import { User } from "@prisma/client";
+import { getShareTokenFromRequest } from "../shareRequest.util";
 
 @Injectable()
 export class ShareSecurityGuard extends JwtGuard {
@@ -32,7 +33,7 @@ export class ShareSecurityGuard extends JwtGuard {
       ? request.params.shareId
       : request.params.id;
 
-    const shareToken = request.cookies[`share_${shareId}_token`];
+    const shareToken = getShareTokenFromRequest(request, shareId);
 
     const share = await this.prisma.share.findUnique({
       where: { id: shareId },
