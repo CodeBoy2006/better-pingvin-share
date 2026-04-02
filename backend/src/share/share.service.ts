@@ -9,6 +9,7 @@ import { Share, User } from "@prisma/client";
 import * as archiver from "archiver";
 import * as argon from "argon2";
 import * as fs from "fs";
+import * as fsPromises from "fs/promises";
 import * as moment from "moment";
 import { ClamScanService } from "src/clamscan/clamscan.service";
 import { ConfigService } from "src/config/config.service";
@@ -232,6 +233,55 @@ export class ShareService {
         size: share.files.reduce((acc, file) => acc + parseInt(file.size), 0),
       };
     });
+  }
+
+  async getStorageStats() {
+    const shares = await this.prisma.share.findMany({
+      select: {
+        id: true,
+        storageProvider: true,
+        files: {
+          select: {
+            size: true,
+          },
+        },
+      },
+    });
+
+    const totalShareSizeBytes = shares.reduce(
+      (shareTotal, share) =>
+        shareTotal +
+        share.files.reduce((fileTotal, file) => fileTotal + parseInt(file.size), 0),
+      0,
+    );
+
+    const storageProvider = this.configService.get("s3.enabled") ? "S3" : "LOCAL";
+
+    if (storageProvider === "S3") {
+      return {
+        shareCount: shares.length,
+        storageProvider,
+        totalShareSizeBytes,
+        disk: null,
+      };
+    }
+
+    await fsPromises.mkdir(SHARE_DIRECTORY, { recursive: true });
+    const diskStats = await fsPromises.statfs(SHARE_DIRECTORY);
+    const totalBytes = diskStats.blocks * diskStats.bsize;
+    const availableBytes = diskStats.bavail * diskStats.bsize;
+    const usedBytes = totalBytes - diskStats.bfree * diskStats.bsize;
+
+    return {
+      shareCount: shares.length,
+      storageProvider,
+      totalShareSizeBytes,
+      disk: {
+        totalBytes,
+        availableBytes,
+        usedBytes,
+      },
+    };
   }
 
   async getSharesByUser(userId: string) {

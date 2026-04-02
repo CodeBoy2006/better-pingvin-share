@@ -275,6 +275,13 @@ export default {
   "admin.shares.table.visitors": "Visitors",
   "admin.shares.table.expires": "Expires on",
   "admin.shares.table.deletes": "Deletes on",
+  "admin.shares.storage.share-usage": "Share data",
+  "admin.shares.storage.remaining-disk": "Remaining disk",
+  "admin.shares.storage.total-disk": "Total disk",
+  "admin.shares.storage.provider": "Storage provider",
+  "admin.shares.storage.unavailable": "Not available",
+  "admin.shares.storage.provider.local": "Local disk",
+  "admin.shares.storage.provider.s3": "S3",
 
   "admin.shares.edit.delete.title": "Delete share: {id}",
   "admin.shares.edit.delete.description":

@@ -209,6 +209,13 @@ export default {
   "admin.shares.table.visitors": "访问者",
   "admin.shares.table.expires": "过期于",
   "admin.shares.table.deletes": "删除于",
+  "admin.shares.storage.share-usage": "共享数据",
+  "admin.shares.storage.remaining-disk": "剩余磁盘空间",
+  "admin.shares.storage.total-disk": "磁盘总容量",
+  "admin.shares.storage.provider": "存储提供方",
+  "admin.shares.storage.unavailable": "不可用",
+  "admin.shares.storage.provider.local": "本地磁盘",
+  "admin.shares.storage.provider.s3": "S3",
   "admin.shares.edit.delete.title": "删除共享 {id}",
   "admin.shares.edit.delete.description": "你真的要删除这个共享吗？",
   // END /admin/shares

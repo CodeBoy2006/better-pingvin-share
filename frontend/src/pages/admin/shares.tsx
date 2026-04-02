@@ -1,4 +1,4 @@
-import { Group, Space, Text, Title } from "@mantine/core";
+import { Group, Paper, SimpleGrid, Space, Text, Title } from "@mantine/core";
 import { useModals } from "@mantine/modals";
 import { useEffect, useState } from "react";
 import { FormattedMessage } from "react-intl";
@@ -6,22 +6,36 @@ import Meta from "../../components/Meta";
 import ManageShareTable from "../../components/admin/shares/ManageShareTable";
 import useTranslate from "../../hooks/useTranslate.hook";
 import shareService from "../../services/share.service";
-import { MyShare } from "../../types/share.type";
+import { MyShare, ShareStorageStats } from "../../types/share.type";
+import { byteToHumanSizeString } from "../../utils/fileSize.util";
 import toast from "../../utils/toast.util";
 
 const Shares = () => {
   const [shares, setShares] = useState<MyShare[]>([]);
+  const [storageStats, setStorageStats] = useState<ShareStorageStats | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(true);
 
   const modals = useModals();
   const t = useTranslate();
 
-  const getShares = () => {
+  const getShares = async () => {
     setIsLoading(true);
-    shareService.list().then((shares) => {
-      setShares(shares);
+
+    try {
+      setShares(await shareService.list());
+
+      try {
+        setStorageStats(await shareService.getStorageStats());
+      } catch (error) {
+        toast.axiosError(error);
+      }
+    } catch (error) {
+      toast.axiosError(error);
+    } finally {
       setIsLoading(false);
-    });
+    }
   };
 
   const deleteShare = (share: MyShare) => {
@@ -61,6 +75,44 @@ const Shares = () => {
         </Title>
       </Group>
 
+      {storageStats && (
+        <SimpleGrid
+          cols={4}
+          breakpoints={[
+            { maxWidth: "lg", cols: 2 },
+            { maxWidth: "sm", cols: 1 },
+          ]}
+          mb="lg"
+        >
+          <StorageStatCard
+            label={t("admin.shares.storage.share-usage")}
+            value={byteToHumanSizeString(storageStats.totalShareSizeBytes)}
+          />
+          <StorageStatCard
+            label={t("admin.shares.storage.remaining-disk")}
+            value={
+              storageStats.disk
+                ? byteToHumanSizeString(storageStats.disk.availableBytes)
+                : t("admin.shares.storage.unavailable")
+            }
+          />
+          <StorageStatCard
+            label={t("admin.shares.storage.total-disk")}
+            value={
+              storageStats.disk
+                ? byteToHumanSizeString(storageStats.disk.totalBytes)
+                : t("admin.shares.storage.unavailable")
+            }
+          />
+          <StorageStatCard
+            label={t("admin.shares.storage.provider")}
+            value={t(
+              `admin.shares.storage.provider.${storageStats.storageProvider.toLowerCase()}`,
+            )}
+          />
+        </SimpleGrid>
+      )}
+
       <ManageShareTable
         shares={shares}
         deleteShare={deleteShare}
@@ -70,5 +122,22 @@ const Shares = () => {
     </>
   );
 };
+
+const StorageStatCard = ({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) => (
+  <Paper withBorder p="md" radius="md">
+    <Text size="sm" color="dimmed">
+      {label}
+    </Text>
+    <Text mt={4} weight={600}>
+      {value}
+    </Text>
+  </Paper>
+);
 
 export default Shares;

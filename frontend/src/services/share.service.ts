@@ -7,6 +7,7 @@ import {
   MyReverseShare,
   MyShare,
   Share,
+  ShareStorageStats,
   ShareMetaData,
 } from "../types/share.type";
 import api from "./api.service";
@@ -23,6 +24,10 @@ const setShareOwnerToken = (shareId: string, ownerToken: string) => {
 
 const list = async (): Promise<MyShare[]> => {
   return (await api.get(`shares/all`)).data;
+};
+
+const getStorageStats = async (): Promise<ShareStorageStats> => {
+  return (await api.get(`shares/stats/storage`)).data;
 };
 
 const create = async (share: CreateShare, isReverseShare = false) => {
@@ -173,6 +178,7 @@ const removeReverseShare = async (id: string) => {
 
 export default {
   list,
+  getStorageStats,
   create,
   completeShare,
   revertComplete,

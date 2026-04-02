@@ -42,6 +42,17 @@ export type MyShare = Omit<Share, "hasPassword"> & {
   security: MyShareSecurity;
 };
 
+export type ShareStorageStats = {
+  shareCount: number;
+  storageProvider: "LOCAL" | "S3";
+  totalShareSizeBytes: number;
+  disk: {
+    totalBytes: number;
+    availableBytes: number;
+    usedBytes: number;
+  } | null;
+};
+
 export type MyReverseShare = {
   id: string;
   maxShareSize: string;

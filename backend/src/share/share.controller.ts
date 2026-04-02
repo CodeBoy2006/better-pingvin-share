@@ -64,6 +64,12 @@ export class ShareController {
     );
   }
 
+  @Get("stats/storage")
+  @UseGuards(JwtGuard, AdministratorGuard)
+  async getStorageStats() {
+    return await this.shareService.getStorageStats();
+  }
+
   @Get(":id")
   @UseGuards(ShareSecurityGuard)
   async get(@Param("id") id: string) {

@@ -123,3 +123,8 @@
 - **Status:** Completed
 - **Next Steps:** Move to batch 3 by surfacing disk/share storage stats in the admin share-management screen.
 - **Context:** Verified with `frontend npm run lint` and `frontend npm run build`; both passed with only the repository's longstanding frontend warnings.
+## [2026-04-02 22:24] Admin storage and disk statistics
+- **Changes:** Added an admin-only `GET /api/shares/stats/storage` endpoint that reports total share bytes and local disk capacity/remaining space, exposed the new response type through the frontend share service, and surfaced a storage overview panel on the admin share-management page with localized labels.
+- **Status:** Completed
+- **Next Steps:** Finish batch 3 by preventing permanent upload failures (especially low-disk/server-capacity errors) from retrying forever.
+- **Context:** Verified with `backend npm run build`, `frontend npm run lint`, `frontend npm run build`, and a temporary SQLite-backed HTTP smoke test on port `18081` confirming admins can read storage stats while anonymous requests are rejected.
