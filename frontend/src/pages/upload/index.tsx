@@ -1,7 +1,6 @@
 import { Button, Group } from "@mantine/core";
 import { useModals } from "@mantine/modals";
 import { cleanNotifications } from "@mantine/notifications";
-import { AxiosError } from "axios";
 import pLimit from "p-limit";
 import { useEffect, useRef, useState } from "react";
 import { FormattedMessage } from "react-intl";
@@ -18,10 +17,15 @@ import shareService from "../../services/share.service";
 import { FileUpload } from "../../types/File.type";
 import { CreateShare, Share } from "../../types/share.type";
 import toast from "../../utils/toast.util";
+import {
+  getUnexpectedChunkIndex,
+  getUploadErrorMessage,
+  isPermanentUploadError,
+} from "../../utils/upload.util";
 import { useRouter } from "next/router";
 
 const promiseLimit = pLimit(3);
-let errorToastShown = false;
+let uploadNotificationType: "retry" | "permanent" | null = null;
 let createdShare: Share;
 
 const Upload = ({
@@ -69,18 +73,18 @@ const Upload = ({
       promiseLimit(async () => {
         let fileId;
 
-        const setFileProgress = (progress: number) => {
+        const updateFileState = (updates: Partial<FileUpload>) => {
           setFiles((files) =>
             files.map((file, callbackIndex) => {
               if (fileIndex == callbackIndex) {
-                file.uploadingProgress = progress;
+                Object.assign(file, updates);
               }
               return file;
             }),
           );
         };
 
-        setFileProgress(1);
+        updateFileState({ uploadingProgress: 1, uploadError: undefined });
 
         let chunks = Math.ceil(file.size / chunkSize.current);
 
@@ -107,29 +111,43 @@ const Upload = ({
                 fileId = response.id;
               });
 
-            setFileProgress(((chunkIndex + 1) / chunks) * 100);
+            updateFileState({
+              uploadingProgress: ((chunkIndex + 1) / chunks) * 100,
+              uploadError: undefined,
+            });
           } catch (e) {
-            if (
-              e instanceof AxiosError &&
-              e.response?.data.error == "unexpected_chunk_index"
-            ) {
+            const expectedChunkIndex = getUnexpectedChunkIndex(e);
+            if (expectedChunkIndex != undefined) {
               // Retry with the expected chunk index
-              chunkIndex = e.response!.data!.expectedChunkIndex - 1;
-              continue;
-            } else {
-              setFileProgress(-1);
-              // Retry after 5 seconds
-              await new Promise((resolve) => setTimeout(resolve, 5000));
-              chunkIndex = -1;
-
+              chunkIndex = expectedChunkIndex - 1;
               continue;
             }
+
+            if (isPermanentUploadError(e)) {
+              updateFileState({
+                uploadingProgress: -1,
+                uploadError: getUploadErrorMessage(e),
+              });
+              return false;
+            }
+
+            updateFileState({ uploadingProgress: -1, uploadError: undefined });
+            // Retry after 5 seconds
+            await new Promise((resolve) => setTimeout(resolve, 5000));
+            updateFileState({ uploadingProgress: 1, uploadError: undefined });
+            chunkIndex = -1;
           }
         }
+
+        return true;
       }),
     );
 
-    Promise.all(fileUploadPromises);
+    const uploadResults = await Promise.all(fileUploadPromises);
+
+    if (uploadResults.some((result) => !result)) {
+      setisUploading(false);
+    }
   };
 
   const showCreateUploadModalCallback = (files: FileUpload[]) => {
@@ -229,32 +247,53 @@ const Upload = ({
   }, [autoOpenCreateUploadModal]);
 
   useEffect(() => {
-    // Check if there are any files that failed to upload
-    const fileErrorCount = files.filter(
-      (file) => file.uploadingProgress == -1,
+    const transientErrorCount = files.filter(
+      (file) => file.uploadingProgress == -1 && !file.uploadError,
     ).length;
+    const permanentErrorFiles = files.filter(
+      (file) => file.uploadingProgress == -1 && !!file.uploadError,
+    );
+    const permanentErrorCount = permanentErrorFiles.length;
 
-    if (fileErrorCount > 0) {
-      if (!errorToastShown) {
+    if (permanentErrorCount > 0) {
+      if (uploadNotificationType !== "permanent") {
+        cleanNotifications();
         toast.error(
-          t("upload.notify.count-failed", { count: fileErrorCount }),
+          permanentErrorCount === 1
+            ? permanentErrorFiles[0].uploadError!
+            : t("upload.notify.count-permanently-failed", {
+                count: permanentErrorCount,
+              }),
           {
             withCloseButton: false,
             autoClose: false,
           },
         );
       }
-      errorToastShown = true;
+      uploadNotificationType = "permanent";
+    } else if (transientErrorCount > 0) {
+      if (uploadNotificationType !== "retry") {
+        cleanNotifications();
+        toast.error(
+          t("upload.notify.count-failed", { count: transientErrorCount }),
+          {
+            withCloseButton: false,
+            autoClose: false,
+          },
+        );
+      }
+      uploadNotificationType = "retry";
     } else {
       cleanNotifications();
-      errorToastShown = false;
+      uploadNotificationType = null;
     }
 
     // Complete share
     if (
       files.length > 0 &&
       files.every((file) => file.uploadingProgress >= 100) &&
-      fileErrorCount == 0
+      transientErrorCount == 0 &&
+      permanentErrorCount == 0
     ) {
       shareService
         .completeShare(createdShare.id)
@@ -263,7 +302,10 @@ const Upload = ({
           showCompletedUploadModal(modals, share);
           setFiles([]);
         })
-        .catch(() => toast.error(t("upload.notify.generic-error")));
+        .catch(() => {
+          setisUploading(false);
+          toast.error(t("upload.notify.generic-error"));
+        });
     }
   }, [files]);
 

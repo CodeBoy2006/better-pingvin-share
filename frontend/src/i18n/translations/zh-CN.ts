@@ -224,6 +224,7 @@ export default {
   "upload.notify.confirm-leave": "您确定要离开此页面吗？您的上传将被取消。",
   "upload.notify.generic-error": "创建共享的过程中发生了错误",
   "upload.notify.count-failed": "{count} 文件上传失败，请重试",
+  "upload.notify.count-permanently-failed": "{count} 个文件无法上传。",
   "upload.reverse-share.error.invalid.title": "无效的预留共享链接",
   "upload.reverse-share.error.invalid.description": "这个预留分享已过期或无效。",
   // Dropzone.tsx

@@ -1,6 +1,5 @@
 import { Button, Group } from "@mantine/core";
 import { cleanNotifications } from "@mantine/notifications";
-import { AxiosError } from "axios";
 import { useRouter } from "next/router";
 import pLimit from "p-limit";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -12,9 +11,14 @@ import useTranslate from "../../hooks/useTranslate.hook";
 import shareService from "../../services/share.service";
 import { FileListItem, FileMetaData, FileUpload } from "../../types/File.type";
 import toast from "../../utils/toast.util";
+import {
+  getUnexpectedChunkIndex,
+  getUploadErrorMessage,
+  isPermanentUploadError,
+} from "../../utils/upload.util";
 
 const promiseLimit = pLimit(3);
-let errorToastShown = false;
+let uploadNotificationType: "retry" | "permanent" | null = null;
 
 const EditableUpload = ({
   maxShareSize,
@@ -67,18 +71,18 @@ const EditableUpload = ({
       promiseLimit(async () => {
         let fileId: string | undefined;
 
-        const setFileProgress = (progress: number) => {
+        const updateFileState = (updates: Partial<FileUpload>) => {
           setUploadingFiles((files) =>
             files.map((file, callbackIndex) => {
               if (fileIndex == callbackIndex) {
-                file.uploadingProgress = progress;
+                Object.assign(file, updates);
               }
               return file;
             }),
           );
         };
 
-        setFileProgress(1);
+        updateFileState({ uploadingProgress: 1, uploadError: undefined });
 
         let chunks = Math.ceil(file.size / chunkSize.current);
 
@@ -105,29 +109,40 @@ const EditableUpload = ({
                 fileId = response.id;
               });
 
-            setFileProgress(((chunkIndex + 1) / chunks) * 100);
+            updateFileState({
+              uploadingProgress: ((chunkIndex + 1) / chunks) * 100,
+              uploadError: undefined,
+            });
           } catch (e) {
-            if (
-              e instanceof AxiosError &&
-              e.response?.data.error == "unexpected_chunk_index"
-            ) {
+            const expectedChunkIndex = getUnexpectedChunkIndex(e);
+            if (expectedChunkIndex != undefined) {
               // Retry with the expected chunk index
-              chunkIndex = e.response!.data!.expectedChunkIndex - 1;
-              continue;
-            } else {
-              setFileProgress(-1);
-              // Retry after 5 seconds
-              await new Promise((resolve) => setTimeout(resolve, 5000));
-              chunkIndex = -1;
-
+              chunkIndex = expectedChunkIndex - 1;
               continue;
             }
+
+            if (isPermanentUploadError(e)) {
+              updateFileState({
+                uploadingProgress: -1,
+                uploadError: getUploadErrorMessage(e),
+              });
+              return false;
+            }
+
+            updateFileState({ uploadingProgress: -1, uploadError: undefined });
+            // Retry after 5 seconds
+            await new Promise((resolve) => setTimeout(resolve, 5000));
+            updateFileState({ uploadingProgress: 1, uploadError: undefined });
+            chunkIndex = -1;
           }
         }
+
+        return true;
       }),
     );
 
-    await Promise.all(fileUploadPromises);
+    const uploadResults = await Promise.all(fileUploadPromises);
+    return uploadResults.every(Boolean);
   };
 
   const removeFiles = async () => {
@@ -157,22 +172,17 @@ const EditableUpload = ({
 
     try {
       await revertComplete();
-      await uploadFiles(uploadingFiles);
+      const uploadSucceeded = await uploadFiles(uploadingFiles);
 
-      const hasFailed = uploadingFiles.some(
-        (file) => file.uploadingProgress == -1,
-      );
-
-      if (!hasFailed) {
-        await removeFiles();
+      if (!uploadSucceeded) {
+        return;
       }
 
+      await removeFiles();
       await completeShare();
 
-      if (!hasFailed) {
-        toast.success(t("share.edit.notify.save-success"));
-        router.back();
-      }
+      toast.success(t("share.edit.notify.save-success"));
+      router.back();
     } catch {
       toast.error(t("share.edit.notify.generic-error"));
     } finally {
@@ -185,25 +195,45 @@ const EditableUpload = ({
   };
 
   useEffect(() => {
-    // Check if there are any files that failed to upload
-    const fileErrorCount = uploadingFiles.filter(
-      (file) => file.uploadingProgress == -1,
+    const transientErrorCount = uploadingFiles.filter(
+      (file) => file.uploadingProgress == -1 && !file.uploadError,
     ).length;
+    const permanentErrorFiles = uploadingFiles.filter(
+      (file) => file.uploadingProgress == -1 && !!file.uploadError,
+    );
+    const permanentErrorCount = permanentErrorFiles.length;
 
-    if (fileErrorCount > 0) {
-      if (!errorToastShown) {
+    if (permanentErrorCount > 0) {
+      if (uploadNotificationType !== "permanent") {
+        cleanNotifications();
         toast.error(
-          t("upload.notify.count-failed", { count: fileErrorCount }),
+          permanentErrorCount === 1
+            ? permanentErrorFiles[0].uploadError!
+            : t("upload.notify.count-permanently-failed", {
+                count: permanentErrorCount,
+              }),
           {
             withCloseButton: false,
             autoClose: false,
           },
         );
       }
-      errorToastShown = true;
+      uploadNotificationType = "permanent";
+    } else if (transientErrorCount > 0) {
+      if (uploadNotificationType !== "retry") {
+        cleanNotifications();
+        toast.error(
+          t("upload.notify.count-failed", { count: transientErrorCount }),
+          {
+            withCloseButton: false,
+            autoClose: false,
+          },
+        );
+      }
+      uploadNotificationType = "retry";
     } else {
       cleanNotifications();
-      errorToastShown = false;
+      uploadNotificationType = null;
     }
   }, [uploadingFiles]);
 

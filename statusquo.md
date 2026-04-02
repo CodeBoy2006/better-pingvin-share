@@ -128,3 +128,8 @@
 - **Status:** Completed
 - **Next Steps:** Finish batch 3 by preventing permanent upload failures (especially low-disk/server-capacity errors) from retrying forever.
 - **Context:** Verified with `backend npm run build`, `frontend npm run lint`, `frontend npm run build`, and a temporary SQLite-backed HTTP smoke test on port `18081` confirming admins can read storage stats while anonymous requests are rejected.
+## [2026-04-02 22:31] Stop permanent upload retry loops
+- **Changes:** Added upload-error classification helpers, tracked per-file permanent upload errors, and updated both the new-share and edit-share upload flows to stop retrying on permanent failures such as `413` size violations or the backend's "Not enough space on the server" response. Also prevented edit-save completion when uploads permanently fail and added localized non-retry failure messaging.
+- **Status:** Completed
+- **Next Steps:** Run final regression/status checks across the completed batch 1-3 rollout, then push the commit chain.
+- **Context:** Verified with `frontend npm run lint`, `frontend npm run build`, and a targeted Node assertion script that exercised the new upload error classifier for unexpected chunk recovery, `413` payload-too-large responses, and the low-disk server error.

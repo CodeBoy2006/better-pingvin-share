@@ -297,6 +297,8 @@ export default {
   "upload.notify.generic-error":
     "An error occurred while finishing your share.",
   "upload.notify.count-failed": "{count} files failed to upload. Trying again.",
+  "upload.notify.count-permanently-failed":
+    "{count} files could not be uploaded.",
   "upload.reverse-share.error.invalid.title": "Invalid reverse share link",
   "upload.reverse-share.error.invalid.description":
     "This reverse share has expired or is invalid.",
