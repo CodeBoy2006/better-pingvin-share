@@ -68,3 +68,8 @@
 - **Status:** Completed
 - **Next Steps:** Watch the next `main` push and next `v*` tag workflow run in GitHub Actions to confirm the expected tag set is published to GHCR.
 - **Context:** `workflow_dispatch` is still available for manual runs; `latest` now comes from version tag builds instead of every `main` update.
+## [2026-04-02 21:09] Expose files.json links in share modals
+- **Changes:** Updated `frontend/src/components/upload/CopyTextField.tsx` to accept custom labels, and updated `frontend/src/components/upload/modals/showCompletedUploadModal.tsx`, `frontend/src/components/account/showShareLinkModal.tsx`, and `frontend/src/components/account/showShareInformationsModal.tsx` to show both the normal share URL and the `/files.json` URL together.
+- **Status:** Completed
+- **Next Steps:** If we later want parity in one-click copy actions from the shares tables, consider replacing the direct clipboard shortcut there with a modal/action that can surface both URLs.
+- **Context:** Verified with `frontend npm run lint` and `frontend npm run build`; both still report the repository's pre-existing frontend warnings, but the build completed successfully.

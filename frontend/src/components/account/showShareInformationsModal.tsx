@@ -3,7 +3,6 @@ import { ModalsContextProps } from "@mantine/modals/lib/context";
 import moment from "moment";
 import { FormattedMessage } from "react-intl";
 import { translateOutsideContext } from "../../hooks/useTranslate.hook";
-import { FileMetaData } from "../../types/File.type";
 import { MyShare } from "../../types/share.type";
 import { byteToHumanSizeString } from "../../utils/fileSize.util";
 import CopyTextField from "../upload/CopyTextField";
@@ -15,6 +14,7 @@ const showShareInformationsModal = (
 ) => {
   const t = translateOutsideContext();
   const link = `${window.location.origin}/s/${share.id}`;
+  const filesJsonLink = `${link}/files.json`;
 
   const formattedShareSize = byteToHumanSizeString(share.size);
   const formattedMaxShareSize = byteToHumanSizeString(maxShareSize);
@@ -65,7 +65,11 @@ const showShareInformationsModal = (
           {formattedExpiration}
         </Text>
         <Divider />
-        <CopyTextField link={link} />
+        <CopyTextField
+          label={t("account.shares.modal.share-link")}
+          link={link}
+        />
+        <CopyTextField label="files.json" link={filesJsonLink} />
         <Divider />
         <Text size="sm">
           <b>

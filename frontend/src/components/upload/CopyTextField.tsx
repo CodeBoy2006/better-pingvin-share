@@ -6,7 +6,7 @@ import { TbCheck, TbCopy } from "react-icons/tb";
 import useTranslate from "../../hooks/useTranslate.hook";
 import toast from "../../utils/toast.util";
 
-function CopyTextField(props: { link: string }) {
+function CopyTextField(props: { link: string; label?: string }) {
   const clipboard = useClipboard({ timeout: 500 });
   const t = useTranslate();
 
@@ -29,7 +29,7 @@ function CopyTextField(props: { link: string }) {
   return (
     <TextInput
       readOnly
-      label={t("common.text.link")}
+      label={props.label || t("common.text.link")}
       variant="filled"
       value={props.link}
       onClick={() => {

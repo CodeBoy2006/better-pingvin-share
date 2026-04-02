@@ -32,10 +32,12 @@ const Body = ({ share }: { share: CompletedShare }) => {
   const isReverseShare = !!router.query["reverseShareToken"];
 
   const link = `${window.location.origin}/s/${share.id}`;
+  const filesJsonLink = `${link}/files.json`;
 
   return (
     <Stack align="stretch">
-      <CopyTextField link={link} />
+      <CopyTextField label={t("account.shares.modal.share-link")} link={link} />
+      <CopyTextField label="files.json" link={filesJsonLink} />
       {share.ownerManagementLink && (
         <>
           <Text
