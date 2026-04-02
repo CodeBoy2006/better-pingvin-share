@@ -6,12 +6,14 @@ import {
   Stack,
   Table,
   TextInput,
+  Tooltip,
 } from "@mantine/core";
 import { useClipboard } from "@mantine/hooks";
 import { useModals } from "@mantine/modals";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { TbDownload, TbEye, TbLink } from "react-icons/tb";
+import { TbClipboard, TbDownload, TbEye, TbLink } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
+import api from "../../services/api.service";
 import useConfig from "../../hooks/config.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
 import shareService from "../../services/share.service";
@@ -21,6 +23,8 @@ import { byteToHumanSizeString } from "../../utils/fileSize.util";
 import toast from "../../utils/toast.util";
 import TableSortIcon, { TableSort } from "../core/SortIcon";
 import showFilePreviewModal from "./modals/showFilePreviewModal";
+
+const MAX_COPYABLE_TEXT_FILE_BYTES = 1024 * 1024;
 
 const FileList = ({
   files,
@@ -84,6 +88,26 @@ const FileList = ({
     }
   };
 
+  const copyFileContents = async (file: FileMetaData) => {
+    if (!window.isSecureContext || !navigator.clipboard) {
+      toast.error(t("share.notify.copy-not-supported-error"));
+      return;
+    }
+
+    if (parseInt(file.size) > MAX_COPYABLE_TEXT_FILE_BYTES) {
+      toast.error(t("share.notify.copy-too-big-error"));
+      return;
+    }
+
+    const response = await api.get(`/shares/${share.id}/files/${file.id}`, {
+      params: { download: false },
+      responseType: "text",
+    });
+
+    await navigator.clipboard.writeText(String(response.data ?? ""));
+    toast.success(t("share.notify.copied-contents"));
+  };
+
   useEffect(sortFiles, [sort]);
 
   return (
@@ -115,6 +139,21 @@ const FileList = ({
                   <td>{byteToHumanSizeString(parseInt(file.size))}</td>
                   <td>
                     <Group position="right">
+                      {shareService.isShareTextFile(file.name) && (
+                        <Tooltip
+                          label={t("share.copy-text-contents")}
+                          position="top"
+                          offset={-2}
+                          openDelay={200}
+                        >
+                          <ActionIcon
+                            size={25}
+                            onClick={() => void copyFileContents(file)}
+                          >
+                            <TbClipboard />
+                          </ActionIcon>
+                        </Tooltip>
+                      )}
                       {shareService.doesFileSupportPreview(file.name) && (
                         <ActionIcon
                           onClick={() =>

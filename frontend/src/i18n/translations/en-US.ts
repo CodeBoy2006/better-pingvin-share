@@ -381,6 +381,11 @@ export default {
   "share.button.download-all": "Download all",
   "share.notify.download-all-preparing":
     "The share is being prepared. Please try again in a few minutes.",
+  "share.copy-text-contents": "Copy file contents to clipboard",
+  "share.notify.copied-contents": "File contents copied to the clipboard",
+  "share.notify.copy-too-big-error": "File is too big to copy to clipboard",
+  "share.notify.copy-not-supported-error":
+    "Copying to clipboard requires a secure HTTPS connection",
 
   "share.modal.file-link": "File link",
   "share.table.name": "Name",

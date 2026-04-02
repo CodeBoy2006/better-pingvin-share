@@ -88,3 +88,8 @@
 - **Status:** Completed
 - **Next Steps:** Continue batch 1 by adding text-content clipboard helpers, upload text editing, and clipboard paste support.
 - **Context:** Verified with `frontend npm run lint` and `frontend npm run build`; lint still shows the repository's long-standing warnings, and the build still emits the existing Next.js Edge Runtime axios warning while succeeding.
+## [2026-04-02 22:18] Clipboard copy for shared text files
+- **Changes:** Added `shareService.isShareTextFile`, exposed a text-copy action in the share file list, and added user-facing copy status/error messages so small `text/*` files can be copied directly from the share view over HTTPS.
+- **Status:** Completed
+- **Next Steps:** Continue batch 1 with upload-queue text editing and clipboard paste support.
+- **Context:** Verified with `frontend npm run lint` and `frontend npm run build`; lint still reports the repository's pre-existing warnings only.

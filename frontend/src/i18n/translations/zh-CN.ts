@@ -280,6 +280,11 @@ export default {
   "share.modal.error.invalid-password": "密码错误",
   "share.button.download-all": "全部下载",
   "share.notify.download-all-preparing": "该共享正在处理中，请稍等片刻。",
+  "share.copy-text-contents": "复制文件内容到剪贴板",
+  "share.notify.copied-contents": "文件内容已复制到剪贴板",
+  "share.notify.copy-too-big-error": "文件过大，无法复制到剪贴板",
+  "share.notify.copy-not-supported-error":
+    "复制到剪贴板需要安全的 HTTPS 连接",
   "share.modal.file-link": "文件链接",
   "share.table.name": "文件名",
   "share.table.size": "文件大小",
