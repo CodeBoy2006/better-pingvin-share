@@ -8,7 +8,15 @@ export type FilePreviewKind =
   | "audio"
   | "video"
   | "pdf"
+  | "word"
+  | "spreadsheet"
+  | "presentation"
   | "unsupported";
+
+export type OfficePreviewKind = Extract<
+  FilePreviewKind,
+  "word" | "spreadsheet" | "presentation"
+>;
 
 export type FilePreviewDescriptor = {
   kind: FilePreviewKind;
@@ -18,6 +26,7 @@ export type FilePreviewDescriptor = {
 
 export const MAX_TEXT_PREVIEW_BYTES = 5 * 1024 * 1024;
 export const MAX_SNIFFABLE_PREVIEW_BYTES = 10 * 1024 * 1024;
+export const MAX_OFFICE_PREVIEW_BYTES = 25 * 1024 * 1024;
 
 const MARKDOWN_EXTENSIONS = new Set([
   "md",
@@ -27,6 +36,23 @@ const MARKDOWN_EXTENSIONS = new Set([
   "mkdn",
   "mdx",
   "qmd",
+]);
+
+const WORD_EXTENSIONS = new Set(["docx", "docm", "dotx", "dotm"]);
+const SPREADSHEET_EXTENSIONS = new Set([
+  "xlsx",
+  "xlsm",
+  "xlsb",
+  "xls",
+  "ods",
+]);
+const PRESENTATION_EXTENSIONS = new Set([
+  "pptx",
+  "pptm",
+  "ppsx",
+  "ppsm",
+  "potx",
+  "potm",
 ]);
 
 const CODE_LANGUAGE_BY_EXTENSION: Record<string, string> = {
@@ -105,6 +131,12 @@ export const getPreviewMimeType = (fileName: string) => {
   return (mime.lookup(fileName) || "").toString();
 };
 
+export const isOfficePreviewKind = (
+  kind: FilePreviewKind,
+): kind is OfficePreviewKind => {
+  return ["word", "spreadsheet", "presentation"].includes(kind);
+};
+
 export const guessFilePreviewDescriptor = (
   fileName: string,
 ): FilePreviewDescriptor => {
@@ -121,6 +153,18 @@ export const guessFilePreviewDescriptor = (
       language: CODE_LANGUAGE_BY_EXTENSION[extension],
       mimeType,
     };
+  }
+
+  if (WORD_EXTENSIONS.has(extension)) {
+    return { kind: "word", mimeType };
+  }
+
+  if (SPREADSHEET_EXTENSIONS.has(extension)) {
+    return { kind: "spreadsheet", mimeType };
+  }
+
+  if (PRESENTATION_EXTENSIONS.has(extension)) {
+    return { kind: "presentation", mimeType };
   }
 
   if (mimeType === "application/pdf") {
@@ -154,6 +198,10 @@ export const canPreviewFileByName = (fileName: string, sizeBytes: number) => {
 
   if (["image", "audio", "video", "pdf"].includes(descriptor.kind)) {
     return true;
+  }
+
+  if (isOfficePreviewKind(descriptor.kind)) {
+    return sizeBytes <= MAX_OFFICE_PREVIEW_BYTES;
   }
 
   if (["markdown", "code", "text"].includes(descriptor.kind)) {

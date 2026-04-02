@@ -143,3 +143,8 @@
 - **Status:** Completed
 - **Next Steps:** If desired, add a browser-level smoke test around the share preview modal to catch future regressions in rendered markdown/media behavior.
 - **Context:** Verified with `frontend npm run lint`, `frontend npm run build`, and a targeted Node assertion script for the new preview detection helpers. Frontend lint still reports the repository's existing warnings only, and the `/share/[shareId]` bundle grew noticeably because of the richer preview dependencies.
+## [2026-04-02 23:43] Add Office file previews
+- **Changes:** Extended share preview detection to recognize Office document, spreadsheet, and presentation formats and capped Office previews with a dedicated size limit. Added client-side Office preview rendering using `docx-preview` for Word-compatible OOXML files, `xlsx` for spreadsheet tabs/HTML previews, and `@jvmr/pptx-to-html` for PowerPoint slide previews inside sandboxed iframes.
+- **Status:** Completed
+- **Next Steps:** If needed, add a browser smoke test with sample `.docx`, `.xlsx`, and `.pptx` fixtures to cover real-world rendering regressions.
+- **Context:** Verified with `frontend npm run lint`, `frontend npm run build`, and a targeted Node assertion script that confirmed the Office preview modules load and the XLSX preview pipeline can round-trip workbook data into HTML. Frontend lint still reports the repository's pre-existing warnings only.

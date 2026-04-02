@@ -11,6 +11,7 @@
   "dependencies": {
     "@emotion/react": "^11.13.3",
     "@emotion/server": "^11.11.0",
+    "@jvmr/pptx-to-html": "^1.0.1",
     "@mantine/core": "^6.0.21",
     "@mantine/dropzone": "^6.0.21",
     "@mantine/form": "^6.0.21",
@@ -21,6 +22,7 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "axios": "^1.7.7",
     "cookies-next": "^4.2.1",
+    "docx-preview": "^0.3.7",
     "file-saver": "^2.0.5",
     "jose": "^5.9.2",
     "jwt-decode": "^4.0.0",
@@ -43,6 +45,7 @@
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
     "sharp": "^0.33.5",
+    "xlsx": "^0.18.5",
     "yup": "^1.4.0"
   },
   "devDependencies": {

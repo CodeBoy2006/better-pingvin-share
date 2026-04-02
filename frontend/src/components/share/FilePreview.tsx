@@ -18,6 +18,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark, oneLight } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { FormattedMessage } from "react-intl";
 import api from "../../services/api.service";
+import OfficeFilePreview from "./OfficeFilePreview";
 import { FileMetaData } from "../../types/File.type";
 import {
   canPreviewFileByName,
@@ -25,6 +26,9 @@ import {
   detectTextPreviewDescriptor,
   FilePreviewDescriptor,
   guessFilePreviewDescriptor,
+  isOfficePreviewKind,
+  MAX_OFFICE_PREVIEW_BYTES,
+  OfficePreviewKind,
   isProbablyText,
   MAX_SNIFFABLE_PREVIEW_BYTES,
   MAX_TEXT_PREVIEW_BYTES,
@@ -36,6 +40,7 @@ type ReadyPreviewState = {
   status: "ready";
   descriptor: FilePreviewDescriptor;
   text?: string;
+  buffer?: ArrayBuffer;
   sourceUrl: string;
 };
 
@@ -78,7 +83,9 @@ const FilePreview = ({
     const previewLimit =
       guessedDescriptor.kind === "unsupported"
         ? MAX_SNIFFABLE_PREVIEW_BYTES
-        : MAX_TEXT_PREVIEW_BYTES;
+        : isOfficePreviewKind(guessedDescriptor.kind)
+          ? MAX_OFFICE_PREVIEW_BYTES
+          : MAX_TEXT_PREVIEW_BYTES;
 
     if (!canPreviewFileByName(file.name, sizeBytes)) {
       setPreviewState({ status: "tooLarge", limitBytes: previewLimit });
@@ -111,6 +118,16 @@ const FilePreview = ({
             status: "ready",
             descriptor: sniffedDescriptor,
             sourceUrl: objectUrl,
+          });
+          return;
+        }
+
+        if (isOfficePreviewKind(guessedDescriptor.kind)) {
+          setPreviewState({
+            status: "ready",
+            descriptor: guessedDescriptor,
+            buffer: response.data,
+            sourceUrl,
           });
           return;
         }
@@ -215,6 +232,18 @@ const PreviewBody = ({
           mimeType={previewState.descriptor.mimeType}
           onError={onPreviewError}
         />
+      );
+    case "word":
+    case "spreadsheet":
+    case "presentation":
+      return previewState.buffer ? (
+        <OfficeFilePreview
+          kind={previewState.descriptor.kind as OfficePreviewKind}
+          buffer={previewState.buffer}
+          onError={onPreviewError}
+        />
+      ) : (
+        <UnSupportedFile />
       );
     case "markdown":
       return (
