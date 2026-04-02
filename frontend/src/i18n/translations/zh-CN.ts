@@ -378,6 +378,9 @@ export default {
     "允许管理员访问所有共享",
   "admin.config.share.allow-admin-access-all-shares.description":
     "允许管理员访问已过期、受密码保护或普通用户无法访问的共享。",
+  "admin.config.share.file-retention-period": "文件保留期限",
+  "admin.config.share.file-retention-period.description":
+    "在共享过期或被上传者删除后，继续保留文件一段时间，再执行永久删除。",
   "admin.config.smtp.enabled": "启用",
   "admin.config.smtp.enabled.description": "是否开启 SMTP，仅当输入主机名、端口、发送邮箱、用户名和密码后开启",
   "admin.config.smtp.host": "主机名",

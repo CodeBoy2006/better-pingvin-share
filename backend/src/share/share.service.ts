@@ -449,8 +449,26 @@ export class ShareService {
     )
       throw new ForbiddenException("Anonymous shares can't be deleted");
 
+    if (!options?.isDeleterAdmin) {
+      await this.expire(shareId);
+      return;
+    }
+
     await this.fileService.deleteAllFiles(shareId);
     await this.prisma.share.delete({ where: { id: shareId } });
+  }
+
+  async expire(shareId: string) {
+    const share = await this.prisma.share.findUnique({
+      where: { id: shareId },
+    });
+
+    if (!share) throw new NotFoundException("Share not found");
+
+    await this.prisma.share.update({
+      where: { id: shareId },
+      data: { expiration: moment().toDate() },
+    });
   }
 
   async isShareCompleted(id: string) {

@@ -113,3 +113,8 @@
 - **Status:** Completed
 - **Next Steps:** Implement retention/soft-delete handling next so expired or owner-deleted shares remain available for admins during the retention window.
 - **Context:** Verified with `backend npm run build` plus a temporary SQLite-backed HTTP smoke test on port `18080` covering admin access to expired/password-protected shares, direct file downloads, `files.json`, and a private reverse-share case; normal user requests still returned `404/403` as expected.
+## [2026-04-02 22:16] Share retention and soft delete window
+- **Changes:** Added the `share.fileRetentionPeriod` config setting plus English/Chinese admin labels, changed non-admin share deletion to expire the share instead of immediately destroying its files, and updated the cleanup job to permanently remove expired shares only after the configured retention window elapses.
+- **Status:** Completed
+- **Next Steps:** Add the admin "Deletes on" visibility next so retained shares expose their final cleanup date in the share-management table.
+- **Context:** Verified with `backend npm run build`, `frontend npm run lint`, and a temporary application-context smoke test against a fresh SQLite database covering owner soft-delete retention, admin hard delete, and cleanup behavior both inside and outside the configured 2-day retention window.

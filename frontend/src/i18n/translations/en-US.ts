@@ -520,6 +520,9 @@ export default {
     "Allow admin access to all shares",
   "admin.config.share.allow-admin-access-all-shares.description":
     "Allow administrators to access shares even when they are expired, password protected, or otherwise inaccessible to normal users.",
+  "admin.config.share.file-retention-period": "File retention period",
+  "admin.config.share.file-retention-period.description":
+    "Keep expired or owner-deleted shares for an additional period before their files are permanently removed.",
 
   "admin.config.smtp.enabled": "Enable",
   "admin.config.smtp.enabled.description":
