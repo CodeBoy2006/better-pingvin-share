@@ -93,3 +93,8 @@
 - **Status:** Completed
 - **Next Steps:** Continue batch 1 with upload-queue text editing and clipboard paste support.
 - **Context:** Verified with `frontend npm run lint` and `frontend npm run build`; lint still reports the repository's pre-existing warnings only.
+## [2026-04-02 22:24] Upload text editor modal
+- **Changes:** Added a lightweight text editor modal for queued text uploads, including replacement of edited file contents in the in-memory upload list and new edit/undo button labels for the upload file table.
+- **Status:** Completed
+- **Next Steps:** Finish batch 1 by adding clipboard paste support for uploads.
+- **Context:** Verified with `frontend npm run lint` and `frontend npm run build`; lint still reports the repository's pre-existing warnings plus the same generic callback-name warnings from this new modal code, but the build passed.

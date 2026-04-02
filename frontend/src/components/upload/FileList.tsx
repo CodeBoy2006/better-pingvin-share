@@ -1,19 +1,26 @@
-import { ActionIcon, Table } from "@mantine/core";
-import { TbTrash } from "react-icons/tb";
+import { ActionIcon, Group } from "@mantine/core";
+import { useModals } from "@mantine/modals";
+import { TbEdit, TbTrash } from "react-icons/tb";
 import { GrUndo } from "react-icons/gr";
+import useTranslate from "../../hooks/useTranslate.hook";
+import shareService from "../../services/share.service";
 import { FileListItem } from "../../types/File.type";
 import { byteToHumanSizeString } from "../../utils/fileSize.util";
 import UploadProgressIndicator from "./UploadProgressIndicator";
 import { FormattedMessage } from "react-intl";
+import showTextEditorModal from "./modals/showTextEditorModal";
+import { Table } from "@mantine/core";
 
 const FileListRow = ({
   file,
   onRemove,
   onRestore,
+  onEdit,
 }: {
   file: FileListItem;
   onRemove?: () => void;
   onRestore?: () => void;
+  onEdit?: () => void;
 }) => {
   {
     const uploadable = "uploadingProgress" in file;
@@ -23,6 +30,11 @@ const FileListRow = ({
       : onRemove && !file.deleted;
     const restorable = onRestore && !uploadable && !!file.deleted; // maybe undefined, force boolean
     const deleted = !uploadable && !!file.deleted;
+    const editable =
+      uploadable &&
+      file.uploadingProgress === 0 &&
+      shareService.isShareTextFile(file.name);
+    const t = useTranslate();
 
     return (
       <tr
@@ -34,29 +46,43 @@ const FileListRow = ({
         <td>{file.name}</td>
         <td>{byteToHumanSizeString(+file.size)}</td>
         <td>
-          {removable && (
-            <ActionIcon
-              color="red"
-              variant="light"
-              size={25}
-              onClick={onRemove}
-            >
-              <TbTrash />
-            </ActionIcon>
-          )}
-          {uploading && (
-            <UploadProgressIndicator progress={file.uploadingProgress} />
-          )}
-          {restorable && (
-            <ActionIcon
-              color="primary"
-              variant="light"
-              size={25}
-              onClick={onRestore}
-            >
-              <GrUndo />
-            </ActionIcon>
-          )}
+          <Group position="right" spacing="xs" noWrap>
+            {editable && (
+              <ActionIcon
+                color="blue"
+                variant="light"
+                size={25}
+                title={t("common.button.edit")}
+                onClick={onEdit}
+              >
+                <TbEdit />
+              </ActionIcon>
+            )}
+            {removable && (
+              <ActionIcon
+                color="red"
+                variant="light"
+                size={25}
+                onClick={onRemove}
+              >
+                <TbTrash />
+              </ActionIcon>
+            )}
+            {uploading && (
+              <UploadProgressIndicator progress={file.uploadingProgress} />
+            )}
+            {restorable && (
+              <ActionIcon
+                color="primary"
+                variant="light"
+                size={25}
+                title={t("common.button.undo")}
+                onClick={onRestore}
+              >
+                <GrUndo />
+              </ActionIcon>
+            )}
+          </Group>
         </td>
       </tr>
     );
@@ -70,6 +96,7 @@ const FileList = <T extends FileListItem = FileListItem>({
   files: T[];
   setFiles: (files: T[]) => void;
 }) => {
+  const modals = useModals();
   const remove = (index: number) => {
     const file = files[index];
 
@@ -94,12 +121,20 @@ const FileList = <T extends FileListItem = FileListItem>({
     setFiles([...files]);
   };
 
+  const edit = async (index: number) => {
+    const originalFile = files[index] as unknown as File;
+    const text = await originalFile.text();
+
+    showTextEditorModal(index, files, setFiles, text, modals);
+  };
+
   const rows = files.map((file, i) => (
     <FileListRow
       key={i}
       file={file}
       onRemove={() => remove(i)}
       onRestore={() => restore(i)}
+      onEdit={() => void edit(i)}
     />
   ));
 
