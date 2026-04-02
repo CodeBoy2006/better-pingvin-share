@@ -78,3 +78,8 @@
 - **Status:** Completed
 - **Next Steps:** If desired later, we can add a dedicated dual-copy action so users can still copy either URL in one click without opening a modal first.
 - **Context:** Verified with `frontend npm run lint` and `frontend npm run build`; both still emit the repo's pre-existing warnings, but the build passed.
+## [2026-04-02 22:00] Default share expiration setting
+- **Changes:** Added `share.defaultExpiration` to backend config defaults and `config.example.yaml`, passed that timespan into the upload modal, and updated the English/Chinese admin config labels so new shares start with an admin-configurable expiration preset instead of a hard-coded 1 day.
+- **Status:** Completed
+- **Next Steps:** Continue with the remaining batch 1 UX enhancements (QR links, clipboard helpers, text editing, and paste upload support).
+- **Context:** Verified with `backend npm run build`, `frontend npm run lint`, and `frontend npm run build`; frontend lint still reports the repository's pre-existing warnings only.

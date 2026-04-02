@@ -352,6 +352,9 @@ export default {
   "admin.config.share.allow-unauthenticated-shares.description": "是否允许未验证的用户创建共享",
   "admin.config.share.max-expiration": "最长过期时间",
   "admin.config.share.max-expiration.description": "“最长过期时间”以小时为单位，如果将其设置为“0”则为永不过期。",
+  "admin.config.share.default-expiration": "默认过期时间",
+  "admin.config.share.default-expiration.description":
+    "创建分享时预先选中的默认过期时间。",
   "admin.config.share.share-id-length": "默认共享ID长度",
   "admin.config.share.share-id-length.description": "生成的共享 ID 的默认长度。该值也用于生成预留共享的链接。低于 8 的值不安全。",
   "admin.config.share.max-size": "最大文件上限",

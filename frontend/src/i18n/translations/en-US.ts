@@ -491,6 +491,9 @@ export default {
   "admin.config.share.max-expiration": "Max expiration",
   "admin.config.share.max-expiration.description":
     "Maximum share expiration. Set to 0 to allow unlimited expiration.",
+  "admin.config.share.default-expiration": "Default expiration",
+  "admin.config.share.default-expiration.description":
+    "Default expiration preselected when creating a share",
   "admin.config.share.share-id-length": "Default share ID length",
   "admin.config.share.share-id-length.description":
     "Default length for the generated ID of a share. This value is also used to generate links for reverse shares. A value below 8 is not considered secure.",

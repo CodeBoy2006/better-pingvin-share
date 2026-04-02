@@ -41,6 +41,7 @@ const showCreateUploadModal = (
     allowUnauthenticatedShares: boolean;
     enableEmailRecepients: boolean;
     maxExpiration: Timespan;
+    defaultExpiration: Timespan;
     shareIdLength: number;
     simplified: boolean;
   },
@@ -114,6 +115,7 @@ const CreateUploadModalBody = ({
     allowUnauthenticatedShares: boolean;
     enableEmailRecepients: boolean;
     maxExpiration: Timespan;
+    defaultExpiration: Timespan;
     shareIdLength: number;
   };
 }) => {
@@ -149,6 +151,11 @@ const CreateUploadModalBody = ({
       .min(1),
   });
 
+  const defaultTimespan = options.defaultExpiration ?? {
+    value: 7,
+    unit: "days",
+  };
+
   const form = useForm({
     initialValues: {
       name: undefined,
@@ -157,8 +164,8 @@ const CreateUploadModalBody = ({
       password: undefined,
       maxViews: undefined,
       description: undefined,
-      expiration_num: 1,
-      expiration_unit: "-days",
+      expiration_num: defaultTimespan.value,
+      expiration_unit: `-${defaultTimespan.unit}` as string,
       never_expires: false,
     },
     validate: yupResolver(validationSchema),
