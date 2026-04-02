@@ -58,3 +58,8 @@
 - **Status:** Completed
 - **Next Steps:** Monitor the first workflow run and, if the package is created as private on first publish, adjust the package visibility in GitHub once.
 - **Context:** This change avoids relying on a local PAT scope for GHCR pushes and keeps publication tied to the repository via GitHub Actions and the repo-scoped `GITHUB_TOKEN`.
+## [2026-04-02 19:56] Release v1.14.0
+- **Changes:** Bumped the root, backend, and frontend package metadata from `1.13.0` to `1.14.0`, including all three `package-lock.json` files, in preparation for the `v1.14.0` release/tag publish.
+- **Status:** Completed
+- **Next Steps:** Commit the release bump, push `main`, create/push the `v1.14.0` tag, and publish the release so the GHCR workflow can emit the versioned image.
+- **Context:** This is a metadata-only release bump; verification consisted of checking all package versions and confirming the diffs are version-only with `git diff --check`.
