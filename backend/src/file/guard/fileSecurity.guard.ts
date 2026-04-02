@@ -17,7 +17,7 @@ export class FileSecurityGuard extends ShareSecurityGuard {
   constructor(
     private _shareService: ShareService,
     private _prisma: PrismaService,
-    _config: ConfigService,
+    private _config: ConfigService,
   ) {
     super(_shareService, _prisma, _config);
   }
@@ -41,6 +41,13 @@ export class FileSecurityGuard extends ShareSecurityGuard {
 
     // If there is no share token the user requests a file directly
     if (!shareToken) {
+      if (this._config.get("share.allowAdminAccessAllShares")) {
+        const user = await this.getAuthenticatedUser(context);
+        if (user?.isAdmin) {
+          return true;
+        }
+      }
+
       if (
         !share ||
         (moment().isAfter(share.expiration) &&

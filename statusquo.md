@@ -108,3 +108,8 @@
 - **Status:** Completed
 - **Next Steps:** If we want to prevent regressions, add an automated dependency audit (e.g. a static import-vs-package.json check) in CI for backend/frontend/docs.
 - **Context:** Investigation confirmed the repo had real ghost dependencies hidden by transitive installs; verification passed with `backend npm run lint`, `backend npm run build`, `frontend npm run lint`, `docs npm run typecheck`, and `docs npm run build`. Frontend lint still reports the repository's pre-existing warnings only; docs build still reports an existing broken anchor warning on `/setup/upgrading#stand-alone-installation`.
+## [2026-04-02 22:10] Admin access to all shares
+- **Changes:** Added the `share.allowAdminAccessAllShares` config flag to the backend seed/config example and English/Chinese admin labels. Updated share/file access guards plus `files.json` generation so admins can open expired, password-protected, and otherwise restricted shares without requiring share tokens, while normal users keep the existing restrictions.
+- **Status:** Completed
+- **Next Steps:** Implement retention/soft-delete handling next so expired or owner-deleted shares remain available for admins during the retention window.
+- **Context:** Verified with `backend npm run build` plus a temporary SQLite-backed HTTP smoke test on port `18080` covering admin access to expired/password-protected shares, direct file downloads, `files.json`, and a private reverse-share case; normal user requests still returned `404/403` as expected.

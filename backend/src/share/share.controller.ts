@@ -91,12 +91,16 @@ export class ShareController {
     @Res({ passthrough: true }) response: Response,
   ) {
     const shareToken = getShareTokenFromRequest(request, id);
+    const user = this.getUserFromRequest(request);
     const fileList = await this.shareService.getFileList(id, {
       shareToken,
-      userId: this.getUserIdFromRequest(request),
+      userId: user?.sub,
+      isAdmin: user?.isAdmin,
     });
     const appUrl = this.configService.get("general.appUrl");
-    const tokenQuery = `token=${encodeURIComponent(fileList.shareToken)}`;
+    const tokenQuery = fileList.shareToken
+      ? `token=${encodeURIComponent(fileList.shareToken)}`
+      : undefined;
 
     if (fileList.generatedShareToken) {
       this.clearShareTokenCookies(request, response);
@@ -131,7 +135,7 @@ export class ShareController {
         machineReadableUrl: `${appUrl}/s/${fileList.share.id}/files.json`,
         zipDownloadUrl:
           fileList.share.isZipReady && fileList.share.files.length > 1
-            ? `${appUrl}/api/shares/${fileList.share.id}/files/zip?${tokenQuery}`
+            ? `${appUrl}/api/shares/${fileList.share.id}/files/zip${tokenQuery ? `?${tokenQuery}` : ""}`
             : undefined,
       },
       files: fileList.share.files.map((file) => ({
@@ -140,8 +144,8 @@ export class ShareController {
         sizeBytes: file.size,
         createdAt: file.createdAt,
         contentType: mime.lookup(file.name) || "application/octet-stream",
-        downloadUrl: `${appUrl}/api/shares/${fileList.share.id}/files/${file.id}?${tokenQuery}`,
-        inlineUrl: `${appUrl}/api/shares/${fileList.share.id}/files/${file.id}?download=false&${tokenQuery}`,
+        downloadUrl: `${appUrl}/api/shares/${fileList.share.id}/files/${file.id}${tokenQuery ? `?${tokenQuery}` : ""}`,
+        inlineUrl: `${appUrl}/api/shares/${fileList.share.id}/files/${file.id}?download=false${tokenQuery ? `&${tokenQuery}` : ""}`,
       })),
     });
   }
@@ -267,7 +271,7 @@ export class ShareController {
     }
   }
 
-  private getUserIdFromRequest(request: Request) {
+  private getUserFromRequest(request: Request) {
     const accessToken = request.cookies.access_token;
 
     if (!accessToken) {
@@ -275,11 +279,12 @@ export class ShareController {
     }
 
     try {
-      const payload = this.jwtService.verify<{ sub: string }>(accessToken, {
-        secret: this.configService.get("internal.jwtSecret"),
-      });
-
-      return payload.sub;
+      return this.jwtService.verify<{ sub: string; isAdmin?: boolean }>(
+        accessToken,
+        {
+          secret: this.configService.get("internal.jwtSecret"),
+        },
+      );
     } catch {
       return undefined;
     }

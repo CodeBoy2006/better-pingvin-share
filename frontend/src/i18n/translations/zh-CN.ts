@@ -374,6 +374,10 @@ export default {
   "admin.config.share.chunk-size.description": "根据你的互联网连接情况调整上传文件的块大小（以字节为单位），以平衡效率和可靠性。 较小的块有助于提高不稳定网络环境中的上传成功率，而较大的块则可以加快稳定网络环境中的上传速度。",
   "admin.config.share.auto-open-share-modal": "自动打开创建共享对话框",
   "admin.config.share.auto-open-share-modal.description": "每当用户选择完将要被上传的文件后，自动打开创建共享的对话框。",
+  "admin.config.share.allow-admin-access-all-shares":
+    "允许管理员访问所有共享",
+  "admin.config.share.allow-admin-access-all-shares.description":
+    "允许管理员访问已过期、受密码保护或普通用户无法访问的共享。",
   "admin.config.smtp.enabled": "启用",
   "admin.config.smtp.enabled.description": "是否开启 SMTP，仅当输入主机名、端口、发送邮箱、用户名和密码后开启",
   "admin.config.smtp.host": "主机名",

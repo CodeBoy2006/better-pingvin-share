@@ -301,7 +301,7 @@ export class ShareService {
 
   async getFileList(
     id: string,
-    options?: { shareToken?: string; userId?: string },
+    options?: { shareToken?: string; userId?: string; isAdmin?: boolean },
   ) {
     const share = await this.prisma.share.findUnique({
       where: { id },
@@ -324,7 +324,12 @@ export class ShareService {
       throw new NotFoundException(share.removedReason, "share_removed");
     }
 
+    const hasAdminAccess =
+      options?.isAdmin &&
+      this.configService.get("share.allowAdminAccessAllShares");
+
     if (
+      !hasAdminAccess &&
       moment().isAfter(share.expiration) &&
       !moment(share.expiration).isSame(0)
     ) {
@@ -332,6 +337,7 @@ export class ShareService {
     }
 
     if (
+      !hasAdminAccess &&
       share.reverseShare &&
       !share.reverseShare.publicAccess &&
       share.creatorId !== options?.userId &&
@@ -347,7 +353,7 @@ export class ShareService {
       options?.shareToken != undefined &&
       (await this.verifyShareToken(id, options.shareToken));
 
-    if (!hasValidShareToken && share.security?.password) {
+    if (!hasAdminAccess && !hasValidShareToken && share.security?.password) {
       throw new ForbiddenException(
         options?.shareToken
           ? "Share token required"
@@ -358,7 +364,7 @@ export class ShareService {
       );
     }
 
-    if (!hasValidShareToken) {
+    if (!hasAdminAccess && !hasValidShareToken) {
       if (share.security?.maxViews && share.security.maxViews <= share.views) {
         throw new ForbiddenException(
           "Maximum views exceeded",
@@ -374,10 +380,12 @@ export class ShareService {
         ...share,
         hasPassword: !!share.security?.password,
       },
-      shareToken: hasValidShareToken
-        ? options?.shareToken
-        : await this.generateShareToken(id),
-      generatedShareToken: !hasValidShareToken,
+      shareToken: hasAdminAccess
+        ? undefined
+        : hasValidShareToken
+          ? options?.shareToken
+          : await this.generateShareToken(id),
+      generatedShareToken: hasAdminAccess ? false : !hasValidShareToken,
     };
   }
 
