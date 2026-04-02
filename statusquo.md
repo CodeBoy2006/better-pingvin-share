@@ -53,3 +53,8 @@
 - **Status:** Completed
 - **Next Steps:** None.
 - **Context:** The `<share-url>/files.json` README note was already present on this branch before the implementation work, so the actual code changes for this task are limited to the backend/frontend route, DTO, guard, utility, and regression-test files plus `statusquo.md`.
+## [2026-04-02 19:39] GHCR workflow publish path
+- **Changes:** Updated `.github/workflows/build-docker-image.yml` so image publishing now targets only `ghcr.io/${{ github.repository }}` with explicit `packages: write` permissions, supports `workflow_dispatch` plus `main`/tag pushes, and emits `latest` from the default branch for repo-linked registry publishing.
+- **Status:** Completed
+- **Next Steps:** Monitor the first workflow run and, if the package is created as private on first publish, adjust the package visibility in GitHub once.
+- **Context:** This change avoids relying on a local PAT scope for GHCR pushes and keeps publication tied to the repository via GitHub Actions and the repo-scoped `GITHUB_TOKEN`.
