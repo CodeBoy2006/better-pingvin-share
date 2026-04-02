@@ -208,6 +208,7 @@ export default {
   "admin.shares.table.username": "创建者",
   "admin.shares.table.visitors": "访问者",
   "admin.shares.table.expires": "过期于",
+  "admin.shares.table.deletes": "删除于",
   "admin.shares.edit.delete.title": "删除共享 {id}",
   "admin.shares.edit.delete.description": "你真的要删除这个共享吗？",
   // END /admin/shares

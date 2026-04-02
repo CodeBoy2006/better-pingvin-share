@@ -274,6 +274,7 @@ export default {
   "admin.shares.table.username": "Creator",
   "admin.shares.table.visitors": "Visitors",
   "admin.shares.table.expires": "Expires on",
+  "admin.shares.table.deletes": "Deletes on",
 
   "admin.shares.edit.delete.title": "Delete share: {id}",
   "admin.shares.edit.delete.description":

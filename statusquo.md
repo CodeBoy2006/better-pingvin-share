@@ -118,3 +118,8 @@
 - **Status:** Completed
 - **Next Steps:** Add the admin "Deletes on" visibility next so retained shares expose their final cleanup date in the share-management table.
 - **Context:** Verified with `backend npm run build`, `frontend npm run lint`, and a temporary application-context smoke test against a fresh SQLite database covering owner soft-delete retention, admin hard delete, and cleanup behavior both inside and outside the configured 2-day retention window.
+## [2026-04-02 22:21] Admin delete schedule column
+- **Changes:** Updated the admin share-management table to read `share.fileRetentionPeriod` from config and show a conditional "Deletes on" column that adds the retention window to each share's expiration when retention is enabled. Added English/Chinese labels for the new column.
+- **Status:** Completed
+- **Next Steps:** Move to batch 3 by surfacing disk/share storage stats in the admin share-management screen.
+- **Context:** Verified with `frontend npm run lint` and `frontend npm run build`; both passed with only the repository's longstanding frontend warnings.

@@ -11,6 +11,7 @@ import { useModals } from "@mantine/modals";
 import moment from "moment";
 import { TbLink, TbTrash } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
+import useConfig from "../../../hooks/config.hook";
 import { MyShare } from "../../../types/share.type";
 import { byteToHumanSizeString } from "../../../utils/fileSize.util";
 import showShareLinkModal from "../../account/showShareLinkModal";
@@ -25,6 +26,9 @@ const ManageShareTable = ({
   isLoading: boolean;
 }) => {
   const modals = useModals();
+  const config = useConfig();
+  const fileRetentionPeriod = config.get("share.fileRetentionPeriod");
+  const showDeletesOnColumn = fileRetentionPeriod.value > 0;
 
   return (
     <Box sx={{ display: "block", overflowX: "auto" }}>
@@ -49,12 +53,17 @@ const ManageShareTable = ({
             <th>
               <FormattedMessage id="account.shares.table.expiresAt" />
             </th>
+            {showDeletesOnColumn && (
+              <th>
+                <FormattedMessage id="admin.shares.table.deletes" />
+              </th>
+            )}
             <th></th>
           </tr>
         </thead>
         <tbody>
           {isLoading
-            ? skeletonRows
+            ? getSkeletonRows(showDeletesOnColumn)
             : shares.map((share) => (
                 <tr key={share.id}>
                   <td>{share.id}</td>
@@ -73,6 +82,18 @@ const ManageShareTable = ({
                       ? "Never"
                       : moment(share.expiration).format("LLL")}
                   </td>
+                  {showDeletesOnColumn && (
+                    <td>
+                      {moment(share.expiration).unix() === 0
+                        ? "Never"
+                        : moment(share.expiration)
+                            .add(
+                              fileRetentionPeriod.value,
+                              fileRetentionPeriod.unit,
+                            )
+                            .format("LLL")}
+                    </td>
+                  )}
                   <td>
                     <Group position="right">
                       <ActionIcon
@@ -101,7 +122,8 @@ const ManageShareTable = ({
   );
 };
 
-const skeletonRows = [...Array(10)].map((v, i) => (
+const getSkeletonRows = (showDeletesOnColumn: boolean) =>
+  [...Array(10)].map((v, i) => (
   <tr key={i}>
     <td>
       <Skeleton key={i} height={20} />
@@ -123,7 +145,12 @@ const skeletonRows = [...Array(10)].map((v, i) => (
     <td>
       <Skeleton key={i} height={20} />
     </td>
+    {showDeletesOnColumn && (
+      <td>
+        <Skeleton key={`${i}-delete`} height={20} />
+      </td>
+    )}
   </tr>
-));
+  ));
 
 export default ManageShareTable;
