@@ -5,7 +5,6 @@
     "eslint:recommended",
     "prettier"
   ],
-  "plugins": ["react"],
   "rules": {
     "quotes": ["warn", "double", { "allowTemplateLiterals": true }],
     "react-hooks/exhaustive-deps": ["off"],

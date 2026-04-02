@@ -103,3 +103,8 @@
 - **Status:** Completed
 - **Next Steps:** Move on to batch 2: admin-wide share access, retention, and delete scheduling.
 - **Context:** Verified with `frontend npm run lint` and `frontend npm run build`; lint still reports the repo's pre-existing warnings plus generic callback-name warnings in upload components, and the build passed.
+## [2026-04-02 22:05] Eliminate confirmed ghost dependencies
+- **Changes:** Added direct backend deps/devDeps for `express`, `keyv`, and `@eslint/js`; added direct docs deps/devDeps for `@docusaurus/plugin-content-docs`, `react-router-dom`, and `@types/react-router-dom`; removed the frontend `.eslintrc.json` `react` plugin entry so lint no longer relies on transitive `eslint-plugin-react`. Updated `backend/package-lock.json` and `docs/package-lock.json` to match.
+- **Status:** Completed
+- **Next Steps:** If we want to prevent regressions, add an automated dependency audit (e.g. a static import-vs-package.json check) in CI for backend/frontend/docs.
+- **Context:** Investigation confirmed the repo had real ghost dependencies hidden by transitive installs; verification passed with `backend npm run lint`, `backend npm run build`, `frontend npm run lint`, `docs npm run typecheck`, and `docs npm run build`. Frontend lint still reports the repository's pre-existing warnings only; docs build still reports an existing broken anchor warning on `/setup/upgrading#stand-alone-installation`.

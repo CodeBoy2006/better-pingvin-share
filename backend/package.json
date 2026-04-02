@@ -38,7 +38,9 @@
     "class-validator": "^0.14.1",
     "content-disposition": "^0.5.4",
     "cookie-parser": "^1.4.7",
+    "express": "^5.1.0",
     "jmespath": "^0.16.0",
+    "keyv": "^5.3.3",
     "ldapts": "^7.4.0",
     "mime-types": "^3.0.1",
     "moment": "^2.30.1",
@@ -58,6 +60,7 @@
     "yaml": "^2.7.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.24.0",
     "@nestjs/cli": "^11.0.6",
     "@nestjs/schematics": "^11.0.5",
     "@nestjs/testing": "^11.0.17",
