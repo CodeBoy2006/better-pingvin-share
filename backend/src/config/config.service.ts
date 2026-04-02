@@ -12,8 +12,11 @@ import * as fs from "fs";
 import { PrismaService } from "src/prisma/prisma.service";
 import { stringToTimespan } from "src/utils/date.util";
 import { parse as yamlParse } from "yaml";
-import { YamlConfig } from "../../prisma/seed/config.seed";
 import { CONFIG_FILE } from "src/constants";
+import {
+  getDefinedConfigVariable,
+  YamlConfig,
+} from "./configDefinitions";
 
 /**
  * ConfigService extends EventEmitter to allow listening for config updates,
@@ -93,9 +96,10 @@ export class ConfigService extends EventEmitter {
   }
 
   get(key: `${string}.${string}`): any {
-    const configVariable = this.configVariables.filter(
-      (variable) => `${variable.category}.${variable.name}` == key,
-    )[0];
+    const configVariable =
+      this.configVariables.find(
+        (variable) => `${variable.category}.${variable.name}` == key,
+      ) ?? getDefinedConfigVariable(key);
 
     if (!configVariable) throw new Error(`Config variable ${key} not found`);
 

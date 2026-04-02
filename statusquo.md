@@ -133,3 +133,8 @@
 - **Status:** Completed
 - **Next Steps:** Run final regression/status checks across the completed batch 1-3 rollout, then push the commit chain.
 - **Context:** Verified with `frontend npm run lint`, `frontend npm run build`, and a targeted Node assertion script that exercised the new upload error classifier for unexpected chunk recovery, `413` payload-too-large responses, and the low-disk server error.
+## [2026-04-02 22:47] Auto-backfill missing config rows on startup
+- **Changes:** Moved config definitions into a shared backend module, updated the seed script to reuse it, and made `ConfigModule` automatically backfill/update missing config rows before loading runtime config. Added a defensive `ConfigService.get()` fallback to the shared definitions so newly introduced keys (like `share.fileRetentionPeriod`) no longer crash upgraded instances with older databases.
+- **Status:** Completed
+- **Next Steps:** Monitor for any other upgrade-time data migrations that should be promoted from manual seed runs into automatic startup backfills.
+- **Context:** Verified with `backend npm run build` and a temporary SQLite application-context test that deleted `share.fileRetentionPeriod` after seeding, then confirmed app startup recreated the row and `JobsService.deleteExpiredShares()` ran without throwing.
