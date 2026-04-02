@@ -6,7 +6,7 @@ id: upgrading
 
 ### Upgrade to a new version
 
-As Pingvin Share is in early stage, see the release notes for breaking changes before upgrading.
+As Better Pingvin Share is in early stage, see the release notes for breaking changes before upgrading.
 
 #### Docker
 

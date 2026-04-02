@@ -4,7 +4,7 @@ _Read this in another language: [Spanish](/docs/CONTRIBUTING.es.md), [English](/
 
 # Contributing
 
-We would ❤️ for you to contribute to Pingvin Share and help make it better! All contributions are welcome, including issues, suggestions, pull requests and more.
+We would ❤️ for you to contribute to Better Pingvin Share and help make it better! All contributions are welcome, including issues, suggestions, pull requests and more.
 
 ## Getting started
 
@@ -37,7 +37,7 @@ Before you submit the pull request for review please ensure that
 <details>
   <summary>Don't know how to create a pull request? Learn how to create a pull request</summary>
 
-1. Create a fork of the repository by clicking on the `Fork` button in the Pingvin Share repository
+1. Create a fork of the repository by clicking on the `Fork` button in the Better Pingvin Share repository
 
 2. Clone your fork to your machine with `git clone`
 
@@ -63,7 +63,7 @@ $ git push origin [name_of_your_new_branch]
 
 ## Setup project
 
-Pingvin Share consists of a frontend and a backend.
+Better Pingvin Share consists of a frontend and a backend.
 
 ### Backend
 

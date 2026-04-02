@@ -1,1 +1,1 @@
-Pingvin Share automation API multipart upload fixture.
+Better Pingvin Share automation API multipart upload fixture.

@@ -118,42 +118,6 @@ export default function Home() {
               <FormattedMessage id="home.description" />
             </Text>
 
-            <List
-              mt={30}
-              spacing="sm"
-              size="sm"
-              icon={
-                <ThemeIcon size={20} radius="xl">
-                  <TbCheck size={12} />
-                </ThemeIcon>
-              }
-            >
-              <List.Item>
-                <div>
-                  <b>
-                    <FormattedMessage id="home.bullet.a.name" />
-                  </b>{" "}
-                  - <FormattedMessage id="home.bullet.a.description" />
-                </div>
-              </List.Item>
-              <List.Item>
-                <div>
-                  <b>
-                    <FormattedMessage id="home.bullet.b.name" />
-                  </b>{" "}
-                  - <FormattedMessage id="home.bullet.b.description" />
-                </div>
-              </List.Item>
-              <List.Item>
-                <div>
-                  <b>
-                    <FormattedMessage id="home.bullet.c.name" />
-                  </b>{" "}
-                  - <FormattedMessage id="home.bullet.c.description" />
-                </div>
-              </List.Item>
-            </List>
-
             <Group mt={30}>
               <Button
                 component={Link}
@@ -166,7 +130,7 @@ export default function Home() {
               </Button>
               <Button
                 component={Link}
-                href="https://github.com/stonith404/pingvin-share"
+                href="https://github.com/CodeBoy2006/better-pingvin-share"
                 target="_blank"
                 variant="default"
                 radius="xl"

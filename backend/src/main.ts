@@ -106,7 +106,7 @@ async function bootstrap() {
   // Setup Swagger in development mode
   if (process.env.NODE_ENV == "development") {
     const config = new DocumentBuilder()
-      .setTitle("Pingvin Share API")
+      .setTitle("Better Pingvin Share API")
       .setVersion("1.0")
       .addBearerAuth(
         {

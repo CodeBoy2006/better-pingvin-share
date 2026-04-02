@@ -3,9 +3,9 @@ import type { Config } from "@docusaurus/types";
 import { themes as prismThemes } from "prism-react-renderer";
 
 const config: Config = {
-  title: "Pingvin Share",
+  title: "Better Pingvin Share",
   tagline:
-    "Pingvin Share is self-hosted file sharing platform and an alternative for WeTransfer.",
+    "Better Pingvin Share is self-hosted file sharing platform and an alternative for WeTransfer.",
   favicon: "img/pingvinshare.svg",
 
   url: "https://stonith404.github.io",
@@ -28,7 +28,7 @@ const config: Config = {
         docs: {
           routeBasePath: "/",
           sidebarPath: "./sidebars.ts",
-          editUrl: "https://github.com/stonith404/pingvin-share/edit/main/docs",
+          editUrl: "https://github.com/CodeBoy2006/better-pingvin-share/edit/main/docs",
         },
         blog: false,
       } satisfies Preset.Options,
@@ -41,14 +41,14 @@ const config: Config = {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: "Pingvin Share",
+      title: "Better Pingvin Share",
       logo: {
-        alt: "Pingvin Share Logo",
+        alt: "Better Pingvin Share Logo",
         src: "img/pingvinshare.svg",
       },
       items: [
         {
-          href: "https://github.com/stonith404/pingvin-share",
+          href: "https://github.com/CodeBoy2006/better-pingvin-share",
           label: "GitHub",
           position: "right",
         },

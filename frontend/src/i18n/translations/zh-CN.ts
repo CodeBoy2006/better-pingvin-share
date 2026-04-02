@@ -11,16 +11,11 @@ export default {
   "navbar.avatar.signout": "登出",
   // END navbar
   // /
-  "home.title": "<h>自建</h> 文件共享平台！",
-  "home.description": "你真的放心把文件交到第三方文件平台手中吗？",
-  "home.bullet.a.name": "完全自建",
-  "home.bullet.a.description": "轻松使用私有服务器搭建文件共享平台",
-  "home.bullet.b.name": "完全隐私",
-  "home.bullet.b.description": "您的文件只属于您，永远无法被第三方访问。",
-  "home.bullet.c.name": "完全无限",
-  "home.bullet.c.description": "您希望上传多大的文件都可以。硬盘容量的大小是您唯一的限制。",
+  "home.title": "<h>更好的</h> 自建文件共享平台！",
+  "home.description": "更多先进功能，更好的体验。",
   "home.button.start": "开始使用",
   "home.button.source": "源代码",
+
   // END /
   // /auth/signin
   "signin.title": "欢迎回来",
@@ -315,7 +310,7 @@ export default {
   "admin.config.general.app-name": "App 名称",
   "admin.config.general.app-name.description": "自定义 App 的名称",
   "admin.config.general.app-url": "App 的地址",
-  "admin.config.general.app-url.description": "Pingvin Share 的 URL 地址",
+  "admin.config.general.app-url.description": "Better Pingvin Share 的 URL 地址",
   "admin.config.general.secure-cookies": "安全 Cookie",
   "admin.config.general.secure-cookies.description": "是否为 cookie 设置安全标志。如果启用，当通过 HTTP 访问时站点将无法运行。",
   "admin.config.general.show-home-page": "显示首页",
@@ -330,7 +325,7 @@ export default {
   "admin.config.cache.max-items": "Maximum items",
   "admin.config.cache.max-items.description": "Maximum number of items inside the cache.",
   "admin.config.cache.redis-enabled": "Redis enabled",
-  "admin.config.cache.redis-enabled.description": "Normally Pingvin Share caches information in memory. If you run multiple instances of Pingvin Share, you need to enable Redis caching to share the cache between the instances.",
+  "admin.config.cache.redis-enabled.description": "Normally Better Pingvin Share caches information in memory. If you run multiple instances of Better Pingvin Share, you need to enable Redis caching to share the cache between the instances.",
   "admin.config.cache.redis-url": "Redis URL",
   "admin.config.cache.redis-url.description": "Url to connect to the Redis instance used for caching.",
   "admin.config.email.enable-share-email-recipients": "启用邮件收件人共享",

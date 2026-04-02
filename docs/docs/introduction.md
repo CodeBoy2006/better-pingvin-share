@@ -3,7 +3,7 @@ id: introduction
 ---
 
 # Introduction
-Pingvin Share is self-hosted file sharing platform and an alternative for WeTransfer.
+Better Pingvin Share is self-hosted file sharing platform and an alternative for WeTransfer.
 
 ## Features
 
@@ -16,7 +16,7 @@ Pingvin Share is self-hosted file sharing platform and an alternative for WeTran
 
 And more!
 
-## Get to know Pingvin Share
+## Get to know Better Pingvin Share
 
 - [Demo](https://pingvin-share.dev.eliasschneider.com)
 - [Review by DB Tech](https://www.youtube.com/watch?v=rWwNeZCOPJA)

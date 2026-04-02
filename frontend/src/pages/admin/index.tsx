@@ -64,7 +64,7 @@ const Admin = () => {
               title: "Update",
               icon: TbRefresh,
               route:
-                "https://github.com/stonith404/pingvin-share/releases/latest",
+                "https://github.com/CodeBoy2006/better-pingvin-share/releases/latest",
             },
           ]);
         }
