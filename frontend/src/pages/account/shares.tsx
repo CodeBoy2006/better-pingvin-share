@@ -10,7 +10,6 @@ import {
   Text,
   Title,
 } from "@mantine/core";
-import { useClipboard } from "@mantine/hooks";
 import { useModals } from "@mantine/modals";
 import moment from "moment";
 import Link from "next/link";
@@ -25,11 +24,9 @@ import useConfig from "../../hooks/config.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
 import shareService from "../../services/share.service";
 import { MyShare } from "../../types/share.type";
-import toast from "../../utils/toast.util";
 
 const MyShares = () => {
   const modals = useModals();
-  const clipboard = useClipboard();
   const config = useConfig();
   const t = useTranslate();
 
@@ -142,16 +139,7 @@ const MyShares = () => {
                         color="victoria"
                         variant="light"
                         size={25}
-                        onClick={() => {
-                          if (window.isSecureContext) {
-                            clipboard.copy(
-                              `${window.location.origin}/s/${share.id}`,
-                            );
-                            toast.success(t("common.notify.copied-link"));
-                          } else {
-                            showShareLinkModal(modals, share.id);
-                          }
-                        }}
+                        onClick={() => showShareLinkModal(modals, share.id)}
                       >
                         <TbLink />
                       </ActionIcon>

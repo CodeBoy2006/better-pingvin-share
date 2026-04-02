@@ -155,18 +155,9 @@ const MyShares = () => {
                                   color="victoria"
                                   variant="light"
                                   size={25}
-                                  onClick={() => {
-                                    if (window.isSecureContext) {
-                                      clipboard.copy(
-                                        `${window.location.origin}/s/${share.id}`,
-                                      );
-                                      toast.success(
-                                        t("common.notify.copied-link"),
-                                      );
-                                    } else {
-                                      showShareLinkModal(modals, share.id);
-                                    }
-                                  }}
+                                  onClick={() =>
+                                    showShareLinkModal(modals, share.id)
+                                  }
                                 >
                                   <TbLink />
                                 </ActionIcon>

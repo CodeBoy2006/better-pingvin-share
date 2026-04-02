@@ -7,16 +7,12 @@ import {
   Table,
   Text,
 } from "@mantine/core";
-import { useClipboard } from "@mantine/hooks";
 import { useModals } from "@mantine/modals";
 import moment from "moment";
 import { TbLink, TbTrash } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
-import useConfig from "../../../hooks/config.hook";
-import useTranslate from "../../../hooks/useTranslate.hook";
 import { MyShare } from "../../../types/share.type";
 import { byteToHumanSizeString } from "../../../utils/fileSize.util";
-import toast from "../../../utils/toast.util";
 import showShareLinkModal from "../../account/showShareLinkModal";
 
 const ManageShareTable = ({
@@ -29,9 +25,6 @@ const ManageShareTable = ({
   isLoading: boolean;
 }) => {
   const modals = useModals();
-  const clipboard = useClipboard();
-  const config = useConfig();
-  const t = useTranslate();
 
   return (
     <Box sx={{ display: "block", overflowX: "auto" }}>
@@ -86,16 +79,7 @@ const ManageShareTable = ({
                         color="victoria"
                         variant="light"
                         size={25}
-                        onClick={() => {
-                          if (window.isSecureContext) {
-                            clipboard.copy(
-                              `${window.location.origin}/s/${share.id}`,
-                            );
-                            toast.success(t("common.notify.copied-link"));
-                          } else {
-                            showShareLinkModal(modals, share.id);
-                          }
-                        }}
+                        onClick={() => showShareLinkModal(modals, share.id)}
                       >
                         <TbLink />
                       </ActionIcon>

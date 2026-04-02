@@ -73,3 +73,8 @@
 - **Status:** Completed
 - **Next Steps:** If we later want parity in one-click copy actions from the shares tables, consider replacing the direct clipboard shortcut there with a modal/action that can surface both URLs.
 - **Context:** Verified with `frontend npm run lint` and `frontend npm run build`; both still report the repository's pre-existing frontend warnings, but the build completed successfully.
+## [2026-04-02 21:33] Always show both share URLs from link actions
+- **Changes:** Updated `frontend/src/pages/account/shares.tsx`, `frontend/src/pages/account/reverseShares.tsx`, and `frontend/src/components/admin/shares/ManageShareTable.tsx` so share-link buttons now open the share-link modal instead of directly copying only the plain `/s/...` URL in secure contexts, ensuring the normal share link and `/files.json` link are both visible.
+- **Status:** Completed
+- **Next Steps:** If desired later, we can add a dedicated dual-copy action so users can still copy either URL in one click without opening a modal first.
+- **Context:** Verified with `frontend npm run lint` and `frontend npm run build`; both still emit the repo's pre-existing warnings, but the build passed.
