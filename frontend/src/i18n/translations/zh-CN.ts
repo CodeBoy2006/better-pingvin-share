@@ -92,6 +92,7 @@ export default {
   "account.modal.totp.enterManually": "手动输入",
   "account.modal.totp.code": "验证码",
   "common.button.clickToCopy": "点击复制",
+  "common.button.showQRCode": "显示二维码",
   "account.modal.totp.verify": "确定",
   "account.notify.totp.disable": "成功关闭两步验证！",
   "account.notify.totp.enable": "成功开启两步验证！",

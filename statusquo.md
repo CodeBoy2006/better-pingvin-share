@@ -83,3 +83,8 @@
 - **Status:** Completed
 - **Next Steps:** Continue with the remaining batch 1 UX enhancements (QR links, clipboard helpers, text editing, and paste upload support).
 - **Context:** Verified with `backend npm run build`, `frontend npm run lint`, and `frontend npm run build`; frontend lint still reports the repository's pre-existing warnings only.
+## [2026-04-02 22:12] QR codes in share link modals
+- **Changes:** Added a reusable client-side QR code component, extended copy fields with an optional QR toggle, and surfaced QR previews for the primary share link in the completed-upload modal, the share-info modal, and the generic share-link modal. Added the frontend `qrcode` dependency plus English/Chinese button text.
+- **Status:** Completed
+- **Next Steps:** Continue batch 1 by adding text-content clipboard helpers, upload text editing, and clipboard paste support.
+- **Context:** Verified with `frontend npm run lint` and `frontend npm run build`; lint still shows the repository's long-standing warnings, and the build still emits the existing Next.js Edge Runtime axios warning while succeeding.

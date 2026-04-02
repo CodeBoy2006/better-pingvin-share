@@ -2,11 +2,15 @@ import { ActionIcon, TextInput, Tooltip } from "@mantine/core";
 import { useClipboard } from "@mantine/hooks";
 import { useRef, useState } from "react";
 import { IoOpenOutline } from "react-icons/io5";
-import { TbCheck, TbCopy } from "react-icons/tb";
+import { TbCheck, TbCopy, TbQrcode } from "react-icons/tb";
 import useTranslate from "../../hooks/useTranslate.hook";
 import toast from "../../utils/toast.util";
 
-function CopyTextField(props: { link: string; label?: string }) {
+function CopyTextField(props: {
+  link: string;
+  label?: string;
+  toggleQR?: () => void;
+}) {
   const clipboard = useClipboard({ timeout: 500 });
   const t = useTranslate();
 
@@ -38,7 +42,9 @@ function CopyTextField(props: { link: string; label?: string }) {
           setTextClicked(true);
         }
       }}
-      rightSectionWidth={62}
+      rightSectionWidth={
+        props.toggleQR ? (window.isSecureContext ? 96 : 64) : 64
+      }
       rightSection={
         <>
           <Tooltip
@@ -63,6 +69,19 @@ function CopyTextField(props: { link: string; label?: string }) {
             >
               <ActionIcon onClick={copyLink}>
                 {checkState ? <TbCheck /> : <TbCopy />}
+              </ActionIcon>
+            </Tooltip>
+          )}
+
+          {props.toggleQR && (
+            <Tooltip
+              label={t("common.button.showQRCode")}
+              position="top"
+              offset={-2}
+              openDelay={200}
+            >
+              <ActionIcon onClick={props.toggleQR}>
+                <TbQrcode />
               </ActionIcon>
             </Tooltip>
           )}

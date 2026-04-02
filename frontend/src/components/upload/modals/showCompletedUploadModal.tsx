@@ -1,12 +1,14 @@
-import { Button, Stack, Text } from "@mantine/core";
+import { Button, Collapse, Stack, Text } from "@mantine/core";
 import { useModals } from "@mantine/modals";
 import { ModalsContextProps } from "@mantine/modals/lib/context";
 import moment from "moment";
 import { useRouter } from "next/router";
+import { useState } from "react";
 import { FormattedMessage } from "react-intl";
 import useTranslate, {
   translateOutsideContext,
 } from "../../../hooks/useTranslate.hook";
+import QRCode from "../../share/QRCode";
 import { CompletedShare } from "../../../types/share.type";
 import CopyTextField from "../CopyTextField";
 
@@ -28,6 +30,7 @@ const Body = ({ share }: { share: CompletedShare }) => {
   const modals = useModals();
   const router = useRouter();
   const t = useTranslate();
+  const [showQRCode, setShowQRCode] = useState(false);
 
   const isReverseShare = !!router.query["reverseShareToken"];
 
@@ -36,7 +39,14 @@ const Body = ({ share }: { share: CompletedShare }) => {
 
   return (
     <Stack align="stretch">
-      <CopyTextField label={t("account.shares.modal.share-link")} link={link} />
+      <CopyTextField
+        label={t("account.shares.modal.share-link")}
+        link={link}
+        toggleQR={() => setShowQRCode((value) => !value)}
+      />
+      <Collapse in={showQRCode}>
+        <QRCode link={link} />
+      </Collapse>
       <CopyTextField label="files.json" link={filesJsonLink} />
       {share.ownerManagementLink && (
         <>
