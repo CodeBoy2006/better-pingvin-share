@@ -193,3 +193,9 @@
 - **Status:** Completed
 - **Next Steps:** Batch B/C/D/E can now start adding real backend/frontend test cases on top of the shared helpers; separately investigate the existing anonymous-owner deletion regression that still fails in `backend/test/anonymous-owner-flow.e2e.js` under the new runner.
 - **Context:** Verified with `npm run quality`, `cd backend && npm run test:system:v1`, and `cd backend && npm run test:system:smoke`. The new runner correctly isolates ports and artifacts, but `test:system:smoke` currently exposes a product-level assertion failure (`deleted anonymous shares should no longer expose an owner payload`) rather than an infrastructure failure.
+
+## [2026-04-03 16:24] Batch B auth and management test coverage
+- **Changes:** Added backend unit and HTTP integration coverage for auth, user, config, and reverse-share domains; introduced Batch B-specific fixtures and an isolated Nest app bootstrap helper for SQLite-backed integration tests; fixed CommonJS interop imports for `moment`, `qrcode-svg`, and `clamscan`; added a dedicated backend typecheck config so package type checks stay green without pulling Jest globals into app compilation.
+- **Status:** Completed
+- **Next Steps:** Batch F/G/H can now consume the new backend test suites and CI-safe scripts; if desired, the remaining auth/config runtime warnings can be reduced by moving the ts-jest `isolatedModules` flag into `backend/test/tsconfig.json`.
+- **Context:** Verified in the Batch B worktree with `npm --prefix backend run test:ci`, `npm --prefix backend run typecheck`, and `npm --prefix backend run build`. Integration tests boot a custom Nest module against per-suite temporary SQLite data directories and stub outbound email calls.

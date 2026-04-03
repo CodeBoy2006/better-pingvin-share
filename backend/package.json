@@ -7,7 +7,7 @@
     "prod": "prisma migrate deploy && prisma db seed && node dist/src/main",
     "lint": "eslint 'src/**/*.ts'",
     "format": "prettier --end-of-line=auto --write 'src/**/*.ts'",
-    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "typecheck": "tsc --project tsconfig.typecheck.json --noEmit",
     "test:unit": "jest --config ./test/jest.config.cjs --selectProjects unit --runInBand --passWithNoTests",
     "test:unit:watch": "jest --config ./test/jest.config.cjs --selectProjects unit --watch",
     "test:integration": "jest --config ./test/jest.config.cjs --selectProjects integration --runInBand --passWithNoTests",
