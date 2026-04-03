@@ -1,25 +1,51 @@
 import { cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, vi } from "vitest";
+import { fetchMock, installFetchMock } from "./network";
+import { getMockRouter, resetMockRouter } from "./router";
 
-afterEach(() => {
-  cleanup();
-  vi.restoreAllMocks();
-  vi.unstubAllEnvs();
-});
+vi.mock("next/router", () => ({
+  useRouter: () => getMockRouter(),
+}));
 
-Object.defineProperty(window, "matchMedia", {
-  writable: true,
-  value: vi.fn().mockImplementation((query: string) => ({
+installFetchMock();
+
+const installMatchMediaMock = () => {
+  const matchMedia = (query: string) => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
+
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    writable: true,
+    value: matchMedia,
+  });
+
+  Object.defineProperty(globalThis, "matchMedia", {
+    configurable: true,
+    writable: true,
+    value: matchMedia,
+  });
+};
+
+installMatchMediaMock();
+
+afterEach(() => {
+  cleanup();
+  fetchMock.mockReset();
+  localStorage.clear();
+  sessionStorage.clear();
+  resetMockRouter();
+  vi.restoreAllMocks();
+  installMatchMediaMock();
+  vi.unstubAllEnvs();
 });
 
 class ResizeObserverMock {

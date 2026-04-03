@@ -5,7 +5,12 @@ import {
 } from "@mantine/core";
 import { ModalsProvider } from "@mantine/modals";
 import { Notifications } from "@mantine/notifications";
-import { RenderOptions, render } from "@testing-library/react";
+import {
+  RenderHookOptions,
+  RenderOptions,
+  render,
+  renderHook,
+} from "@testing-library/react";
 import { ReactElement, ReactNode, useState } from "react";
 import { IntlProvider } from "react-intl";
 import { ConfigContext } from "../src/hooks/config.hook";
@@ -15,16 +20,26 @@ import globalStyle from "../src/styles/mantine.style";
 import type Config from "../src/types/config.type";
 import type { CurrentUser } from "../src/types/user.type";
 import i18nUtil from "../src/utils/i18n.util";
+import type { MockRouterOverrides } from "./router";
+import { setMockRouter } from "./router";
 
 interface TestProvidersProps {
   children: ReactNode;
   colorScheme?: ColorScheme;
   configVariables?: Config[];
+  configRefresh?: () => Promise<void> | void;
   locale?: string;
+  router?: MockRouterOverrides;
   user?: CurrentUser | null;
+  userRefresh?: () => Promise<CurrentUser | null>;
 }
 
 interface RenderWithProvidersOptions extends Omit<RenderOptions, "wrapper"> {
+  providers?: Omit<TestProvidersProps, "children">;
+}
+
+interface RenderHookWithProvidersOptions<Props>
+  extends Omit<RenderHookOptions<Props>, "wrapper"> {
   providers?: Omit<TestProvidersProps, "children">;
 }
 
@@ -32,8 +47,10 @@ function TestProviders({
   children,
   colorScheme = "light",
   configVariables = [],
+  configRefresh = async () => {},
   locale = LOCALES.ENGLISH.code,
   user = null,
+  userRefresh = async () => user,
 }: TestProvidersProps) {
   const [scheme, setScheme] = useState<ColorScheme>(colorScheme);
 
@@ -57,13 +74,13 @@ function TestProviders({
             <ConfigContext.Provider
               value={{
                 configVariables,
-                refresh: async () => {},
+                refresh: configRefresh,
               }}
             >
               <UserContext.Provider
                 value={{
                   user,
-                  refreshUser: async () => user,
+                  refreshUser: userRefresh,
                 }}
               >
                 {children}
@@ -76,6 +93,16 @@ function TestProviders({
   );
 }
 
+const createWrapper = (providers?: Omit<TestProvidersProps, "children">) => {
+  if (providers?.router) {
+    setMockRouter(providers.router);
+  }
+
+  return ({ children }: { children: ReactNode }) => (
+    <TestProviders {...providers}>{children}</TestProviders>
+  );
+};
+
 export const renderWithProviders = (
   ui: ReactElement,
   options?: RenderWithProvidersOptions,
@@ -83,9 +110,19 @@ export const renderWithProviders = (
   const { providers, ...renderOptions } = options || {};
 
   return render(ui, {
-    wrapper: ({ children }) => (
-      <TestProviders {...providers}>{children}</TestProviders>
-    ),
+    wrapper: createWrapper(providers),
+    ...renderOptions,
+  });
+};
+
+export const renderHookWithProviders = <Result, Props>(
+  renderCallback: (initialProps: Props) => Result,
+  options?: RenderHookWithProvidersOptions<Props>,
+) => {
+  const { providers, ...renderOptions } = options || {};
+
+  return renderHook(renderCallback, {
+    wrapper: createWrapper(providers),
     ...renderOptions,
   });
 };
