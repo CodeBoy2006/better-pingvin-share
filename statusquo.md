@@ -55,3 +55,9 @@
 - **Status:** Completed
 - **Next Steps:** Batch F/G/H can now consume the new backend test suites and CI-safe scripts; if desired, the remaining auth/config runtime warnings can be reduced by moving the ts-jest `isolatedModules` flag into `backend/test/tsconfig.json`.
 - **Context:** Verified in the Batch B worktree with `npm --prefix backend run test:ci`, `npm --prefix backend run typecheck`, and `npm --prefix backend run build`. Integration tests boot a custom Nest module against per-suite temporary SQLite data directories and stub outbound email calls.
+
+## [2026-04-03 16:26] Deliver Batch C backend share and API coverage
+- **Changes:** Added dedicated Batch C fixtures and Jest integration harnesses under `backend/test/fixtures/` plus 9 new unit/integration suites covering `share`, `file`, `apiToken`, `/api/v1`, reverse-share flows, and the legacy anonymous-owner `/shares` flow. Extracted reusable Nest app bootstrapping into `backend/src/app.setup.ts` for test parity, and normalized several CommonJS-style imports (`moment`, `archiver`, `content-disposition`, `cookie-parser`, `body-parser`, `clamscan`) so the backend behaves correctly under the Jest runtime and HTTP integration tests.
+- **Status:** Completed
+- **Next Steps:** Batch F can now reuse the same isolated app/runtime helpers for API black-box regression work, and Batch G can layer browser E2E on top of the validated anonymous-owner and API v1 flows.
+- **Context:** Verified with `cd backend && npm run typecheck` and `cd backend && npm run test:ci` in the Batch C worktree; backend unit tests now pass `20/20` and integration tests pass `11/11` without the previous ts-jest deprecation warning.

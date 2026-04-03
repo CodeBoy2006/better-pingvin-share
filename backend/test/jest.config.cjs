@@ -11,7 +11,6 @@ const sharedConfig = {
     "^.+\\.(t|j)s$": [
       "ts-jest",
       {
-        isolatedModules: true,
         tsconfig: "<rootDir>/test/tsconfig.json",
       },
     ],
