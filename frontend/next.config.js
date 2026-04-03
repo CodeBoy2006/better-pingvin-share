@@ -1,9 +1,12 @@
 /** @type {import('next').NextConfig} */
 const { version } = require('./package.json');
+const pwaDisabled =
+  process.env.NODE_ENV === "development" || process.env.DISABLE_PWA === "true";
 
 const withPWA = require("next-pwa")({
   dest: "public",
-  disable: process.env.NODE_ENV === "development",
+  disable: pwaDisabled,
+  register: !pwaDisabled,
   reloadOnOnline: false,
   runtimeCaching: [
     {

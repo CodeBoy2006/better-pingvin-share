@@ -35,7 +35,7 @@ TBD.
 - `npm run quality` runs lint, type checks, production builds, and the fast unit/integration layer
 - `npm run test:fast` runs backend unit/integration tests plus frontend Vitest suites
 - `npm run test:all` runs the fast layer and the backend Newman/system regressions
-- `npm run test:e2e` is reserved for Playwright browser coverage in `e2e/`
+- `npm run test:e2e` boots a temporary backend + frontend stack on dynamic ports and runs the Playwright browser smoke suite in `e2e/`
 
 Test artifacts are written to `test-results/`, and test-specific runtime files are isolated under `tmp/test-runtime/` or `backend/tmp/`.
 
