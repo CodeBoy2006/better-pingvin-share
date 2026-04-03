@@ -96,3 +96,8 @@
 - **Status:** Completed
 - **Next Steps:** If we keep pushing Batch A, the next tidy step is deciding whether to add package-local `test` aliases for backend parity or leave `test:ci` as the backend default fast entrypoint.
 - **Context:** Verified with `npm --prefix frontend run test:fast`, `npm --prefix frontend run test:all`, `npm --prefix backend run test:fast`, and `npm --prefix backend run test:all`; backend full runs still surface existing upstream deprecation warnings from Prisma/Newman but pass.
+## [2026-04-03 17:54] Batch G browser E2E smoke suite
+- **Changes:** Added a Playwright setup project plus shared fixtures/helpers under `e2e/`, implemented browser smoke coverage for anonymous-owner uploads, authenticated upload/edit flows, password-protected shares + `files.json`, API token creation with `/api/v1` usage, and reverse-share submissions, and replaced the root Playwright bootstrap with a dynamic-port stack launcher that seeds isolated SQLite/upload runtime data for each run. Updated `frontend/next.config.js`, `playwright.config.mjs`, `README.md`, and `e2e/README.md` so the suite disables PWA registration during tests and documents the new execution model.
+- **Status:** Completed
+- **Next Steps:** Batch H can wire `npm run test:e2e` artifacts into CI, and if desired we can split the current single-browser smoke lane into separate jobs once workflow names stabilize.
+- **Context:** Verified in `/tmp/worktrees/batch-g-browser-e2e` with `npx playwright install chromium`, `npx playwright test --config ./playwright.config.mjs --project setup`, targeted reruns for the flaky scenarios, and a final passing `npx playwright test --config ./playwright.config.mjs` (`6 passed`).
