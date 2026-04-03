@@ -158,3 +158,8 @@
 - **Status:** Completed
 - **Next Steps:** Monitor the next image publish run to confirm the expected arm64 build-time drop and smaller GitHub Actions cache export time in real CI telemetry.
 - **Context:** Validated the updated workflow with local YAML parsing and diff review. This change targets the previously observed bottlenecks from QEMU-emulated arm64 installs/builds and oversized `type=gha,mode=max` cache uploads.
+## [2026-04-03 13:14] Split dev and release image tags
+- **Changes:** Updated the Docker publish workflow so pushes to `main` only publish a `development` image tag, while `v*` tag builds publish the formal release tags plus `latest`. Removed the old branch tags (`main`, `edge`, and SHA-based tags) from the metadata strategy so stable image publication now happens only from release tags.
+- **Status:** Completed
+- **Next Steps:** Verify the next `main` push only refreshes `ghcr.io/...:development` and the next tagged release publishes `vX.Y.Z` plus `latest` without extra stable tags from branch builds.
+- **Context:** Verified with local YAML parsing and workflow diff review. This change keeps CI builds on `main` useful for dev image validation while preventing normal branch pushes from publishing formal release tags.
