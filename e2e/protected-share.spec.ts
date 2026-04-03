@@ -34,4 +34,6 @@ test("password-protected shares unlock in the browser and expose files.json", as
   expect(filesJson.files).toHaveLength(1);
   expect(filesJson.files[0].name).toBe("protected.txt");
   expect(filesJson.files[0].downloadUrl).toContain(`/api/shares/${upload.shareId}/files/`);
+  expect(filesJson.files[0].downloadUrl).not.toContain("token=");
+  expect(filesJson.files[0].inlineUrl).not.toContain("token=");
 });

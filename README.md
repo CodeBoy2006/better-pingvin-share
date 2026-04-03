@@ -95,4 +95,7 @@ Every public share exposes a JSON file list at `<share-url>/files.json` (for exa
 
 - The response uses `application/json`
 - It includes share metadata, per-file metadata, and direct download URLs for every file
+- Returned URLs stay stable and do not embed a `token=` query parameter
+- Admins can opt in to tokenized URLs for password-protected shares with `share.filesJsonPasswordProtectedLinksIncludeToken`
 - Password-protected shares still require a valid share token before the JSON listing can be fetched
+- Clients that access protected or view-limited shares through `files.json` should preserve the `Set-Cookie` header returned by that response

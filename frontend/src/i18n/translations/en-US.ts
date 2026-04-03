@@ -534,6 +534,10 @@ export default {
     "Allow admin access to all shares",
   "admin.config.share.allow-admin-access-all-shares.description":
     "Allow administrators to access shares even when they are expired, password protected, or otherwise inaccessible to normal users.",
+  "admin.config.share.files-json-password-protected-links-include-token":
+    "Include token in password-protected files.json links",
+  "admin.config.share.files-json-password-protected-links-include-token.description":
+    "When enabled, files.json can embed a share token in download URLs for password-protected shares. Unprotected shares always return plain URLs.",
   "admin.config.share.file-retention-period": "File retention period",
   "admin.config.share.file-retention-period.description":
     "Keep expired or owner-deleted shares for an additional period before their files are permanently removed.",

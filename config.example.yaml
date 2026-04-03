@@ -36,6 +36,8 @@ share:
   autoOpenShareModal: "false"
   #Whether administrators can access every share, even when it is password protected or expired.
   allowAdminAccessAllShares: "false"
+  #Whether files.json should return tokenized download URLs for password-protected shares. Unprotected shares always return plain URLs.
+  filesJsonPasswordProtectedLinksIncludeToken: "false"
   #How long expired or owner-deleted shares should be retained before their files are permanently removed. Set to "0 days" to disable retention.
   fileRetentionPeriod: "0 days"
 cache:

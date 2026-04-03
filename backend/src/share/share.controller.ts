@@ -104,13 +104,23 @@ export class ShareController {
       isAdmin: user?.isAdmin,
     });
     const appUrl = this.configService.get("general.appUrl");
-    const tokenQuery = fileList.shareToken
-      ? `token=${encodeURIComponent(fileList.shareToken)}`
-      : undefined;
+    const shareTokenCookieKey = `share_${id}_token`;
+    const currentShareToken = request.cookies?.[shareTokenCookieKey];
+    const tokenQuery =
+      fileList.share.hasPassword &&
+      fileList.shareToken &&
+      this.configService.get(
+        "share.filesJsonPasswordProtectedLinksIncludeToken",
+      )
+        ? `token=${encodeURIComponent(fileList.shareToken)}`
+        : undefined;
 
-    if (fileList.generatedShareToken) {
+    if (
+      fileList.shareToken &&
+      (!currentShareToken || currentShareToken !== fileList.shareToken)
+    ) {
       this.clearShareTokenCookies(request, response);
-      response.cookie(`share_${id}_token`, fileList.shareToken, {
+      response.cookie(shareTokenCookieKey, fileList.shareToken, {
         path: "/",
         httpOnly: true,
       });

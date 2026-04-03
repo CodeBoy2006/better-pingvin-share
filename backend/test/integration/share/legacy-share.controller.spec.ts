@@ -133,14 +133,21 @@ describe("Legacy share endpoints", () => {
         ],
       }),
     );
+    expect(fileListResponse.body.files[0].downloadUrl).toBe(
+      `http://localhost:3000/api/shares/${shareId}/files/${uploadResponse.body.id}`,
+    );
+    expect(fileListResponse.body.files[0].inlineUrl).toBe(
+      `http://localhost:3000/api/shares/${shareId}/files/${uploadResponse.body.id}?download=false`,
+    );
     expect(fileListResponse.headers["set-cookie"]).toEqual(
       expect.arrayContaining([
         expect.stringContaining(`share_${shareId}_token=`),
       ]),
     );
 
+    const downloadUrl = new URL(fileListResponse.body.files[0].downloadUrl);
     const downloadResponse = await publicAgent
-      .get(`/api/shares/${shareId}/files/${uploadResponse.body.id}`)
+      .get(`${downloadUrl.pathname}${downloadUrl.search}`)
       .buffer(true)
       .parse(binaryResponseParser);
 
@@ -160,5 +167,190 @@ describe("Legacy share endpoints", () => {
       .set("Cookie", ownerCookie);
 
     expect(deletedOwnerPayload.status).toBe(404);
+  });
+
+  it("refreshes the share cookie for files.json token queries and returns clean URLs", async () => {
+    const shareId = `protected-files-json-${randomUUID().slice(0, 8)}`;
+    const password = "secret123";
+
+    const createResponse = await fixture.request.post("/api/shares").send(
+      buildCreateShareDto({
+        id: shareId,
+        security: {
+          password,
+        },
+      }),
+    );
+
+    expect(createResponse.status).toBe(201);
+
+    const ownerCookie = `share_${shareId}_owner_token=${createResponse.body.ownerToken}`;
+
+    const uploadResponse = await fixture.request
+      .post(
+        `/api/shares/${shareId}/files?name=protected-files-json.txt&chunkIndex=0&totalChunks=1`,
+      )
+      .set("Cookie", ownerCookie)
+      .set("Content-Type", "application/octet-stream")
+      .send(Buffer.from("Protected files.json integration test file"));
+
+    expect(uploadResponse.status).toBe(201);
+
+    const completeResponse = await fixture.request
+      .post(`/api/shares/${shareId}/complete`)
+      .set("Cookie", ownerCookie);
+
+    expect(completeResponse.status).toBe(202);
+
+    const tokenResponse = await fixture.request
+      .post(`/api/shares/${shareId}/token`)
+      .send({ password });
+
+    expect(tokenResponse.status).toBe(200);
+    expect(tokenResponse.body).toEqual({
+      token: expect.any(String),
+    });
+
+    const publicAgent = request.agent(fixture.app.getHttpServer());
+    const fileListResponse = await publicAgent
+      .get(`/api/shares/${shareId}/files.json`)
+      .query({ token: tokenResponse.body.token });
+
+    expect(fileListResponse.status).toBe(200);
+    expect(fileListResponse.body.files[0].downloadUrl).toBe(
+      `http://localhost:3000/api/shares/${shareId}/files/${uploadResponse.body.id}`,
+    );
+    expect(fileListResponse.body.files[0].inlineUrl).toBe(
+      `http://localhost:3000/api/shares/${shareId}/files/${uploadResponse.body.id}?download=false`,
+    );
+    expect(fileListResponse.headers["set-cookie"]).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining(`share_${shareId}_token=`),
+      ]),
+    );
+
+    const downloadUrl = new URL(fileListResponse.body.files[0].downloadUrl);
+    const downloadResponse = await publicAgent
+      .get(`${downloadUrl.pathname}${downloadUrl.search}`)
+      .buffer(true)
+      .parse(binaryResponseParser);
+
+    expect(downloadResponse.status).toBe(200);
+    expect(downloadResponse.body.toString()).toBe(
+      "Protected files.json integration test file",
+    );
+  });
+
+  it("can return tokenized files.json URLs for password-protected shares when enabled", async () => {
+    await fixture.updateConfig(
+      "share.filesJsonPasswordProtectedLinksIncludeToken",
+      true,
+    );
+
+    const shareId = `protected-tokenized-${randomUUID().slice(0, 8)}`;
+    const password = "secret123";
+
+    const createResponse = await fixture.request.post("/api/shares").send(
+      buildCreateShareDto({
+        id: shareId,
+        security: {
+          password,
+        },
+      }),
+    );
+
+    expect(createResponse.status).toBe(201);
+
+    const ownerCookie = `share_${shareId}_owner_token=${createResponse.body.ownerToken}`;
+
+    const uploadResponse = await fixture.request
+      .post(
+        `/api/shares/${shareId}/files?name=protected-tokenized.txt&chunkIndex=0&totalChunks=1`,
+      )
+      .set("Cookie", ownerCookie)
+      .set("Content-Type", "application/octet-stream")
+      .send(Buffer.from("Protected tokenized files.json integration test file"));
+
+    expect(uploadResponse.status).toBe(201);
+
+    const completeResponse = await fixture.request
+      .post(`/api/shares/${shareId}/complete`)
+      .set("Cookie", ownerCookie);
+
+    expect(completeResponse.status).toBe(202);
+
+    const tokenResponse = await fixture.request
+      .post(`/api/shares/${shareId}/token`)
+      .send({ password });
+
+    expect(tokenResponse.status).toBe(200);
+
+    const fileListResponse = await fixture.request
+      .get(`/api/shares/${shareId}/files.json`)
+      .set("Cookie", `share_${shareId}_token=${tokenResponse.body.token}`);
+
+    expect(fileListResponse.status).toBe(200);
+    expect(fileListResponse.body.files[0].downloadUrl).toBe(
+      `http://localhost:3000/api/shares/${shareId}/files/${uploadResponse.body.id}?token=${encodeURIComponent(tokenResponse.body.token)}`,
+    );
+    expect(fileListResponse.body.files[0].inlineUrl).toBe(
+      `http://localhost:3000/api/shares/${shareId}/files/${uploadResponse.body.id}?download=false&token=${encodeURIComponent(tokenResponse.body.token)}`,
+    );
+
+    await fixture.updateConfig(
+      "share.filesJsonPasswordProtectedLinksIncludeToken",
+      false,
+    );
+  });
+
+  it("never returns tokenized files.json URLs for unprotected shares", async () => {
+    await fixture.updateConfig(
+      "share.filesJsonPasswordProtectedLinksIncludeToken",
+      true,
+    );
+
+    const shareId = `public-clean-links-${randomUUID().slice(0, 8)}`;
+
+    const createResponse = await fixture.request.post("/api/shares").send(
+      buildCreateShareDto({
+        id: shareId,
+      }),
+    );
+
+    expect(createResponse.status).toBe(201);
+
+    const ownerCookie = `share_${shareId}_owner_token=${createResponse.body.ownerToken}`;
+
+    const uploadResponse = await fixture.request
+      .post(
+        `/api/shares/${shareId}/files?name=public-clean.txt&chunkIndex=0&totalChunks=1`,
+      )
+      .set("Cookie", ownerCookie)
+      .set("Content-Type", "application/octet-stream")
+      .send(Buffer.from("Public files.json integration test file"));
+
+    expect(uploadResponse.status).toBe(201);
+
+    const completeResponse = await fixture.request
+      .post(`/api/shares/${shareId}/complete`)
+      .set("Cookie", ownerCookie);
+
+    expect(completeResponse.status).toBe(202);
+
+    const fileListResponse = await fixture.request.get(
+      `/api/shares/${shareId}/files.json`,
+    );
+
+    expect(fileListResponse.status).toBe(200);
+    expect(fileListResponse.body.files[0].downloadUrl).toBe(
+      `http://localhost:3000/api/shares/${shareId}/files/${uploadResponse.body.id}`,
+    );
+    expect(fileListResponse.body.files[0].downloadUrl).not.toContain("token=");
+    expect(fileListResponse.body.files[0].inlineUrl).not.toContain("token=");
+
+    await fixture.updateConfig(
+      "share.filesJsonPasswordProtectedLinksIncludeToken",
+      false,
+    );
   });
 });

@@ -177,10 +177,17 @@ async function main() {
   );
   assert.equal(machineReadableList.json.files.length, 1);
   assert.equal(machineReadableList.json.files[0].name, "anonymous-owner.txt");
-  assert.match(
+  assert.equal(
     machineReadableList.json.files[0].downloadUrl,
-    new RegExp(`/api/shares/${shareId}/files/${uploadFile.json.id}\\?token=`),
-    "download URL should expose a tokenized direct link",
+    `${appUrl}/api/shares/${shareId}/files/${uploadFile.json.id}`,
+    "download URL should stay stable without an embedded share token",
+  );
+
+  const shareTokenCookie = getCookieHeader(machineReadableList.response);
+  assert.match(
+    shareTokenCookie,
+    new RegExp(`share_${shareId}_token=`),
+    "machine-readable listing should refresh the share token cookie",
   );
 
   const backendOrigin = apiUrl.replace(/\/api$/, "");
@@ -188,6 +195,11 @@ async function main() {
   const directDownload = await harness.request(
     "direct file download",
     `${backendOrigin}${downloadUrl.pathname}${downloadUrl.search}`,
+    {
+      headers: {
+        Cookie: shareTokenCookie,
+      },
+    },
   );
 
   assert.equal(
