@@ -81,6 +81,11 @@
 - **Status:** Completed
 - **Next Steps:** If we want a fuller Batch A finish, the next isolated step is adding JUnit-style reporters and CI-friendly artifact names without touching the in-flight Playwright workflow changes already present in the worktree.
 - **Context:** Verified with `npm run test` and `npm run test:coverage`; both root commands now execute successfully and route to the expected backend/frontend suites.
+## [2026-04-03 17:31] Batch F API Black-Box Regression
+- **Changes:** Added suite-driven backend API black-box orchestration in `scripts/testing/run-backend-system-tests.mjs`, introduced `backend/test/system/` manifests/environment/scripted regressions plus HTML/JSON/JUnit/snapshot artifacts, updated backend test scripts/docs, and fixed runtime CommonJS import issues plus anonymous-owner deletion semantics that were blocking end-to-end API smoke/full suites.
+- **Status:** Completed
+- **Next Steps:** Batch H can wire `npm run test:system` to PR checks and `npm run test:system:full-regression` to nightly/release workflows, reusing the generated artifacts under `test-results/backend/system/`.
+- **Context:** Verified in the `batch-f-api-blackbox` worktree with `cd backend && npm run build`, `cd backend && npm run test:system:smoke`, and `cd backend && npm run test:system:full-regression`.
 ## [2026-04-03 17:38] Add CI-friendly test reports
 - **Changes:** Added backend JUnit reporting via `jest-junit`, switched `backend` `test:ci` to emit JSON results into `test-results/backend/`, and extended `frontend/vitest.config.mjs` to emit both JSON and JUnit reports into `test-results/frontend/`.
 - **Status:** Completed

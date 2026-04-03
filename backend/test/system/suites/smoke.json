@@ -1,0 +1,44 @@
+{
+  "name": "smoke",
+  "description": "PR-safe backend API smoke regression that covers legacy share flows, the anonymous owner capability flow, and a slim /api/v1 token+upload path.",
+  "environment": "./test/system/environments/runtime.postman_environment.json",
+  "steps": [
+    {
+      "id": "legacy-share-smoke",
+      "type": "newman",
+      "reportName": "legacy-smoke",
+      "collection": "./test/newman-system-tests.json",
+      "includes": [
+        "_setup",
+        "Auth/Positive/Sign Up",
+        "Auth/Positive/Sign In",
+        "Create Share/Positive",
+        "Get Share/Positive"
+      ],
+      "provides": ["legacy-admin-user"]
+    },
+    {
+      "id": "anonymous-owner-regression",
+      "type": "script",
+      "reportName": "anonymous-owner",
+      "script": "./test/system/scenarios/anonymous-owner-flow.mjs",
+      "requires": ["legacy-admin-user"]
+    },
+    {
+      "id": "api-v1-smoke",
+      "type": "newman",
+      "reportName": "api-v1-smoke",
+      "collection": "./test/newman-api-v1.json",
+      "includes": [
+        "Setup",
+        "Tokens",
+        "Shares/Create Draft Share",
+        "Shares/Upload Chunk File",
+        "Shares/Upload Second Chunk File",
+        "Shares/Complete Share",
+        "Shares/Download ZIP Bundle",
+        "Reverse Shares/Create Reverse Share"
+      ]
+    }
+  ]
+}
