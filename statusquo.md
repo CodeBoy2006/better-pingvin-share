@@ -101,3 +101,8 @@
 - **Status:** Completed
 - **Next Steps:** Batch H can wire `npm run test:e2e` artifacts into CI, and if desired we can split the current single-browser smoke lane into separate jobs once workflow names stabilize.
 - **Context:** Verified in `/tmp/worktrees/batch-g-browser-e2e` with `npx playwright install chromium`, `npx playwright test --config ./playwright.config.mjs --project setup`, targeted reruns for the flaky scenarios, and a final passing `npx playwright test --config ./playwright.config.mjs` (`6 passed`).
+## [2026-04-03 18:28] Integrate Batch F/G into Wave 2 branch
+- **Changes:** Created the `integration-fg` worktree from `main`, merged `batch-f-api-blackbox` and `batch-g-browser-e2e`, resolved merge conflicts in `README.md`, `docs/docs/help-out/contribute.md`, and `statusquo.md`, and fixed `e2e/api-token.spec.ts` to use the backend-supported relative expiration format for API v1 share creation.
+- **Status:** Completed
+- **Next Steps:** Batch H can branch from `integration-fg` for CI wiring; if desired, promote the `e2e/api-token.spec.ts` fix back into the Batch G source branch or cherry-pick it wherever the browser suite will land.
+- **Context:** Verified in `/tmp/worktrees/integration-fg` with symlinked root/backend/frontend `node_modules`, `npm run typecheck`, `npm run test:all`, targeted `npx playwright test --config ./playwright.config.mjs e2e/api-token.spec.ts`, and a final passing `npm run test:e2e`. The merged Wave 2 stack now passes backend fast/system suites plus all 6 Playwright smoke specs.

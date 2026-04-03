@@ -30,7 +30,7 @@ test("users can create an API token in the UI and use it against /api/v1", async
 
   try {
     const shareId = app.uniqueId("api-share");
-    const expiration = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const expiration = "1-day";
 
     const createResponse = await apiContext.post("/api/v1/shares", {
       data: {
