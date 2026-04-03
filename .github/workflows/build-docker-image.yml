@@ -10,27 +10,211 @@ on:
       - "**/*.md"
       - "docs/**"
   workflow_dispatch:
+    inputs:
+      publish_mode:
+        description: "Choose whether to publish a development image, release image, or only run a test build"
+        required: true
+        default: none
+        type: choice
+        options:
+          - none
+          - development
+          - release
+      release_tag:
+        description: "Required when publish_mode=release (example: v1.15.1)"
+        required: false
+        type: string
+      publish_latest:
+        description: "Also publish the latest tag for manual release builds"
+        required: false
+        default: true
+        type: boolean
+      platforms:
+        description: "Select which platform set to build"
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - amd64
+          - arm64
+      cache_mode:
+        description: "Choose whether to use the GitHub Actions Buildx cache"
+        required: true
+        default: min
+        type: choice
+        options:
+          - min
+          - none
 
 permissions:
   contents: read
   packages: write
+
+concurrency:
+  group: build-docker-image-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   REGISTRY_IMAGE: ghcr.io/${{ github.repository }}
   CACHE_SCOPE_PREFIX: build-docker-image
 
 jobs:
+  prepare:
+    name: Resolve build plan
+    runs-on: ubuntu-24.04
+    outputs:
+      publish_mode: ${{ steps.resolve.outputs.publish_mode }}
+      release_tag: ${{ steps.resolve.outputs.release_tag }}
+      publish_latest: ${{ steps.resolve.outputs.publish_latest }}
+      selected_platforms: ${{ steps.resolve.outputs.selected_platforms }}
+      cache_mode: ${{ steps.resolve.outputs.cache_mode }}
+      should_push: ${{ steps.resolve.outputs.should_push }}
+      matrix_json: ${{ steps.resolve.outputs.matrix_json }}
+      tag_rules: ${{ steps.resolve.outputs.tag_rules }}
+    steps:
+      - name: Resolve workflow settings
+        id: resolve
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          event_name="${{ github.event_name }}"
+          ref="${{ github.ref }}"
+          ref_name="${{ github.ref_name }}"
+
+          publish_mode=""
+          release_tag=""
+          publish_latest="false"
+          selected_platforms="all"
+          cache_mode="min"
+
+          if [ "$event_name" = "workflow_dispatch" ]; then
+            publish_mode="${{ github.event.inputs.publish_mode }}"
+            release_tag="${{ github.event.inputs.release_tag }}"
+            publish_latest="${{ github.event.inputs.publish_latest }}"
+            selected_platforms="${{ github.event.inputs.platforms }}"
+            cache_mode="${{ github.event.inputs.cache_mode }}"
+          elif [ "$ref" = "refs/heads/main" ]; then
+            publish_mode="development"
+          elif [[ "$ref" == refs/tags/v* ]]; then
+            publish_mode="release"
+            release_tag="$ref_name"
+            publish_latest="true"
+          else
+            echo "::error::Unsupported trigger context: $event_name on $ref"
+            exit 1
+          fi
+
+          case "$publish_mode" in
+            none|development|release) ;;
+            *)
+              echo "::error::Unsupported publish mode: $publish_mode"
+              exit 1
+              ;;
+          esac
+
+          case "$cache_mode" in
+            min|none) ;;
+            *)
+              echo "::error::Unsupported cache mode: $cache_mode"
+              exit 1
+              ;;
+          esac
+
+          case "$selected_platforms" in
+            all)
+              matrix_json='{"include":[{"platform":"linux/amd64","runner":"ubuntu-24.04"},{"platform":"linux/arm64","runner":"ubuntu-24.04-arm"}]}'
+              ;;
+            amd64)
+              matrix_json='{"include":[{"platform":"linux/amd64","runner":"ubuntu-24.04"}]}'
+              ;;
+            arm64)
+              matrix_json='{"include":[{"platform":"linux/arm64","runner":"ubuntu-24.04-arm"}]}'
+              ;;
+            *)
+              echo "::error::Unsupported platform selection: $selected_platforms"
+              exit 1
+              ;;
+          esac
+
+          should_push="false"
+          tag_rules="type=raw,value=test-build"
+
+          if [ "$publish_mode" = "development" ]; then
+            should_push="true"
+            tag_rules="type=raw,value=development"
+            publish_latest="false"
+          fi
+
+          if [ "$publish_mode" = "release" ]; then
+            should_push="true"
+
+            if [ -z "$release_tag" ]; then
+              echo "::error::release_tag is required when publish_mode=release"
+              exit 1
+            fi
+
+            if [[ ! "$release_tag" =~ ^v[0-9] ]]; then
+              echo "::error::release_tag must start with v (example: v1.15.1)"
+              exit 1
+            fi
+
+            tag_rules="type=raw,value=${release_tag}"
+            if [ "$publish_latest" = "true" ]; then
+              tag_rules="${tag_rules}"$'\n'"type=raw,value=latest"
+            fi
+          fi
+
+          {
+            echo "publish_mode=$publish_mode"
+            echo "release_tag=$release_tag"
+            echo "publish_latest=$publish_latest"
+            echo "selected_platforms=$selected_platforms"
+            echo "cache_mode=$cache_mode"
+            echo "should_push=$should_push"
+            echo "matrix_json=$matrix_json"
+            echo "tag_rules<<EOF"
+            echo "$tag_rules"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "## Docker build configuration"
+            echo ""
+            echo "- Publish mode: \`$publish_mode\`"
+            echo "- Selected platforms: \`$selected_platforms\`"
+            echo "- Cache mode: \`$cache_mode\`"
+            echo "- Push image: \`$should_push\`"
+
+            if [ -n "$release_tag" ]; then
+              echo "- Release tag: \`$release_tag\`"
+            fi
+
+            if [ "$publish_mode" = "release" ]; then
+              echo "- Publish latest: \`$publish_latest\`"
+            fi
+
+            if [ "$publish_mode" = "development" ]; then
+              echo "- Target tags: \`${{ env.REGISTRY_IMAGE }}:development\`"
+            elif [ "$publish_mode" = "release" ]; then
+              if [ "$publish_latest" = "true" ]; then
+                echo "- Target tags: \`${{ env.REGISTRY_IMAGE }}:${release_tag}\`, \`${{ env.REGISTRY_IMAGE }}:latest\`"
+              else
+                echo "- Target tags: \`${{ env.REGISTRY_IMAGE }}:${release_tag}\`"
+              fi
+            else
+              echo "- Target tags: _(none; build validation only)_"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
   build:
     name: Build ${{ matrix.platform }}
+    needs: prepare
     timeout-minutes: 60
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - platform: linux/amd64
-            runner: ubuntu-24.04
-          - platform: linux/arm64
-            runner: ubuntu-24.04-arm
+      matrix: ${{ fromJson(needs.prepare.outputs.matrix_json) }}
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout code
@@ -48,23 +232,22 @@ jobs:
           images: ${{ env.REGISTRY_IMAGE }}
           flavor: |
             latest=false
-          tags: |
-            type=raw,value=development,enable=${{ github.ref == 'refs/heads/main' }}
-            type=ref,event=tag,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
-            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+          tags: ${{ needs.prepare.outputs.tag_rules }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Login to GitHub Container Registry
+        if: needs.prepare.outputs.should_push == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push by digest
-        id: build
+      - name: Build and push by digest with cache
+        if: needs.prepare.outputs.should_push == 'true' && needs.prepare.outputs.cache_mode != 'none'
+        id: build_push_cached
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -74,13 +257,48 @@ jobs:
           cache-from: type=gha,scope=${{ env.CACHE_SCOPE_PREFIX }}-${{ env.PLATFORM_PAIR }}
           cache-to: type=gha,mode=min,scope=${{ env.CACHE_SCOPE_PREFIX }}-${{ env.PLATFORM_PAIR }}
 
+      - name: Build and push by digest without cache
+        if: needs.prepare.outputs.should_push == 'true' && needs.prepare.outputs.cache_mode == 'none'
+        id: build_push_nocache
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: Build validation with cache
+        if: needs.prepare.outputs.should_push != 'true' && needs.prepare.outputs.cache_mode != 'none'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ env.CACHE_SCOPE_PREFIX }}-${{ env.PLATFORM_PAIR }}
+          cache-to: type=gha,mode=min,scope=${{ env.CACHE_SCOPE_PREFIX }}-${{ env.PLATFORM_PAIR }}
+
+      - name: Build validation without cache
+        if: needs.prepare.outputs.should_push != 'true' && needs.prepare.outputs.cache_mode == 'none'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+
       - name: Export digest
+        if: needs.prepare.outputs.should_push == 'true'
         run: |
           mkdir -p "${RUNNER_TEMP}/digests"
-          digest="${{ steps.build.outputs.digest }}"
+          digest="${{ steps.build_push_cached.outputs.digest }}"
+
+          if [ -z "$digest" ]; then
+            digest="${{ steps.build_push_nocache.outputs.digest }}"
+          fi
+
           touch "${RUNNER_TEMP}/digests/${digest#sha256:}"
 
       - name: Upload digest
+        if: needs.prepare.outputs.should_push == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: digests-${{ env.PLATFORM_PAIR }}
@@ -88,9 +306,23 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+      - name: Add platform summary
+        run: |
+          {
+            echo "### ${PLATFORM_PAIR}"
+            echo ""
+            echo "- Runner: \`${{ matrix.runner }}\`"
+            echo "- Platform: \`${{ matrix.platform }}\`"
+            echo "- Push enabled: \`${{ needs.prepare.outputs.should_push }}\`"
+            echo "- Cache mode: \`${{ needs.prepare.outputs.cache_mode }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   merge:
     name: Merge multi-arch manifest
-    needs: build
+    needs:
+      - prepare
+      - build
+    if: needs.prepare.outputs.should_push == 'true'
     runs-on: ubuntu-24.04
     steps:
       - name: Download digests
@@ -107,10 +339,7 @@ jobs:
           images: ${{ env.REGISTRY_IMAGE }}
           flavor: |
             latest=false
-          tags: |
-            type=raw,value=development,enable=${{ github.ref == 'refs/heads/main' }}
-            type=ref,event=tag,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
-            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+          tags: ${{ needs.prepare.outputs.tag_rules }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -141,3 +370,13 @@ jobs:
         run: |
           first_tag="$(printf '%s\n' "${{ steps.meta.outputs.tags }}" | head -n 1)"
           docker buildx imagetools inspect "$first_tag"
+
+      - name: Add publish summary
+        run: |
+          {
+            echo "## Published image tags"
+            echo ""
+            while IFS= read -r tag; do
+              echo "- \`${tag}\`"
+            done <<< "${{ steps.meta.outputs.tags }}"
+          } >> "$GITHUB_STEP_SUMMARY"

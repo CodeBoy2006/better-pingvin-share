@@ -163,3 +163,8 @@
 - **Status:** Completed
 - **Next Steps:** Verify the next `main` push only refreshes `ghcr.io/...:development` and the next tagged release publishes `vX.Y.Z` plus `latest` without extra stable tags from branch builds.
 - **Context:** Verified with local YAML parsing and workflow diff review. This change keeps CI builds on `main` useful for dev image validation while preventing normal branch pushes from publishing formal release tags.
+## [2026-04-03 13:21] Add manual Docker publish modes and workflow controls
+- **Changes:** Extended the Docker image workflow's `workflow_dispatch` trigger with manual controls for publish mode (`development`, `release`, or `none`), manual release tag input, optional `latest` publication for manual releases, platform selection (`all` / `amd64` / `arm64`), and cache mode selection (`min` / `none`). Added a prepare job that validates inputs, resolves the build plan for automatic and manual runs, writes job summaries, and lets build-only dispatches skip registry pushes while still exercising native per-platform builds.
+- **Status:** Completed
+- **Next Steps:** Trigger a manual test run from the Actions UI for each mode (`none`, `development`, `release`) to confirm the resolved summary, per-platform matrix, and final published tags behave as intended on GitHub-hosted runners.
+- **Context:** Verified with local YAML parsing and `git diff --check`. Also retained the native ARM runner split and per-platform cache strategy from the prior CI optimization so manual runs inherit the same performance improvements.
