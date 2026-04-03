@@ -152,3 +152,9 @@
 - **Status:** Completed
 - **Next Steps:** Push `main`, then confirm the next CI run refreshes the badge JSON snapshots and that the README badge row renders correctly on GitHub.
 - **Context:** Verified with `node` JSON parsing for `.github/badges/*.json`, `ruby` YAML parsing for `.github/workflows/ci.yml`, `npx prettier --check` on the touched files, `git diff --check`, and a live `curl -I` check for the Shields GitHub Actions badge endpoint.
+
+## [2026-04-03 22:17] Simplify files.json web-view output
+- **Changes:** Updated `backend/src/file/file.controller.ts` and `backend/src/file/fileWebView.util.ts` so the new `webViewUrl` returns only the raw file content inline (no wrapper HTML or styling), kept the `files.json` opt-in config/docs/translations aligned, and refreshed `backend/test/integration/share/legacy-share.controller.spec.ts` coverage for the raw-content response.
+- **Status:** Completed
+- **Next Steps:** If needed, broaden the supported file-type matcher for additional text-based formats.
+- **Context:** `webViewUrl` stays opt-in via `share.filesJsonWebViewLinksEnabled`; supported files are limited to text-like content so crawlers can fetch source without triggering attachment downloads.

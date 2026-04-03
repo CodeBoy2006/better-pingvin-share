@@ -38,6 +38,8 @@ share:
   allowAdminAccessAllShares: "false"
   #Whether files.json should return tokenized download URLs for password-protected shares. Unprotected shares always return plain URLs.
   filesJsonPasswordProtectedLinksIncludeToken: "false"
+  #Whether files.json should add webViewUrl links for supported text-like files. These links return the raw file content inline for crawlers that cannot download attachments.
+  filesJsonWebViewLinksEnabled: "false"
   #How long expired or owner-deleted shares should be retained before their files are permanently removed. Set to "0 days" to disable retention.
   fileRetentionPeriod: "0 days"
 cache:

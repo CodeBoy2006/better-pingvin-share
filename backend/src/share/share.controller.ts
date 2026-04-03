@@ -19,6 +19,7 @@ import { GetUser } from "src/auth/decorator/getUser.decorator";
 import { AdministratorGuard } from "src/auth/guard/isAdmin.guard";
 import { JwtGuard } from "src/auth/guard/jwt.guard";
 import { ConfigService } from "src/config/config.service";
+import { canExposeFileWebView } from "src/file/fileWebView.util";
 import * as mime from "mime-types";
 import { AdminShareDTO } from "./dto/adminShare.dto";
 import { CompletedShareDTO } from "./dto/shareComplete.dto";
@@ -114,6 +115,13 @@ export class ShareController {
       )
         ? `token=${encodeURIComponent(fileList.shareToken)}`
         : undefined;
+    const includeWebViewLinks = this.configService.get(
+      "share.filesJsonWebViewLinksEnabled",
+    );
+    const appendTokenQuery = (url: string) =>
+      tokenQuery
+        ? `${url}${url.includes("?") ? "&" : "?"}${tokenQuery}`
+        : url;
 
     if (
       fileList.shareToken &&
@@ -151,18 +159,29 @@ export class ShareController {
         machineReadableUrl: `${appUrl}/s/${fileList.share.id}/files.json`,
         zipDownloadUrl:
           fileList.share.isZipReady && fileList.share.files.length > 1
-            ? `${appUrl}/api/shares/${fileList.share.id}/files/zip${tokenQuery ? `?${tokenQuery}` : ""}`
+            ? appendTokenQuery(`${appUrl}/api/shares/${fileList.share.id}/files/zip`)
             : undefined,
       },
-      files: fileList.share.files.map((file) => ({
-        id: file.id,
-        name: file.name,
-        sizeBytes: file.size,
-        createdAt: file.createdAt,
-        contentType: mime.lookup(file.name) || "application/octet-stream",
-        downloadUrl: `${appUrl}/api/shares/${fileList.share.id}/files/${file.id}${tokenQuery ? `?${tokenQuery}` : ""}`,
-        inlineUrl: `${appUrl}/api/shares/${fileList.share.id}/files/${file.id}?download=false${tokenQuery ? `&${tokenQuery}` : ""}`,
-      })),
+      files: fileList.share.files.map((file) => {
+        const contentType = mime.lookup(file.name) || "application/octet-stream";
+        const fileUrl = `${appUrl}/api/shares/${fileList.share.id}/files/${file.id}`;
+
+        return {
+          id: file.id,
+          name: file.name,
+          sizeBytes: file.size,
+          createdAt: file.createdAt,
+          contentType,
+          downloadUrl: appendTokenQuery(fileUrl),
+          inlineUrl: appendTokenQuery(`${fileUrl}?download=false`),
+          ...(includeWebViewLinks &&
+          canExposeFileWebView(file.name, file.size, contentType)
+            ? {
+                webViewUrl: appendTokenQuery(`${fileUrl}/web`),
+              }
+            : {}),
+        };
+      }),
     });
   }
 

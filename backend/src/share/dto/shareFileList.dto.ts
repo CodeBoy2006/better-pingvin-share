@@ -21,6 +21,9 @@ class ShareFileListEntryDTO {
 
   @Expose()
   inlineUrl: string;
+
+  @Expose()
+  webViewUrl?: string;
 }
 
 class ShareFileListShareDTO {

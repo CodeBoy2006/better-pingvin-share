@@ -102,6 +102,11 @@ export const configVariables = {
       defaultValue: "false",
       secret: false,
     },
+    filesJsonWebViewLinksEnabled: {
+      type: "boolean",
+      defaultValue: "false",
+      secret: false,
+    },
     fileRetentionPeriod: {
       type: "timespan",
       defaultValue: "0 days",

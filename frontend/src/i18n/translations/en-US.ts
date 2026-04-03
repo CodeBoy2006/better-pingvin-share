@@ -538,6 +538,10 @@ export default {
     "Include token in password-protected files.json links",
   "admin.config.share.files-json-password-protected-links-include-token.description":
     "When enabled, files.json can embed a share token in download URLs for password-protected shares. Unprotected shares always return plain URLs.",
+  "admin.config.share.files-json-web-view-links-enabled":
+    "Add web-view links to files.json",
+  "admin.config.share.files-json-web-view-links-enabled.description":
+    "When enabled, files.json adds a webViewUrl for supported text-like files. The link returns the raw file content inline instead of a download, which helps crawlers that cannot fetch attachments.",
   "admin.config.share.file-retention-period": "File retention period",
   "admin.config.share.file-retention-period.description":
     "Keep expired or owner-deleted shares for an additional period before their files are permanently removed.",

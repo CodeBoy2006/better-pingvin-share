@@ -139,6 +139,7 @@ describe("Legacy share endpoints", () => {
     expect(fileListResponse.body.files[0].inlineUrl).toBe(
       `http://localhost:3000/api/shares/${shareId}/files/${uploadResponse.body.id}?download=false`,
     );
+    expect(fileListResponse.body.files[0].webViewUrl).toBeUndefined();
     expect(fileListResponse.headers["set-cookie"]).toEqual(
       expect.arrayContaining([
         expect.stringContaining(`share_${shareId}_token=`),
@@ -241,11 +242,84 @@ describe("Legacy share endpoints", () => {
     );
   });
 
+  it("adds raw-content web-view links for supported files when enabled", async () => {
+    await fixture.updateConfig("share.filesJsonWebViewLinksEnabled", true);
+
+    const shareId = `web-view-links-${randomUUID().slice(0, 8)}`;
+
+    const createResponse = await fixture.request.post("/api/shares").send(
+      buildCreateShareDto({
+        id: shareId,
+      }),
+    );
+
+    expect(createResponse.status).toBe(201);
+
+    const ownerCookie = `share_${shareId}_owner_token=${createResponse.body.ownerToken}`;
+
+    const textUploadResponse = await fixture.request
+      .post(
+        `/api/shares/${shareId}/files?name=guide.md&chunkIndex=0&totalChunks=1`,
+      )
+      .set("Cookie", ownerCookie)
+      .set("Content-Type", "application/octet-stream")
+      .send(Buffer.from("# Guide\n\nCrawler friendly preview."));
+
+    expect(textUploadResponse.status).toBe(201);
+
+    const binaryUploadResponse = await fixture.request
+      .post(
+        `/api/shares/${shareId}/files?name=archive.zip&chunkIndex=0&totalChunks=1`,
+      )
+      .set("Cookie", ownerCookie)
+      .set("Content-Type", "application/octet-stream")
+      .send(Buffer.from([0x50, 0x4b, 0x03, 0x04]));
+
+    expect(binaryUploadResponse.status).toBe(201);
+
+    const completeResponse = await fixture.request
+      .post(`/api/shares/${shareId}/complete`)
+      .set("Cookie", ownerCookie);
+
+    expect(completeResponse.status).toBe(202);
+
+    const publicAgent = request.agent(fixture.app.getHttpServer());
+    const fileListResponse = await publicAgent.get(
+      `/api/shares/${shareId}/files.json`,
+    );
+
+    expect(fileListResponse.status).toBe(200);
+
+    const supportedFile = fileListResponse.body.files.find(
+      (file: { id: string }) => file.id === textUploadResponse.body.id,
+    );
+    const unsupportedFile = fileListResponse.body.files.find(
+      (file: { id: string }) => file.id === binaryUploadResponse.body.id,
+    );
+
+    expect(supportedFile.webViewUrl).toBe(
+      `http://localhost:3000/api/shares/${shareId}/files/${textUploadResponse.body.id}/web`,
+    );
+    expect(unsupportedFile.webViewUrl).toBeUndefined();
+
+    const webViewUrl = new URL(supportedFile.webViewUrl);
+    const webViewResponse = await publicAgent.get(
+      `${webViewUrl.pathname}${webViewUrl.search}`,
+    );
+
+    expect(webViewResponse.status).toBe(200);
+    expect(webViewResponse.headers["content-type"]).toMatch(/^text\/plain\b/);
+    expect(webViewResponse.text).toBe("# Guide\n\nCrawler friendly preview.");
+
+    await fixture.updateConfig("share.filesJsonWebViewLinksEnabled", false);
+  });
+
   it("can return tokenized files.json URLs for password-protected shares when enabled", async () => {
     await fixture.updateConfig(
       "share.filesJsonPasswordProtectedLinksIncludeToken",
       true,
     );
+    await fixture.updateConfig("share.filesJsonWebViewLinksEnabled", true);
 
     const shareId = `protected-tokenized-${randomUUID().slice(0, 8)}`;
     const password = "secret123";
@@ -296,11 +370,15 @@ describe("Legacy share endpoints", () => {
     expect(fileListResponse.body.files[0].inlineUrl).toBe(
       `http://localhost:3000/api/shares/${shareId}/files/${uploadResponse.body.id}?download=false&token=${encodeURIComponent(tokenResponse.body.token)}`,
     );
+    expect(fileListResponse.body.files[0].webViewUrl).toBe(
+      `http://localhost:3000/api/shares/${shareId}/files/${uploadResponse.body.id}/web?token=${encodeURIComponent(tokenResponse.body.token)}`,
+    );
 
     await fixture.updateConfig(
       "share.filesJsonPasswordProtectedLinksIncludeToken",
       false,
     );
+    await fixture.updateConfig("share.filesJsonWebViewLinksEnabled", false);
   });
 
   it("never returns tokenized files.json URLs for unprotected shares", async () => {
