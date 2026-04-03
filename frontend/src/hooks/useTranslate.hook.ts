@@ -15,9 +15,22 @@ const useTranslate = () => {
 
 const cache = createIntlCache();
 
+const getPreferredLocale = () => {
+  const cookieLanguage = getCookie("language")?.toString();
+
+  if (cookieLanguage) {
+    return i18nUtil.getLanguageFromAcceptHeader(cookieLanguage) ?? "en-US";
+  }
+
+  if (typeof navigator === "undefined") {
+    return "en-US";
+  }
+
+  return i18nUtil.getLanguageFromAcceptHeader(navigator.language) ?? "en-US";
+};
+
 export const translateOutsideContext = () => {
-  const locale =
-    getCookie("language")?.toString() ?? navigator.language.split("-")[0];
+  const locale = getPreferredLocale();
 
   const intl = createIntl(
     {

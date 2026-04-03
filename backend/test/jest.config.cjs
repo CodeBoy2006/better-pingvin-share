@@ -11,7 +11,6 @@ const sharedConfig = {
     "^.+\\.(t|j)s$": [
       "ts-jest",
       {
-        isolatedModules: true,
         tsconfig: "<rootDir>/test/tsconfig.json",
       },
     ],
@@ -20,6 +19,7 @@ const sharedConfig = {
     "^src/(.*)$": "<rootDir>/src/$1",
   },
   setupFiles: ["<rootDir>/test/setup/load-env.cjs"],
+  setupFilesAfterEnv: ["<rootDir>/test/setup/compat.ts"],
   collectCoverageFrom: [
     "src/**/*.ts",
     "!src/**/*.dto.ts",

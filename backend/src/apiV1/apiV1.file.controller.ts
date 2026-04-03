@@ -23,7 +23,7 @@ import {
 } from "@nestjs/swagger";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { SkipThrottle } from "@nestjs/throttler";
-import * as contentDisposition from "content-disposition";
+import contentDisposition from "content-disposition";
 import { Response } from "express";
 import * as mime from "mime-types";
 import { User } from "@prisma/client";

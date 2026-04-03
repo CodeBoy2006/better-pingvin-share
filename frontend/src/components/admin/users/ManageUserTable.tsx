@@ -17,6 +17,9 @@ const ManageUserTable = ({
   isLoading: boolean;
 }) => {
   const modals = useModals();
+  const intl = useIntl();
+  const editLabel = intl.formatMessage({ id: "common.button.edit" });
+  const deleteLabel = intl.formatMessage({ id: "common.button.delete" });
 
   return (
     <Box sx={{ display: "block", overflowX: "auto" }}>
@@ -52,9 +55,11 @@ const ManageUserTable = ({
                     <Group position="right">
                       {user.isLdap ? null : (
                         <ActionIcon
+                          aria-label={editLabel}
                           variant="light"
                           color="primary"
                           size="sm"
+                          title={editLabel}
                           onClick={() =>
                             showUpdateUserModal(modals, user, getUsers)
                           }
@@ -63,9 +68,11 @@ const ManageUserTable = ({
                         </ActionIcon>
                       )}
                       <ActionIcon
+                        aria-label={deleteLabel}
                         variant="light"
                         color="red"
                         size="sm"
+                        title={deleteLabel}
                         onClick={() => deleteUser(user)}
                       >
                         <TbTrash />

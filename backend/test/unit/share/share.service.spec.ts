@@ -1,0 +1,351 @@
+import {
+  BadRequestException,
+  ForbiddenException,
+} from "@nestjs/common";
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
+import * as argon from "argon2";
+import { ShareService } from "src/share/share.service";
+import { buildCreateShareDto } from "../../fixtures/share.fixture";
+
+describe("ShareService", () => {
+  let prisma: any;
+  let config: any;
+  let fileService: any;
+  let emailService: any;
+  let jwtService: any;
+  let reverseShareService: any;
+  let clamScanService: any;
+  let service: ShareService;
+
+  beforeEach(() => {
+    prisma = {
+      share: {
+        findFirst: jest.fn(),
+        findUnique: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+        delete: jest.fn(),
+        findMany: jest.fn(),
+      },
+      reverseShare: {
+        update: jest.fn(),
+      },
+      file: {
+        findMany: jest.fn(),
+      },
+    };
+    config = {
+      get: jest.fn((key: string) => {
+        const values: Record<string, unknown> = {
+          "share.maxExpiration": { value: 0, unit: "days" },
+          "share.allowAdminAccessAllShares": false,
+          "share.zipCompressionLevel": 9,
+          "s3.enabled": false,
+          "smtp.enabled": false,
+          "general.appUrl": "http://localhost:3000",
+          "internal.jwtSecret": "jwt-secret",
+        };
+
+        if (!(key in values)) {
+          throw new Error(`Unexpected config lookup: ${key}`);
+        }
+
+        return values[key];
+      }),
+    };
+    fileService = {
+      deleteAllFiles: jest.fn(),
+    };
+    emailService = {
+      sendMailToShareRecipients: jest.fn(),
+      sendMailToReverseShareCreator: jest.fn(),
+    };
+    jwtService = {
+      sign: jest.fn().mockReturnValue("jwt-token"),
+      verify: jest.fn(),
+    };
+    reverseShareService = {
+      getByToken: jest.fn().mockImplementation(async () => null),
+    };
+    clamScanService = {
+      checkAndRemove: jest.fn(),
+    };
+
+    service = new ShareService(
+      prisma as any,
+      config as any,
+      fileService as any,
+      emailService as any,
+      config as any,
+      jwtService as any,
+      reverseShareService as any,
+      clamScanService as any,
+    );
+  });
+
+  it("creates anonymous shares with hashed passwords and owner access", async () => {
+    prisma.share.findUnique.mockResolvedValueOnce(null);
+    prisma.share.create.mockResolvedValue({
+      id: "share-anon",
+      createdAt: new Date("2024-01-01T00:00:00.000Z"),
+      expiration: new Date("2024-01-02T00:00:00.000Z"),
+      name: null,
+      description: null,
+      creatorId: null,
+      uploadLocked: false,
+      isZipReady: false,
+      views: 0,
+      storageProvider: "LOCAL",
+      removedReason: null,
+      reverseShareId: null,
+    });
+    jest
+      .spyOn(service, "generateShareOwnerToken")
+      .mockResolvedValue("owner-token");
+
+    const result = await service.create(
+      buildCreateShareDto({
+        id: "share-anon",
+        security: { password: "super-secret" },
+      }) as any,
+    );
+
+    const createCall = prisma.share.create.mock.calls[0][0] as any;
+
+    expect(await argon.verify(createCall.data.security.create.password, "super-secret")).toBe(
+      true,
+    );
+    expect(createCall.data.storageProvider).toBe("LOCAL");
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: "share-anon",
+        ownerToken: "owner-token",
+        ownerManagementLink:
+          "http://localhost:3000/share/share-anon/edit#ownerToken=owner-token",
+      }),
+    );
+  });
+
+  it("rejects duplicate share identifiers before creating files", async () => {
+    prisma.share.findUnique.mockResolvedValueOnce({ id: "share-duplicate" });
+
+    await expect(
+      service.create(buildCreateShareDto({ id: "share-duplicate" }) as any),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(prisma.share.create).not.toHaveBeenCalled();
+  });
+
+  it("uses reverse share expiration and links the new share back to the token", async () => {
+    prisma.share.findUnique.mockResolvedValueOnce(null);
+    prisma.share.create.mockResolvedValue({
+      id: "share-reverse",
+      createdAt: new Date("2024-01-01T00:00:00.000Z"),
+      expiration: new Date("2030-01-01T00:00:00.000Z"),
+      name: null,
+      description: null,
+      creatorId: "creator-1",
+      uploadLocked: false,
+      isZipReady: false,
+      views: 0,
+      storageProvider: "LOCAL",
+      removedReason: null,
+      reverseShareId: "reverse-share-1",
+    });
+    reverseShareService.getByToken.mockResolvedValue({
+      id: "reverse-share-1",
+      token: "reverse-token",
+      shareExpiration: new Date("2030-01-01T00:00:00.000Z"),
+    });
+
+    await service.create(
+      buildCreateShareDto({ id: "share-reverse" }) as any,
+      { id: "creator-1" } as any,
+      "reverse-token",
+    );
+
+    expect(prisma.share.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          expiration: new Date("2030-01-01T00:00:00.000Z"),
+        }),
+      }),
+    );
+    expect(prisma.reverseShare.update).toHaveBeenCalledWith({
+      where: { token: "reverse-token" },
+      data: {
+        shares: {
+          connect: { id: "share-reverse" },
+        },
+      },
+    });
+  });
+
+  it("refuses to complete shares that are already locked or empty", async () => {
+    jest.spyOn(service, "isShareCompleted").mockResolvedValueOnce(true);
+    prisma.share.findUnique.mockResolvedValue({
+      id: "share-1",
+      files: [{ id: "file-1" }],
+      recipients: [],
+      creator: null,
+      reverseShare: null,
+      description: null,
+      expiration: new Date("2024-01-02T00:00:00.000Z"),
+    });
+
+    await expect(service.complete("share-1")).rejects.toThrow(
+      BadRequestException,
+    );
+
+    jest.spyOn(service, "isShareCompleted").mockResolvedValueOnce(false);
+    prisma.share.findUnique.mockResolvedValue({
+      id: "share-2",
+      files: [],
+      recipients: [],
+      creator: null,
+      reverseShare: null,
+      description: null,
+      expiration: new Date("2024-01-02T00:00:00.000Z"),
+    });
+
+    await expect(service.complete("share-2")).rejects.toThrow(
+      BadRequestException,
+    );
+  });
+
+  it("completes anonymous reverse-share uploads and decrements remaining uses", async () => {
+    jest.spyOn(service, "isShareCompleted").mockResolvedValue(false);
+    jest
+      .spyOn(service, "generateShareOwnerToken")
+      .mockResolvedValue("owner-after-complete");
+
+    prisma.share.findUnique.mockResolvedValue({
+      id: "share-3",
+      creatorId: null,
+      files: [{ id: "file-1", name: "hello.txt", size: "5" }],
+      recipients: [],
+      creator: null,
+      reverseShare: {
+        id: "reverse-share-2",
+        creator: { email: "reverse@test.local" },
+        sendEmailNotification: false,
+      },
+      description: null,
+      expiration: new Date("2024-01-02T00:00:00.000Z"),
+    });
+    prisma.share.update.mockResolvedValue({
+      id: "share-3",
+      uploadLocked: true,
+      isZipReady: false,
+    });
+
+    const result = await service.complete("share-3", "reverse-token");
+
+    expect(prisma.reverseShare.update).toHaveBeenCalledWith({
+      where: { token: "reverse-token" },
+      data: { remainingUses: { decrement: 1 } },
+    });
+    expect(clamScanService.checkAndRemove).toHaveBeenCalledWith("share-3");
+    expect(result).toEqual(
+      expect.objectContaining({
+        uploadLocked: true,
+        ownerToken: "owner-after-complete",
+      }),
+    );
+  });
+
+  it("blocks private reverse shares from unrelated viewers", async () => {
+    prisma.share.findUnique.mockResolvedValue({
+      id: "share-private",
+      uploadLocked: true,
+      removedReason: null,
+      creatorId: "share-owner",
+      expiration: new Date("2030-01-02T00:00:00.000Z"),
+      files: [],
+      security: null,
+      reverseShare: {
+        creatorId: "reverse-owner",
+        publicAccess: false,
+      },
+      views: 0,
+    });
+
+    await expect(
+      service.getFileList("share-private", {
+        userId: "outsider",
+      }),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it("generates share tokens for public file listings and increments view counts", async () => {
+    prisma.share.findUnique.mockResolvedValue({
+      id: "share-public",
+      uploadLocked: true,
+      removedReason: null,
+      creatorId: "share-owner",
+      expiration: new Date("2030-01-02T00:00:00.000Z"),
+      files: [],
+      security: null,
+      reverseShare: null,
+      views: 4,
+    });
+    jest.spyOn(service, "generateShareToken").mockResolvedValue("share-token");
+    jest.spyOn(service, "increaseViewCount").mockResolvedValue(undefined);
+
+    const result = await service.getFileList("share-public");
+
+    expect(service.increaseViewCount).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "share-public" }),
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        shareToken: "share-token",
+        generatedShareToken: true,
+      }),
+    );
+  });
+
+  it("only hard deletes anonymous shares when elevated access is provided", async () => {
+    prisma.share.findUnique.mockResolvedValueOnce({
+      id: "share-anonymous",
+      creatorId: null,
+    });
+
+    await expect(service.remove("share-anonymous")).rejects.toThrow(
+      ForbiddenException,
+    );
+
+    prisma.share.findUnique.mockResolvedValueOnce({
+      id: "share-admin-delete",
+      creatorId: "user-1",
+    });
+
+    await service.remove("share-admin-delete", { isDeleterAdmin: true });
+
+    expect(fileService.deleteAllFiles).toHaveBeenCalledWith("share-admin-delete");
+    expect(prisma.share.delete).toHaveBeenCalledWith({
+      where: { id: "share-admin-delete" },
+    });
+  });
+
+  it("rejects incorrect passwords when minting share tokens", async () => {
+    prisma.share.findFirst.mockResolvedValue({
+      id: "share-password",
+      views: 0,
+      security: {
+        password: await argon.hash("correct-password"),
+        maxViews: null,
+      },
+    });
+
+    await expect(
+      service.getShareToken("share-password", "wrong-password"),
+    ).rejects.toThrow(ForbiddenException);
+  });
+});

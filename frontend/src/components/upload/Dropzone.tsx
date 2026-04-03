@@ -47,6 +47,7 @@ const Dropzone = ({
 
   const { classes } = useStyles();
   const openRef = useRef<() => void>();
+  const openLabel = title || t("upload.dropzone.title");
   return (
     <div className={classes.wrapper}>
       <MantineDropzone
@@ -92,11 +93,13 @@ const Dropzone = ({
       </MantineDropzone>
       <Center>
         <Button
+          aria-label={openLabel}
           className={classes.control}
           variant="light"
           size="sm"
           radius="xl"
           disabled={isUploading}
+          title={openLabel}
           onClick={() => openRef.current && openRef.current()}
         >
           {<TbUpload />}
