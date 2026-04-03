@@ -16,7 +16,6 @@ export default defineConfig({
     globals: true,
     css: true,
     exclude: [...configDefaults.exclude, "**/.next/**"],
-    passWithNoTests: true,
     setupFiles: ["./test/setup.ts"],
     restoreMocks: true,
     unstubEnvs: true,

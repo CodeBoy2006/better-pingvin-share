@@ -49,6 +49,9 @@ jobs:
       - name: Install backend dependencies
         run: npm --prefix backend ci
 
+      - name: Lint backend
+        run: npm --prefix backend run lint
+
       - name: Type-check backend
         run: npm --prefix backend run typecheck
 
@@ -65,7 +68,7 @@ jobs:
         run: |
           node <<'EOF' >> "$GITHUB_OUTPUT"
           const fs = require("fs");
-          const summaryPath = "test-results/backend/coverage/coverage-summary.json";
+          const summaryPath = "backend/test/coverage/coverage-summary.json";
 
           if (!fs.existsSync(summaryPath)) {
             for (const key of ["lines", "statements", "functions", "branches"]) {
@@ -90,7 +93,7 @@ jobs:
           if-no-files-found: warn
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
           path: |
-            test-results/backend/coverage
+            backend/test/coverage
             test-results/backend/junit.xml
 
   frontend:
@@ -116,6 +119,9 @@ jobs:
 
       - name: Install frontend dependencies
         run: npm --prefix frontend ci
+
+      - name: Lint frontend
+        run: npm --prefix frontend run lint
 
       - name: Type-check frontend
         run: npm --prefix frontend run typecheck
@@ -185,6 +191,9 @@ jobs:
       - name: Install backend dependencies
         run: npm --prefix backend ci
 
+      - name: Lint backend
+        run: npm --prefix backend run lint
+
       - name: Run API smoke regression
         run: npm --prefix backend run test:system
 
@@ -195,7 +204,7 @@ jobs:
         run: |
           node <<'EOF' >> "$GITHUB_OUTPUT"
           const fs = require("fs");
-          const reportPath = "test-results/backend/system/smoke/newman.json";
+          const reportPath = "test-results/backend/system/smoke/suite.json";
 
           if (!fs.existsSync(reportPath)) {
             console.log("requests_total=n/a");
@@ -205,10 +214,40 @@ jobs:
           }
 
           const report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
-          const stats = report.run?.stats ?? {};
-          console.log(`requests_total=${stats.requests?.total ?? "n/a"}`);
-          console.log(`assertions_total=${stats.assertions?.total ?? "n/a"}`);
-          console.log(`assertions_failed=${stats.assertions?.failed ?? "n/a"}`);
+          const steps = Array.isArray(report.steps) ? report.steps : [];
+          const requestsTotal = steps.reduce((total, step) => {
+            if (typeof step?.stats?.requests?.total === "number") {
+              return total + step.stats.requests.total;
+            }
+
+            if (Array.isArray(step?.requests)) {
+              return total + step.requests.length;
+            }
+
+            return total;
+          }, 0);
+          const assertionsTotal = steps.reduce((total, step) => {
+            if (typeof step?.stats?.assertions?.total === "number") {
+              return total + step.stats.assertions.total;
+            }
+
+            if (Array.isArray(step?.requests)) {
+              return total + step.requests.length;
+            }
+
+            return total;
+          }, 0);
+          const assertionsFailed = steps.reduce((total, step) => {
+            if (typeof step?.stats?.assertions?.failed === "number") {
+              return total + step.stats.assertions.failed;
+            }
+
+            return total + (step?.status === "failed" ? 1 : 0);
+          }, 0);
+
+          console.log(`requests_total=${requestsTotal}`);
+          console.log(`assertions_total=${assertionsTotal}`);
+          console.log(`assertions_failed=${assertionsFailed}`);
           EOF
 
       - name: Upload API smoke artifacts
@@ -254,6 +293,9 @@ jobs:
 
       - name: Install frontend dependencies
         run: npm --prefix frontend ci
+
+      - name: Lint workspace
+        run: npm run lint
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium

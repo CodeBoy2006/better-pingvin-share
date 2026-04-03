@@ -11,7 +11,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { SkipThrottle } from "@nestjs/throttler";
-import contentDisposition = require("content-disposition");
+import contentDisposition from "content-disposition";
 import { Response } from "express";
 import { CreateShareGuard } from "src/share/guard/createShare.guard";
 import { ShareOwnerGuard } from "src/share/guard/shareOwner.guard";

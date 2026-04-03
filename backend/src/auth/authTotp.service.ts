@@ -6,7 +6,7 @@ import {
 } from "@nestjs/common";
 import { User } from "@prisma/client";
 import { authenticator, totp } from "otplib";
-import QRCode = require("qrcode-svg");
+import QRCode from "qrcode-svg";
 import { ConfigService } from "src/config/config.service";
 import { PrismaService } from "src/prisma/prisma.service";
 import { AuthService } from "./auth.service";

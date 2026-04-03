@@ -136,3 +136,9 @@
 - **Status:** Completed
 - **Next Steps:** Re-run the unified CI workflow and confirm both GHCR build matrix jobs and the manifest merge succeed before tagging `v1.15.2`.
 - **Context:** The reusable publish workflow fix exposed a second release-gating issue: the Docker backend dependency stage runs `npm ci` before the Prisma schema is copied into the image, so an unconditional postinstall generation step breaks image builds.
+
+## [2026-04-03 20:41] CI report path and lint gate hardening
+- **Changes:** Aligned `.github/workflows/ci.yml` with backend coverage output in `backend/test/coverage` and backend system `suite.json`, inserted explicit lint gates before CI test jobs, moved backend Jest coverage reporting to a deterministic `backend/test/coverage` root, and removed `passWithNoTests` bypasses from backend, frontend, and Playwright test commands.
+- **Status:** Completed
+- **Next Steps:** Watch the next GitHub Actions run to confirm the backend coverage card and API smoke summary populate from the updated artifact paths.
+- **Context:** Verified with `npm --prefix backend run lint`, `npm --prefix backend run test:coverage`, `npm --prefix backend run test:ci`, `npm --prefix backend run test:system`, `npm --prefix frontend run lint`, `npm --prefix frontend run test`, `npm --prefix frontend run test:coverage`, `npm run quality`, and `npx playwright test --config ./playwright.config.mjs --list`; frontend lint still emits existing warnings, but backend lint is now clean and Playwright detects 6 tests without the no-tests bypass.

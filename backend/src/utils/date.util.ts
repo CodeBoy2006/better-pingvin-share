@@ -1,4 +1,4 @@
-import moment = require("moment");
+import moment from "moment";
 
 export function parseRelativeDateToAbsolute(relativeDate: string) {
   if (relativeDate == "never") return moment(0).toDate();

@@ -20,18 +20,19 @@ const sharedConfig = {
   },
   setupFiles: ["<rootDir>/test/setup/load-env.cjs"],
   setupFilesAfterEnv: ["<rootDir>/test/setup/compat.ts"],
+  testPathIgnorePatterns: ["/node_modules/", "/dist/"],
+};
+
+module.exports = {
+  rootDir: backendRoot,
   collectCoverageFrom: [
     "src/**/*.ts",
     "!src/**/*.dto.ts",
     "!src/**/*.module.ts",
     "!src/main.ts",
   ],
-  coverageDirectory: "<rootDir>/../test-results/backend/coverage",
+  coverageDirectory: "<rootDir>/test/coverage",
   coverageReporters: ["text", "json-summary", "lcov"],
-  testPathIgnorePatterns: ["/node_modules/", "/dist/"],
-};
-
-module.exports = {
   reporters: [
     "default",
     [

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
-import NodeClam = require("clamscan");
+import NodeClam from "clamscan";
 import * as fs from "fs";
 import { FileService } from "src/file/file.service";
 import { PrismaService } from "src/prisma/prisma.service";
