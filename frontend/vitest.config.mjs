@@ -25,9 +25,10 @@ export default defineConfig({
       reportsDirectory: "../test-results/frontend/coverage",
       reporter: ["text", "json-summary", "lcov"],
     },
-    reporters: ["default", "json"],
+    reporters: ["default", "json", "junit"],
     outputFile: {
       json: "../test-results/frontend/vitest.json",
+      junit: "../test-results/frontend/junit.xml",
     },
   },
 });

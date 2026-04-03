@@ -81,3 +81,8 @@
 - **Status:** Completed
 - **Next Steps:** If we want a fuller Batch A finish, the next isolated step is adding JUnit-style reporters and CI-friendly artifact names without touching the in-flight Playwright workflow changes already present in the worktree.
 - **Context:** Verified with `npm run test` and `npm run test:coverage`; both root commands now execute successfully and route to the expected backend/frontend suites.
+## [2026-04-03 17:38] Add CI-friendly test reports
+- **Changes:** Added backend JUnit reporting via `jest-junit`, switched `backend` `test:ci` to emit JSON results into `test-results/backend/`, and extended `frontend/vitest.config.mjs` to emit both JSON and JUnit reports into `test-results/frontend/`.
+- **Status:** Completed
+- **Next Steps:** Finish the remaining Batch A script parity work (`backend`/`frontend` package-level `test:fast` and `test:all`) or move on to CI wiring once the in-flight Playwright changes are ready.
+- **Context:** Verified with `npm --prefix backend run test:ci`, `npm --prefix frontend run test`, and `npm run test`; reports now land in `test-results/backend/jest.json`, `test-results/backend/junit.xml`, `test-results/frontend/vitest.json`, and `test-results/frontend/junit.xml`.

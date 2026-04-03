@@ -32,6 +32,16 @@ const sharedConfig = {
 };
 
 module.exports = {
+  reporters: [
+    "default",
+    [
+      "jest-junit",
+      {
+        outputDirectory: "../test-results/backend",
+        outputName: "junit.xml",
+      },
+    ],
+  ],
   projects: [
     {
       ...sharedConfig,
