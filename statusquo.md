@@ -178,3 +178,8 @@
 - **Status:** Completed
 - **Next Steps:** Rebuild and republish the `development` image, then restart the server to confirm the backend reaches `node dist/src/main` and `/api/health` returns healthy through Caddy.
 - **Context:** Verified both source-style and runner-style layouts by running `prisma migrate deploy && prisma db seed` in temporary backend copies with and without `src/`; both paths now seed successfully.
+## [2026-04-03 14:34] Clarify logo PNG upload fix
+- **Changes:** Added the missing backend `file-type` dependency required by NestJS `FileTypeValidator`, so the admin logo upload endpoint can validate PNG files using magic-number detection instead of rejecting valid uploads.
+- **Status:** Completed
+- **Next Steps:** Restart or redeploy the backend so the updated dependency is installed in the running environment before retrying the logo upload from the admin UI.
+- **Context:** Verified with `cd backend && npm run build` and a direct Node check that `FileTypeValidator({ fileType: "image/png" })` now accepts `frontend/public/img/logo.png`.

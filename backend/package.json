@@ -39,6 +39,7 @@
     "content-disposition": "^0.5.4",
     "cookie-parser": "^1.4.7",
     "express": "^5.1.0",
+    "file-type": "^20.5.0",
     "jmespath": "^0.16.0",
     "keyv": "^5.3.3",
     "ldapts": "^7.4.0",
