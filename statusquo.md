@@ -193,3 +193,8 @@
 - **Status:** Completed
 - **Next Steps:** Batch B/C/D/E can now start adding real backend/frontend test cases on top of the shared helpers; separately investigate the existing anonymous-owner deletion regression that still fails in `backend/test/anonymous-owner-flow.e2e.js` under the new runner.
 - **Context:** Verified with `npm run quality`, `cd backend && npm run test:system:v1`, and `cd backend && npm run test:system:smoke`. The new runner correctly isolates ports and artifacts, but `test:system:smoke` currently exposes a product-level assertion failure (`deleted anonymous shares should no longer expose an owner payload`) rather than an infrastructure failure.
+## [2026-04-03 16:13] Batch D frontend logic and middleware tests
+- **Changes:** Expanded the frontend Vitest runtime with reusable router/fetch helpers and provider-aware hook rendering, added unit coverage for `frontend/src/utils`, `frontend/src/services`, `frontend/src/hooks`, and `frontend/src/middleware.ts`, and hardened `frontend/src/hooks/useTranslate.hook.ts` plus `frontend/src/utils/router.util.ts` to better handle locale fallback and redirect sanitization.
+- **Status:** Completed
+- **Next Steps:** Batch E can build UI/page interaction tests on top of the shared frontend test helpers, and Batch H can later consume the generated frontend JSON report and coverage artifacts in CI.
+- **Context:** Verified in `/tmp/worktrees/batch-d-frontend-logic` with `npm --prefix frontend test`, `npm --prefix frontend run typecheck`, and `./frontend/node_modules/.bin/prettier --check $(git -C /tmp/worktrees/batch-d-frontend-logic diff --name-only -- '*.ts' '*.tsx' '*.mjs' '*.md')`.

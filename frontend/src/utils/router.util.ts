@@ -1,7 +1,13 @@
 export function safeRedirectPath(path: string | undefined) {
   if (!path) return "/";
 
-  if (!path.startsWith("/")) return `/${path}`;
+  const normalizedPath = path.trim();
 
-  return path;
+  if (!normalizedPath || normalizedPath.startsWith("//")) {
+    return "/";
+  }
+
+  if (!normalizedPath.startsWith("/")) return `/${normalizedPath}`;
+
+  return normalizedPath;
 }
