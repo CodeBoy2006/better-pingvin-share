@@ -48,6 +48,9 @@ yarn-error.log*
 /test-results/
 /tmp/test-runtime/
 /backend/tmp/
+/backend/test/coverage/
+test-results/
+tmp/test-runtime/
 
 # Jetbrains specific (webstorm)
 .idea/**/**
