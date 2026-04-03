@@ -168,3 +168,8 @@
 - **Status:** Completed
 - **Next Steps:** Trigger a manual test run from the Actions UI for each mode (`none`, `development`, `release`) to confirm the resolved summary, per-platform matrix, and final published tags behave as intended on GitHub-hosted runners.
 - **Context:** Verified with local YAML parsing and `git diff --check`. Also retained the native ARM runner split and per-platform cache strategy from the prior CI optimization so manual runs inherit the same performance improvements.
+## [2026-04-03 13:28] Fix uppercase GHCR repository names in Docker workflow
+- **Changes:** Updated the Docker publish workflow to derive the GHCR image reference from a lowercased copy of `${{ github.repository }}` during the prepare phase, then reused that normalized image name for metadata generation, per-platform digest pushes, manifest creation, and workflow summaries.
+- **Status:** Completed
+- **Next Steps:** Re-run the failed Docker image workflow to confirm the build now exports and pushes successfully for repositories whose owner or repo name contains uppercase characters.
+- **Context:** Validated with local YAML parsing, `git diff --check`, and a workflow diff review. This specifically addresses Buildx rejecting `ghcr.io/CodeBoy2006/better-pingvin-share` because GHCR repository names must be lowercase.

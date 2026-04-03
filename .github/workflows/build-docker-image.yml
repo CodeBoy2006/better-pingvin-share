@@ -56,7 +56,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  REGISTRY_IMAGE: ghcr.io/${{ github.repository }}
   CACHE_SCOPE_PREFIX: build-docker-image
 
 jobs:
@@ -64,6 +63,7 @@ jobs:
     name: Resolve build plan
     runs-on: ubuntu-24.04
     outputs:
+      registry_image: ${{ steps.resolve.outputs.registry_image }}
       publish_mode: ${{ steps.resolve.outputs.publish_mode }}
       release_tag: ${{ steps.resolve.outputs.release_tag }}
       publish_latest: ${{ steps.resolve.outputs.publish_latest }}
@@ -82,6 +82,8 @@ jobs:
           event_name="${{ github.event_name }}"
           ref="${{ github.ref }}"
           ref_name="${{ github.ref_name }}"
+          repository="${{ github.repository }}"
+          registry_image="ghcr.io/${repository,,}"
 
           publish_mode=""
           release_tag=""
@@ -168,6 +170,7 @@ jobs:
 
           {
             echo "publish_mode=$publish_mode"
+            echo "registry_image=$registry_image"
             echo "release_tag=$release_tag"
             echo "publish_latest=$publish_latest"
             echo "selected_platforms=$selected_platforms"
@@ -196,12 +199,12 @@ jobs:
             fi
 
             if [ "$publish_mode" = "development" ]; then
-              echo "- Target tags: \`${{ env.REGISTRY_IMAGE }}:development\`"
+              echo "- Target tags: \`${registry_image}:development\`"
             elif [ "$publish_mode" = "release" ]; then
               if [ "$publish_latest" = "true" ]; then
-                echo "- Target tags: \`${{ env.REGISTRY_IMAGE }}:${release_tag}\`, \`${{ env.REGISTRY_IMAGE }}:latest\`"
+                echo "- Target tags: \`${registry_image}:${release_tag}\`, \`${registry_image}:latest\`"
               else
-                echo "- Target tags: \`${{ env.REGISTRY_IMAGE }}:${release_tag}\`"
+                echo "- Target tags: \`${registry_image}:${release_tag}\`"
               fi
             else
               echo "- Target tags: _(none; build validation only)_"
@@ -229,7 +232,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY_IMAGE }}
+          images: ${{ needs.prepare.outputs.registry_image }}
           flavor: |
             latest=false
           tags: ${{ needs.prepare.outputs.tag_rules }}
@@ -253,7 +256,7 @@ jobs:
           context: .
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=${{ needs.prepare.outputs.registry_image }},push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=${{ env.CACHE_SCOPE_PREFIX }}-${{ env.PLATFORM_PAIR }}
           cache-to: type=gha,mode=min,scope=${{ env.CACHE_SCOPE_PREFIX }}-${{ env.PLATFORM_PAIR }}
 
@@ -265,7 +268,7 @@ jobs:
           context: .
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=${{ needs.prepare.outputs.registry_image }},push-by-digest=true,name-canonical=true,push=true
 
       - name: Build validation with cache
         if: needs.prepare.outputs.should_push != 'true' && needs.prepare.outputs.cache_mode != 'none'
@@ -336,7 +339,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY_IMAGE }}
+          images: ${{ needs.prepare.outputs.registry_image }}
           flavor: |
             latest=false
           tags: ${{ needs.prepare.outputs.tag_rules }}
@@ -361,7 +364,7 @@ jobs:
 
           images=()
           for digest in *; do
-            images+=("${{ env.REGISTRY_IMAGE }}@sha256:${digest}")
+            images+=("${{ needs.prepare.outputs.registry_image }}@sha256:${digest}")
           done
 
           docker buildx imagetools create "${tags[@]}" "${images[@]}"
