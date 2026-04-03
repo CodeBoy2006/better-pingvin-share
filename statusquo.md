@@ -153,3 +153,8 @@
 - **Status:** Completed
 - **Next Steps:** If desired, mirror the same release notes into a GitHub Release body or container/image release announcement.
 - **Context:** Verified by checking the updated package versions, reviewing the generated diff, and running `git diff --check` to ensure the release metadata changes are clean.
+## [2026-04-03 13:05] Optimize Docker image CI for native ARM builds
+- **Changes:** Reworked the Docker publish workflow to build `linux/amd64` and `linux/arm64` on separate native GitHub-hosted runners (`ubuntu-24.04` and `ubuntu-24.04-arm`) instead of building both platforms together through QEMU emulation. Also switched the Buildx cache export from a shared `mode=max` cache to per-platform `mode=min` caches and merged the per-architecture digests into a final multi-arch manifest in a dedicated follow-up job.
+- **Status:** Completed
+- **Next Steps:** Monitor the next image publish run to confirm the expected arm64 build-time drop and smaller GitHub Actions cache export time in real CI telemetry.
+- **Context:** Validated the updated workflow with local YAML parsing and diff review. This change targets the previously observed bottlenecks from QEMU-emulated arm64 installs/builds and oversized `type=gha,mode=max` cache uploads.
