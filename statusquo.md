@@ -148,3 +148,8 @@
 - **Status:** Completed
 - **Next Steps:** If needed, add a browser smoke test with sample `.docx`, `.xlsx`, and `.pptx` fixtures to cover real-world rendering regressions.
 - **Context:** Verified with `frontend npm run lint`, `frontend npm run build`, and a targeted Node assertion script that confirmed the Office preview modules load and the XLSX preview pipeline can round-trip workbook data into HTML. Frontend lint still reports the repository's pre-existing warnings only.
+## [2026-04-03 11:48] Prepare v1.15.0 release metadata
+- **Changes:** Bumped the root, backend, and frontend package versions from 1.14.0 to 1.15.0 and added a new `CHANGELOG.md` entry with detailed English release notes covering the admin, upload, retention, preview, and reliability improvements included since v1.14.0.
+- **Status:** Completed
+- **Next Steps:** If desired, mirror the same release notes into a GitHub Release body or container/image release announcement.
+- **Context:** Verified by checking the updated package versions, reviewing the generated diff, and running `git diff --check` to ensure the release metadata changes are clean.
