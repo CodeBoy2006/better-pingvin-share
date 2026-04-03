@@ -188,3 +188,8 @@
 - **Status:** Completed
 - **Next Steps:** If external API docs or SDK snippets exist outside `README.md`, mirror the new ZIP endpoint there as well.
 - **Context:** Verified with `cd backend && npm run build` and `cd backend && npm run test:system:v1`. The system test script left a temporary backend process on port `8080`, which was cleaned up after the run.
+## [2026-04-03 15:41] Establish test infrastructure batch A
+- **Changes:** Added root testing commands and shared `.env.test` defaults, introduced backend Jest scaffolding (`backend/test/jest.config.cjs`, `backend/test/helpers/backend-test-runtime.ts`, unit/integration directories), introduced frontend Vitest/RTL scaffolding (`frontend/vitest.config.mjs`, `frontend/test/setup.ts`, `frontend/test/render.tsx`), added a root Playwright config plus `e2e/` placeholder, and replaced the backend system-test launcher with `scripts/testing/run-backend-system-tests.mjs` so Newman runs on isolated SQLite data directories, dynamic ports, and captured result logs under `test-results/`.
+- **Status:** Completed
+- **Next Steps:** Batch B/C/D/E can now start adding real backend/frontend test cases on top of the shared helpers; separately investigate the existing anonymous-owner deletion regression that still fails in `backend/test/anonymous-owner-flow.e2e.js` under the new runner.
+- **Context:** Verified with `npm run quality`, `cd backend && npm run test:system:v1`, and `cd backend && npm run test:system:smoke`. The new runner correctly isolates ports and artifacts, but `test:system:smoke` currently exposes a product-level assertion failure (`deleted anonymous shares should no longer expose an owner payload`) rather than an infrastructure failure.

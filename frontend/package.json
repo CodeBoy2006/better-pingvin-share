@@ -6,7 +6,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "format": "prettier --end-of-line=auto --write \"src/**/*.ts*\""
+    "format": "prettier --end-of-line=auto --write \"src/**/*.ts*\"",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "test": "vitest run --config ./vitest.config.mjs --passWithNoTests",
+    "test:watch": "vitest --config ./vitest.config.mjs",
+    "test:coverage": "vitest run --config ./vitest.config.mjs --coverage --passWithNoTests"
   },
   "dependencies": {
     "@emotion/react": "^11.13.3",
@@ -50,17 +54,25 @@
   },
   "devDependencies": {
     "@types/mime-types": "^2.1.4",
-    "@types/node": "22.5.5",
+    "@types/node": "22.14.1",
     "@types/qrcode": "^1.5.6",
     "@types/react": "18.3.7",
     "@types/react-dom": "18.3.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@vitejs/plugin-react": "^5.1.0",
     "@typescript-eslint/parser": "^8.6.0",
+    "@vitest/coverage-v8": "^3.2.4",
     "axios": "^1.7.7",
     "eslint": "8.57.0",
     "eslint-config-next": "^14.2.12",
     "eslint-config-prettier": "^9.1.0",
+    "jsdom": "^27.0.1",
     "prettier": "^3.3.3",
     "tar": "^7.4.3",
-    "typescript": "^5.6.2"
+    "typescript": "^5.6.2",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.2.4"
   }
 }

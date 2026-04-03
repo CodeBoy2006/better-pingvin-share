@@ -30,6 +30,15 @@ The website is now listening on `http://localhost:3000`, have fun with Better Pi
 
 TBD.
 
+## ✅ Testing
+
+- `npm run quality` runs lint, type checks, production builds, and the fast unit/integration layer
+- `npm run test:fast` runs backend unit/integration tests plus frontend Vitest suites
+- `npm run test:all` runs the fast layer and the backend Newman/system regressions
+- `npm run test:e2e` is reserved for Playwright browser coverage in `e2e/`
+
+Test artifacts are written to `test-results/`, and test-specific runtime files are isolated under `tmp/test-runtime/` or `backend/tmp/`.
+
 > [!IMPORTANT]
 > Anonymous browser uploads now generate a dedicated edit link for the uploader. Treat that link as a secret because it grants owner-level access to the share.
 
