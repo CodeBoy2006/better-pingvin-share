@@ -121,3 +121,8 @@
 - **Status:** Completed
 - **Next Steps:** Push `main`, verify the repaired `CI` workflow succeeds, then publish the `v1.15.2` tag and GitHub release once the gate is green.
 - **Context:** The original `v1.15.1` GitHub Actions runs failed during `actions/setup-node` because Node `22.14.1` does not exist for Linux x64; this patch keeps the application code unchanged and only repairs CI/release automation.
+## [2026-04-03 19:26] Stabilize isolated package CI jobs
+- **Changes:** Added a backend `postinstall`/`prisma:generate` hook so `npm --prefix backend ci` generates the typed Prisma client from `backend/prisma/schema.prisma`, added `dotenv` to the frontend dev dependencies so `frontend/vitest.config.mjs` can load `.env.test` when the frontend package is installed on its own, and updated the `1.15.2` changelog text to document both CI bootstrap fixes.
+- **Status:** Completed
+- **Next Steps:** Commit the isolated-package CI fixes, push `main`, and rerun the unified GitHub Actions pipeline before tagging `v1.15.2`.
+- **Context:** Local verification now passes with a clean `npm --prefix backend ci && npm --prefix backend run typecheck`, `npm --prefix backend run build`, `npm --prefix backend run test:coverage`, `npm --prefix frontend run test:coverage`, and a full `npm run test:e2e`.

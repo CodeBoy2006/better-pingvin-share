@@ -11,10 +11,13 @@ Better Pingvin Share 1.15.2 is a follow-up patch to 1.15.1 that repairs the new 
 ### Changed
 
 - The unified `CI` workflow now resolves Node.js from the supported `22` semver line instead of a non-existent exact runtime build.
+- Backend installs now run an explicit Prisma client generation step from `backend/prisma/schema.prisma` so clean environments produce the typed client before type-checking or runtime startup.
+- Frontend Vitest installs now include the `dotenv` runtime required by `frontend/vitest.config.mjs` when the frontend package is installed in isolation.
 
 ### Fixed
 
 - GitHub Actions no longer fails during `actions/setup-node` on `ubuntu-24.04` runners before any install or test step starts.
+- Clean backend installs no longer fall back to Prisma's untyped stub client when dependencies are installed from the repository root with `npm --prefix backend ci`.
 - The `CI / Required checks` gate and the downstream GHCR publish workflow can now execute as intended for `main` and `v*` pushes.
 
 ### Upgrade notes
