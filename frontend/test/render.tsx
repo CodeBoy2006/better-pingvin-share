@@ -16,11 +16,22 @@ import type Config from "../src/types/config.type";
 import type { CurrentUser } from "../src/types/user.type";
 import i18nUtil from "../src/utils/i18n.util";
 
+const defaultConfigVariables: Config[] = [
+  {
+    key: "general.appName",
+    defaultValue: "better-pingvin-share",
+    value: "better-pingvin-share",
+    type: "string",
+  },
+];
+
 interface TestProvidersProps {
   children: ReactNode;
   colorScheme?: ColorScheme;
   configVariables?: Config[];
   locale?: string;
+  refreshConfig?: () => Promise<void>;
+  refreshUser?: () => Promise<CurrentUser | null>;
   user?: CurrentUser | null;
 }
 
@@ -33,9 +44,20 @@ function TestProviders({
   colorScheme = "light",
   configVariables = [],
   locale = LOCALES.ENGLISH.code,
+  refreshConfig = async () => {},
+  refreshUser = async () => user,
   user = null,
 }: TestProvidersProps) {
   const [scheme, setScheme] = useState<ColorScheme>(colorScheme);
+  const mergedConfigVariables = [
+    ...configVariables,
+    ...defaultConfigVariables.filter(
+      (defaultConfigVariable) =>
+        !configVariables.some(
+          (configVariable) => configVariable.key === defaultConfigVariable.key,
+        ),
+    ),
+  ];
 
   return (
     <IntlProvider
@@ -56,14 +78,14 @@ function TestProviders({
           <ModalsProvider>
             <ConfigContext.Provider
               value={{
-                configVariables,
-                refresh: async () => {},
+                configVariables: mergedConfigVariables,
+                refresh: refreshConfig,
               }}
             >
               <UserContext.Provider
                 value={{
                   user,
-                  refreshUser: async () => user,
+                  refreshUser,
                 }}
               >
                 {children}

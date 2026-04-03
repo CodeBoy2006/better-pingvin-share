@@ -146,7 +146,9 @@ const FileList = ({
                           openDelay={200}
                         >
                           <ActionIcon
+                            aria-label={t("share.copy-text-contents")}
                             size={25}
+                            title={t("share.copy-text-contents")}
                             onClick={() => void copyFileContents(file)}
                           >
                             <TbClipboard />
@@ -158,24 +160,30 @@ const FileList = ({
                         parseInt(file.size),
                       ) && (
                         <ActionIcon
+                          aria-label={`Preview ${file.name}`}
                           onClick={() =>
                             showFilePreviewModal(share.id, file, modals)
                           }
                           size={25}
+                          title={`Preview ${file.name}`}
                         >
                           <TbEye />
                         </ActionIcon>
                       )}
                       {!share.hasPassword && (
                         <ActionIcon
+                          aria-label={t("share.modal.file-link")}
                           size={25}
+                          title={t("share.modal.file-link")}
                           onClick={() => copyFileLink(file)}
                         >
                           <TbLink />
                         </ActionIcon>
                       )}
                       <ActionIcon
+                        aria-label={`Download ${file.name}`}
                         size={25}
+                        title={`Download ${file.name}`}
                         onClick={async () => {
                           await shareService.downloadFile(share.id, file.id);
                         }}

@@ -1,26 +1,80 @@
+import React from "react";
 import { cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, vi } from "vitest";
+import { getMockRouter, setMockRouter } from "./router";
+
+vi.mock("next/head", () => ({
+  default: ({ children }: { children: React.ReactNode }) =>
+    React.createElement(React.Fragment, null, children),
+}));
+
+vi.mock("next/link", () => ({
+  default: ({
+    children,
+    href,
+    ...props
+  }: {
+    children: React.ReactNode;
+    href: string | { pathname?: string };
+  }) =>
+    React.createElement(
+      "a",
+      { href: typeof href === "string" ? href : href.pathname, ...props },
+      children,
+    ),
+}));
+
+vi.mock("next/router", async () => {
+  const actual = await vi.importActual<typeof import("next/router")>(
+    "next/router",
+  );
+
+  return {
+    ...actual,
+    useRouter: () => getMockRouter(),
+  };
+});
 
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+  setMockRouter();
+  installDomMocks();
 });
 
-Object.defineProperty(window, "matchMedia", {
-  writable: true,
-  value: vi.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
-});
+const installDomMocks = () => {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: (query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }),
+  });
+
+  if (!navigator.clipboard) {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: vi.fn().mockResolvedValue(undefined),
+      },
+    });
+  }
+
+  if (!Element.prototype.scrollIntoView) {
+    Element.prototype.scrollIntoView = vi.fn();
+  }
+};
+
+installDomMocks();
 
 class ResizeObserverMock {
   disconnect() {}
@@ -32,8 +86,4 @@ class ResizeObserverMock {
 
 if (!globalThis.ResizeObserver) {
   globalThis.ResizeObserver = ResizeObserverMock;
-}
-
-if (!Element.prototype.scrollIntoView) {
-  Element.prototype.scrollIntoView = vi.fn();
 }

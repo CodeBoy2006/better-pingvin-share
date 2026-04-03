@@ -193,3 +193,9 @@
 - **Status:** Completed
 - **Next Steps:** Batch B/C/D/E can now start adding real backend/frontend test cases on top of the shared helpers; separately investigate the existing anonymous-owner deletion regression that still fails in `backend/test/anonymous-owner-flow.e2e.js` under the new runner.
 - **Context:** Verified with `npm run quality`, `cd backend && npm run test:system:v1`, and `cd backend && npm run test:system:smoke`. The new runner correctly isolates ports and artifacts, but `test:system:smoke` currently exposes a product-level assertion failure (`deleted anonymous shares should no longer expose an owner payload`) rather than an infrastructure failure.
+
+## [2026-04-03 16:15] Batch E frontend UI and page coverage
+- **Changes:** Added Vitest UI/component suites for auth, upload, share, account, and admin flows; added page smoke coverage for `/`, `/upload`, `/share/[shareId]`, `/account/*`, and `/admin/*`; extended frontend test helpers/router mocks and improved accessible labels for icon-only controls.
+- **Status:** Completed
+- **Next Steps:** Feed these suites into CI jobs, expand component coverage for remaining account/admin edge cases, and keep selectors aligned with accessible labels as new UI lands.
+- **Context:** Frontend tests run from the Batch E worktree using symlinked `node_modules`; reports land in `test-results/frontend/`.

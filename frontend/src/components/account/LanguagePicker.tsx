@@ -16,6 +16,7 @@ const LanguagePicker = () => {
   }));
   return (
     <Select
+      label={t("account.card.language.title")}
       value={selectedLanguage}
       description={t("account.card.language.description")}
       onChange={(value) => {
