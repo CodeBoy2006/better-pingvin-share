@@ -66,3 +66,8 @@
 - **Status:** Completed
 - **Next Steps:** Hand this integration worktree to Wave 2 consumers (`F/G` first, `H` after they settle) and decide whether to clean up the existing frontend `no-unused-vars` warnings before wiring CI gatekeeping.
 - **Context:** Verified in `/tmp/worktrees/integration-bcde` with symlinked root/backend/frontend `node_modules`, `npm run typecheck`, `npm run test:fast`, `npm --prefix frontend run test`, and `npm run build`. The build now succeeds; remaining output is limited to pre-existing frontend `no-unused-vars` warnings and Next Edge-runtime warnings from `frontend/src/services/config.service.ts` importing `axios`.
+## [2026-04-03 17:20] Fix backend CommonJS runtime interop
+- **Changes:** Enabled `esModuleInterop` in `backend/tsconfig.json`, kept `backend/src/clamscan/clamscan.service.ts` on standard default-import syntax so Nest runtime can instantiate `clamscan`, and corrected `backend/src/config/logo.service.ts` to default-import `sharp` so the backend build compiles under the new interop settings.
+- **Status:** Completed
+- **Next Steps:** Fix the remaining anonymous-owner regressions surfaced by system smoke and backend coverage so the full backend regression stack turns green.
+- **Context:** Verified with `npm --prefix backend run build`; `npm --prefix backend run test:system:smoke` now boots the app, runs the Newman collection successfully, and fails only on the existing anonymous-owner regression script instead of crashing during dependency initialization.
