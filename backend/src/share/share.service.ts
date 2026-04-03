@@ -682,6 +682,13 @@ export class ShareService {
       throw new NotFoundException(share.removedReason, "share_removed");
     }
 
+    if (
+      moment().isAfter(share.expiration) &&
+      !moment(share.expiration).isSame(0)
+    ) {
+      throw new NotFoundException("Share not found");
+    }
+
     return share;
   }
 

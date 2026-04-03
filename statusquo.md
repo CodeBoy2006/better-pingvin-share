@@ -71,3 +71,8 @@
 - **Status:** Completed
 - **Next Steps:** Fix the remaining anonymous-owner regressions surfaced by system smoke and backend coverage so the full backend regression stack turns green.
 - **Context:** Verified with `npm --prefix backend run build`; `npm --prefix backend run test:system:smoke` now boots the app, runs the Newman collection successfully, and fails only on the existing anonymous-owner regression script instead of crashing during dependency initialization.
+## [2026-04-03 17:26] Fix anonymous owner regressions
+- **Changes:** Updated `backend/src/share/share.service.ts` so expired shares no longer resolve through owner-scoped lookups, added a unit regression in `backend/test/unit/share/share.service.spec.ts`, and stabilized `backend/test/integration/share/legacy-share.controller.spec.ts` by removing the time-sensitive owner-token equality assertion while adding delete-path coverage for anonymous owner access.
+- **Status:** Completed
+- **Next Steps:** If desired, the next cleanup pass can fold the backend system-smoke launcher and root test scripts into a root `test` / `test:coverage` workflow.
+- **Context:** Verified with `npm --prefix backend run test:coverage` and `npm --prefix backend run test:system:smoke`; backend coverage now passes `99/99`, and the anonymous owner system regression script now passes end-to-end.

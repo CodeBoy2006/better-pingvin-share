@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ForbiddenException,
+  NotFoundException,
 } from "@nestjs/common";
 import {
   beforeEach,
@@ -332,6 +333,22 @@ describe("ShareService", () => {
     expect(prisma.share.delete).toHaveBeenCalledWith({
       where: { id: "share-admin-delete" },
     });
+  });
+
+  it("hides expired shares from owner-scoped lookups", async () => {
+    prisma.share.findUnique.mockResolvedValue({
+      id: "share-expired",
+      creatorId: null,
+      expiration: new Date("2000-01-01T00:00:00.000Z"),
+      removedReason: null,
+      recipients: [],
+      files: [],
+      security: null,
+    });
+
+    await expect(service.getForOwner("share-expired")).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it("rejects incorrect passwords when minting share tokens", async () => {

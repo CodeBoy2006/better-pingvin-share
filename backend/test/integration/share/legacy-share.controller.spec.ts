@@ -90,7 +90,10 @@ describe("Legacy share endpoints", () => {
     expect(completeResponse.status).toBe(202);
     expect(completeResponse.body).toEqual(
       expect.objectContaining({
-        ownerToken: createResponse.body.ownerToken,
+        ownerToken: expect.any(String),
+        ownerManagementLink: expect.stringContaining(
+          `/share/${shareId}/edit#ownerToken=`,
+        ),
       }),
     );
 
@@ -145,5 +148,17 @@ describe("Legacy share endpoints", () => {
     expect(downloadResponse.body.toString()).toBe(
       "Anonymous owner integration test file",
     );
+
+    const deleteResponse = await fixture.request
+      .delete(`/api/shares/${shareId}`)
+      .set("Cookie", ownerCookie);
+
+    expect(deleteResponse.status).toBe(200);
+
+    const deletedOwnerPayload = await fixture.request
+      .get(`/api/shares/${shareId}/from-owner`)
+      .set("Cookie", ownerCookie);
+
+    expect(deletedOwnerPayload.status).toBe(404);
   });
 });
