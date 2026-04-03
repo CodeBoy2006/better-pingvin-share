@@ -147,3 +147,8 @@
 - **Status:** Completed
 - **Next Steps:** If desired, add localized labels for the new admin setting in the non-English translation files.
 - **Context:** Verified with `npm --prefix backend run typecheck`, `npm --prefix frontend run typecheck`, `npm --prefix backend run test:integration -- --runTestsByPath test/integration/share/legacy-share.controller.spec.ts`, and `npx playwright test --config ./playwright.config.mjs e2e/protected-share.spec.ts`.
+## [2026-04-03 21:37] README badge refresh
+- **Changes:** Added a centered badge hero to `README.md` for CI, tests, version, and backend/frontend coverage; created `.github/badges/*.json` snapshot payloads; and updated `.github/workflows/ci.yml` to refresh those badge payloads from `main` branch CI runs while avoiding badge-only reruns.
+- **Status:** Completed
+- **Next Steps:** Push `main`, then confirm the next CI run refreshes the badge JSON snapshots and that the README badge row renders correctly on GitHub.
+- **Context:** Verified with `node` JSON parsing for `.github/badges/*.json`, `ruby` YAML parsing for `.github/workflows/ci.yml`, `npx prettier --check` on the touched files, `git diff --check`, and a live `curl -I` check for the Shields GitHub Actions badge endpoint.

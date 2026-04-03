@@ -7,6 +7,8 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - ".github/badges/**"
     tags:
       - "v*"
   workflow_dispatch:
@@ -363,6 +365,172 @@ jobs:
           if-no-files-found: warn
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
           path: test-results/playwright
+
+  publish_badges:
+    name: Publish badges
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs:
+      - backend
+      - frontend
+      - api_smoke
+      - browser_e2e
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Generate badge payloads
+        env:
+          API_RESULT: ${{ needs.api_smoke.result }}
+          BACKEND_LINES: ${{ needs.backend.outputs.lines }}
+          BACKEND_RESULT: ${{ needs.backend.result }}
+          E2E_RESULT: ${{ needs.browser_e2e.result }}
+          FRONTEND_LINES: ${{ needs.frontend.outputs.lines }}
+          FRONTEND_RESULT: ${{ needs.frontend.result }}
+        run: |
+          node <<'EOF'
+          const fs = require("fs");
+          const path = require("path");
+
+          const badgeDir = path.join(".github", "badges");
+          fs.mkdirSync(badgeDir, { recursive: true });
+
+          const readBadge = (filename, fallback) => {
+            const target = path.join(badgeDir, filename);
+
+            if (!fs.existsSync(target)) {
+              return fallback;
+            }
+
+            try {
+              const payload = JSON.parse(fs.readFileSync(target, "utf8"));
+              return payload.message ?? fallback;
+            } catch {
+              return fallback;
+            }
+          };
+
+          const badgeColor = (value) => {
+            const numeric = Number.parseFloat(value);
+
+            if (!Number.isFinite(numeric)) {
+              return "lightgrey";
+            }
+
+            if (numeric >= 90) {
+              return "brightgreen";
+            }
+
+            if (numeric >= 80) {
+              return "green";
+            }
+
+            if (numeric >= 70) {
+              return "yellowgreen";
+            }
+
+            if (numeric >= 60) {
+              return "yellow";
+            }
+
+            if (numeric >= 50) {
+              return "orange";
+            }
+
+            return "red";
+          };
+
+          const writeBadge = (filename, label, message, color) => {
+            fs.writeFileSync(
+              path.join(badgeDir, filename),
+              `${JSON.stringify(
+                {
+                  schemaVersion: 1,
+                  label,
+                  message,
+                  color,
+                },
+                null,
+                2,
+              )}\n`,
+            );
+          };
+
+          const coverageMessage = (filename, result, value) => {
+            if (result === "success" && value && value !== "n/a") {
+              return value;
+            }
+
+            return readBadge(filename, "n/a");
+          };
+
+          const suiteResults = [
+            process.env.BACKEND_RESULT,
+            process.env.FRONTEND_RESULT,
+            process.env.API_RESULT,
+            process.env.E2E_RESULT,
+          ];
+          const totalSuites = suiteResults.length;
+          const passingSuites = suiteResults.filter((result) => result === "success").length;
+          const testsColor =
+            passingSuites === totalSuites
+              ? "brightgreen"
+              : suiteResults.some((result) => result === "cancelled")
+                ? "orange"
+                : "red";
+          const version = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
+
+          const backendCoverage = coverageMessage(
+            "backend-coverage.json",
+            process.env.BACKEND_RESULT,
+            process.env.BACKEND_LINES,
+          );
+          const frontendCoverage = coverageMessage(
+            "frontend-coverage.json",
+            process.env.FRONTEND_RESULT,
+            process.env.FRONTEND_LINES,
+          );
+
+          writeBadge(
+            "backend-coverage.json",
+            "backend coverage",
+            backendCoverage,
+            badgeColor(backendCoverage),
+          );
+          writeBadge(
+            "frontend-coverage.json",
+            "frontend coverage",
+            frontendCoverage,
+            badgeColor(frontendCoverage),
+          );
+          writeBadge(
+            "tests.json",
+            "tests",
+            `${passingSuites}/${totalSuites} passing`,
+            testsColor,
+          );
+          writeBadge("version.json", "version", `v${version}`, "blue");
+          EOF
+
+      - name: Commit badge payloads
+        shell: bash
+        run: |
+          if git diff --quiet -- .github/badges; then
+            echo "Badge payloads already up to date."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/badges
+          git commit -m "docs: refresh badges"
+          if ! git push; then
+            echo "Unable to push refreshed badges; keeping the committed snapshot."
+          fi
 
   required_checks:
     name: Required checks

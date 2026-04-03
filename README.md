@@ -1,4 +1,26 @@
-Better Pingvin Share is a self-hosted file sharing platform and an alternative for WeTransfer.
+<div align="center">
+  <h1>Better Pingvin Share</h1>
+  <p>Self-hosted file sharing platform and an alternative to WeTransfer.</p>
+  <p>
+    <a href="https://github.com/CodeBoy2006/better-pingvin-share/actions/workflows/ci.yml">
+      <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/CodeBoy2006/better-pingvin-share/ci.yml?branch=main&style=for-the-badge&label=CI" />
+    </a>
+    <a href="https://github.com/CodeBoy2006/better-pingvin-share/actions/workflows/ci.yml">
+      <img alt="Tests" src="https://img.shields.io/endpoint?style=for-the-badge&url=https%3A%2F%2Fraw.githubusercontent.com%2FCodeBoy2006%2Fbetter-pingvin-share%2Fmain%2F.github%2Fbadges%2Ftests.json" />
+    </a>
+    <a href="https://github.com/CodeBoy2006/better-pingvin-share/releases">
+      <img alt="Version" src="https://img.shields.io/endpoint?style=for-the-badge&url=https%3A%2F%2Fraw.githubusercontent.com%2FCodeBoy2006%2Fbetter-pingvin-share%2Fmain%2F.github%2Fbadges%2Fversion.json" />
+    </a>
+  </p>
+  <p>
+    <a href="https://github.com/CodeBoy2006/better-pingvin-share/actions/workflows/ci.yml">
+      <img alt="Backend coverage" src="https://img.shields.io/endpoint?style=for-the-badge&url=https%3A%2F%2Fraw.githubusercontent.com%2FCodeBoy2006%2Fbetter-pingvin-share%2Fmain%2F.github%2Fbadges%2Fbackend-coverage.json" />
+    </a>
+    <a href="https://github.com/CodeBoy2006/better-pingvin-share/actions/workflows/ci.yml">
+      <img alt="Frontend coverage" src="https://img.shields.io/endpoint?style=for-the-badge&url=https%3A%2F%2Fraw.githubusercontent.com%2FCodeBoy2006%2Fbetter-pingvin-share%2Fmain%2F.github%2Fbadges%2Ffrontend-coverage.json" />
+    </a>
+  </p>
+</div>
 
 ## ✨ Features
 
@@ -44,6 +66,7 @@ Test artifacts are written to `test-results/`, and test-specific runtime files a
 ## 🚦 CI
 
 - `.github/workflows/ci.yml` runs `Backend`, `Frontend`, `API smoke`, and `Browser E2E` in parallel on pull requests, `main`, and `v*` tags.
+- The README hero badges show the `main` branch CI status, test pass snapshot, current app version, and the latest backend/frontend line coverage snapshots published by CI.
 - The recommended branch protection gate is `CI / Required checks`; the per-area jobs stay stable for drill-down and artifact inspection.
 - GHCR publication is no longer an independent push trigger: `build-docker-image.yml` is invoked by CI only after the required checks pass on `main` or release tags.
 
