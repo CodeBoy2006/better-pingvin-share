@@ -80,9 +80,7 @@
           ],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Cookie", "value": "{{COOKIES}}" }
-            ],
+            "header": [{ "key": "Cookie", "value": "{{COOKIES}}" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"System automation token\",\n  \"scopes\": [\n    \"shares:read\",\n    \"shares:write\",\n    \"files:read\",\n    \"files:write\",\n    \"reverseShares:read\",\n    \"reverseShares:write\"\n  ]\n}",
@@ -179,6 +177,41 @@
           }
         },
         {
+          "name": "Upload Second Chunk File",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{API_TOKEN}}" },
+              { "key": "Content-Type", "value": "application/octet-stream" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "data:application/octet-stream;base64,U2Vjb25kIGF1dG9tYXRpb24gQVBJIHYxIGZpbGUgZm9yIFpJUCBidW5kbGUgZG93bmxvYWQgdGVzdGluZy4="
+            },
+            "url": {
+              "raw": "{{API_URL}}/v1/shares/{{SHARE_ID}}/files?name=second-file.txt&chunkIndex=0&totalChunks=1",
+              "host": ["{{API_URL}}"],
+              "path": ["v1", "shares", "{{SHARE_ID}}", "files"],
+              "query": [
+                { "key": "name", "value": "second-file.txt" },
+                { "key": "chunkIndex", "value": "0" },
+                { "key": "totalChunks", "value": "1" }
+              ]
+            }
+          }
+        },
+        {
           "name": "Get Draft Share",
           "event": [
             {
@@ -189,7 +222,7 @@
                   "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
                   "const body = pm.response.json();",
                   "pm.expect(body.uploadLocked).to.eql(false);",
-                  "pm.expect(body.files.length).to.eql(1);"
+                  "pm.expect(body.files.length).to.eql(2);"
                 ]
               }
             }
@@ -255,6 +288,33 @@
               "raw": "{{API_URL}}/v1/shares/{{SHARE_ID}}/files/{{FILE_ID}}",
               "host": ["{{API_URL}}"],
               "path": ["v1", "shares", "{{SHARE_ID}}", "files", "{{FILE_ID}}"]
+            }
+          }
+        },
+        {
+          "name": "Download ZIP Bundle",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Content-Type is zip\", () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/zip'));",
+                  "pm.test(\"Content-Disposition has zip filename\", () => pm.expect(pm.response.headers.get('Content-Disposition')).to.include(`${pm.collectionVariables.get('SHARE_ID')}.zip`));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{API_TOKEN}}" }
+            ],
+            "url": {
+              "raw": "{{API_URL}}/v1/shares/{{SHARE_ID}}/files/zip",
+              "host": ["{{API_URL}}"],
+              "path": ["v1", "shares", "{{SHARE_ID}}", "files", "zip"]
             }
           }
         },

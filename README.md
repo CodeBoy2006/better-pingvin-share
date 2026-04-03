@@ -61,6 +61,15 @@ curl -X POST \
   "http://localhost:3000/api/v1/shares/my-share/files?name=artifact.zip&chunkIndex=0&totalChunks=1"
 ```
 
+Example ZIP bundle download:
+
+```bash
+curl -L \
+  -H "Authorization: Bearer $PINGVIN_API_TOKEN" \
+  -o my-share.zip \
+  http://localhost:3000/api/v1/shares/my-share/files/zip
+```
+
 In development mode, Swagger documents both the legacy routes and the new automation endpoints at `/api/swagger`.
 
 ## 📄 Machine-readable share listings

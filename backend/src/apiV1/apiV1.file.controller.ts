@@ -18,6 +18,7 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiConsumes,
+  ApiProduces,
   ApiTags,
 } from "@nestjs/swagger";
 import { FileInterceptor } from "@nestjs/platform-express";
@@ -120,6 +121,26 @@ export class ApiV1FileController {
       { name: file.originalname },
       shareId,
     );
+  }
+
+  @Get("zip")
+  @ApiScopes("files:read")
+  @ApiProduces("application/zip")
+  async getZip(
+    @GetUser() user: User,
+    @Res({ passthrough: true }) res: Response,
+    @Param("shareId") shareId: string,
+  ) {
+    await this.shareService.assertShareOwnership(shareId, user.id);
+
+    const zipStream = await this.fileService.getZipForOwner(shareId);
+
+    res.set({
+      "Content-Type": "application/zip",
+      "Content-Disposition": contentDisposition(`${shareId}.zip`),
+    });
+
+    return new StreamableFile(zipStream);
   }
 
   @Get(":fileId")

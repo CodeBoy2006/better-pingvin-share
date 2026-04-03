@@ -84,6 +84,22 @@ export class FileService {
     return await storageService.getZip(shareId);
   }
 
+  async getZipForOwner(shareId: string): Promise<Readable> {
+    const share = await this.prisma.share.findUnique({
+      where: { id: shareId },
+    });
+
+    if (!share) {
+      throw new NotFoundException("Share not found");
+    }
+
+    if (share.storageProvider === "S3") {
+      return await this.s3FileService.getZip(shareId);
+    }
+
+    return await this.localFileService.getZipForOwner(shareId);
+  }
+
   private async streamToUint8Array(stream: Readable): Promise<Uint8Array> {
     const chunks: Buffer[] = [];
 

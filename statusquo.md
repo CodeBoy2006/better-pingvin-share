@@ -183,3 +183,8 @@
 - **Status:** Completed
 - **Next Steps:** Restart or redeploy the backend so the updated dependency is installed in the running environment before retrying the logo upload from the admin UI.
 - **Context:** Verified with `cd backend && npm run build` and a direct Node check that `FileTypeValidator({ fileType: "image/png" })` now accepts `frontend/public/img/logo.png`.
+## [2026-04-03 15:02] Add API v1 ZIP bundle download
+- **Changes:** Added `GET /api/v1/shares/:shareId/files/zip` in `backend/src/apiV1/apiV1.file.controller.ts` for bearer-token-protected bundle downloads. Implemented owner-scoped ZIP streaming in `backend/src/file/file.service.ts` and `backend/src/file/local.service.ts`, updated `backend/test/newman-api-v1.json` to cover the new archive endpoint, and documented the curl example in `README.md`.
+- **Status:** Completed
+- **Next Steps:** If external API docs or SDK snippets exist outside `README.md`, mirror the new ZIP endpoint there as well.
+- **Context:** Verified with `cd backend && npm run build` and `cd backend && npm run test:system:v1`. The system test script left a temporary backend process on port `8080`, which was cleaned up after the run.

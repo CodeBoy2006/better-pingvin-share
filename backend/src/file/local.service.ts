@@ -6,6 +6,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from "@nestjs/common";
+import * as archiver from "archiver";
 import * as crypto from "crypto";
 import { createReadStream } from "fs";
 import * as fs from "fs/promises";
@@ -170,5 +171,33 @@ export class LocalFileService {
         resolve(zipStream);
       });
     });
+  }
+
+  async getZipForOwner(shareId: string): Promise<Readable> {
+    const files = await this.prisma.file.findMany({
+      where: { shareId },
+      orderBy: { createdAt: "asc" },
+    });
+
+    if (files.length === 0) {
+      throw new NotFoundException("No files found");
+    }
+
+    const archive = archiver("zip", {
+      zlib: { level: this.config.get("share.zipCompressionLevel") },
+    });
+
+    for (const file of files) {
+      archive.append(
+        createReadStream(`${SHARE_DIRECTORY}/${shareId}/${file.id}`),
+        {
+          name: file.name,
+        },
+      );
+    }
+
+    void archive.finalize();
+
+    return archive;
   }
 }
