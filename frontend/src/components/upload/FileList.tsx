@@ -52,6 +52,7 @@ const FileListRow = ({
                 color="blue"
                 variant="light"
                 size={25}
+                aria-label={t("common.button.edit")}
                 title={t("common.button.edit")}
                 onClick={onEdit}
               >
@@ -60,9 +61,11 @@ const FileListRow = ({
             )}
             {removable && (
               <ActionIcon
+                aria-label={t("common.button.delete")}
                 color="red"
                 variant="light"
                 size={25}
+                title={t("common.button.delete")}
                 onClick={onRemove}
               >
                 <TbTrash />
@@ -73,6 +76,7 @@ const FileListRow = ({
             )}
             {restorable && (
               <ActionIcon
+                aria-label={t("common.button.undo")}
                 color="primary"
                 variant="light"
                 size={25}

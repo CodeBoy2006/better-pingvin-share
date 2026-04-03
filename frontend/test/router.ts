@@ -44,6 +44,7 @@ export const createMockRouter = (
     isLocaleDomain: false,
     isPreview: false,
     defaultLocale: "en-US",
+    domainLocales: undefined,
     locale: "en-US",
     locales: ["en-US"],
     ...overrides,

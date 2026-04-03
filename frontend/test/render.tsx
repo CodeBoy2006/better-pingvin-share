@@ -23,12 +23,23 @@ import i18nUtil from "../src/utils/i18n.util";
 import type { MockRouterOverrides } from "./router";
 import { setMockRouter } from "./router";
 
+const defaultConfigVariables: Config[] = [
+  {
+    key: "general.appName",
+    defaultValue: "better-pingvin-share",
+    value: "better-pingvin-share",
+    type: "string",
+  },
+];
+
 interface TestProvidersProps {
   children: ReactNode;
   colorScheme?: ColorScheme;
   configVariables?: Config[];
   configRefresh?: () => Promise<void> | void;
   locale?: string;
+  refreshConfig?: () => Promise<void> | void;
+  refreshUser?: () => Promise<CurrentUser | null>;
   router?: MockRouterOverrides;
   user?: CurrentUser | null;
   userRefresh?: () => Promise<CurrentUser | null>;
@@ -49,10 +60,23 @@ function TestProviders({
   configVariables = [],
   configRefresh = async () => {},
   locale = LOCALES.ENGLISH.code,
+  refreshConfig,
+  refreshUser,
   user = null,
   userRefresh = async () => user,
 }: TestProvidersProps) {
   const [scheme, setScheme] = useState<ColorScheme>(colorScheme);
+  const mergedConfigVariables = [
+    ...configVariables,
+    ...defaultConfigVariables.filter(
+      (defaultConfigVariable) =>
+        !configVariables.some(
+          (configVariable) => configVariable.key === defaultConfigVariable.key,
+        ),
+    ),
+  ];
+  const resolvedConfigRefresh = refreshConfig ?? configRefresh;
+  const resolvedUserRefresh = refreshUser ?? userRefresh;
 
   return (
     <IntlProvider
@@ -73,14 +97,14 @@ function TestProviders({
           <ModalsProvider>
             <ConfigContext.Provider
               value={{
-                configVariables,
-                refresh: configRefresh,
+                configVariables: mergedConfigVariables,
+                refresh: resolvedConfigRefresh,
               }}
             >
               <UserContext.Provider
                 value={{
                   user,
-                  refreshUser: userRefresh,
+                  refreshUser: resolvedUserRefresh,
                 }}
               >
                 {children}
