@@ -81,6 +81,11 @@
 - **Status:** Completed
 - **Next Steps:** If we want a fuller Batch A finish, the next isolated step is adding JUnit-style reporters and CI-friendly artifact names without touching the in-flight Playwright workflow changes already present in the worktree.
 - **Context:** Verified with `npm run test` and `npm run test:coverage`; both root commands now execute successfully and route to the expected backend/frontend suites.
+## [2026-04-03 17:31] Batch F API Black-Box Regression
+- **Changes:** Added suite-driven backend API black-box orchestration in `scripts/testing/run-backend-system-tests.mjs`, introduced `backend/test/system/` manifests/environment/scripted regressions plus HTML/JSON/JUnit/snapshot artifacts, updated backend test scripts/docs, and fixed runtime CommonJS import issues plus anonymous-owner deletion semantics that were blocking end-to-end API smoke/full suites.
+- **Status:** Completed
+- **Next Steps:** Batch H can wire `npm run test:system` to PR checks and `npm run test:system:full-regression` to nightly/release workflows, reusing the generated artifacts under `test-results/backend/system/`.
+- **Context:** Verified in the `batch-f-api-blackbox` worktree with `cd backend && npm run build`, `cd backend && npm run test:system:smoke`, and `cd backend && npm run test:system:full-regression`.
 ## [2026-04-03 17:38] Add CI-friendly test reports
 - **Changes:** Added backend JUnit reporting via `jest-junit`, switched `backend` `test:ci` to emit JSON results into `test-results/backend/`, and extended `frontend/vitest.config.mjs` to emit both JSON and JUnit reports into `test-results/frontend/`.
 - **Status:** Completed
@@ -91,3 +96,13 @@
 - **Status:** Completed
 - **Next Steps:** If we keep pushing Batch A, the next tidy step is deciding whether to add package-local `test` aliases for backend parity or leave `test:ci` as the backend default fast entrypoint.
 - **Context:** Verified with `npm --prefix frontend run test:fast`, `npm --prefix frontend run test:all`, `npm --prefix backend run test:fast`, and `npm --prefix backend run test:all`; backend full runs still surface existing upstream deprecation warnings from Prisma/Newman but pass.
+## [2026-04-03 17:54] Batch G browser E2E smoke suite
+- **Changes:** Added a Playwright setup project plus shared fixtures/helpers under `e2e/`, implemented browser smoke coverage for anonymous-owner uploads, authenticated upload/edit flows, password-protected shares + `files.json`, API token creation with `/api/v1` usage, and reverse-share submissions, and replaced the root Playwright bootstrap with a dynamic-port stack launcher that seeds isolated SQLite/upload runtime data for each run. Updated `frontend/next.config.js`, `playwright.config.mjs`, `README.md`, and `e2e/README.md` so the suite disables PWA registration during tests and documents the new execution model.
+- **Status:** Completed
+- **Next Steps:** Batch H can wire `npm run test:e2e` artifacts into CI, and if desired we can split the current single-browser smoke lane into separate jobs once workflow names stabilize.
+- **Context:** Verified in `/tmp/worktrees/batch-g-browser-e2e` with `npx playwright install chromium`, `npx playwright test --config ./playwright.config.mjs --project setup`, targeted reruns for the flaky scenarios, and a final passing `npx playwright test --config ./playwright.config.mjs` (`6 passed`).
+## [2026-04-03 18:28] Integrate Batch F/G into Wave 2 branch
+- **Changes:** Created the `integration-fg` worktree from `main`, merged `batch-f-api-blackbox` and `batch-g-browser-e2e`, resolved merge conflicts in `README.md`, `docs/docs/help-out/contribute.md`, and `statusquo.md`, and fixed `e2e/api-token.spec.ts` to use the backend-supported relative expiration format for API v1 share creation.
+- **Status:** Completed
+- **Next Steps:** Batch H can branch from `integration-fg` for CI wiring; if desired, promote the `e2e/api-token.spec.ts` fix back into the Batch G source branch or cherry-pick it wherever the browser suite will land.
+- **Context:** Verified in `/tmp/worktrees/integration-fg` with symlinked root/backend/frontend `node_modules`, `npm run typecheck`, `npm run test:all`, targeted `npx playwright test --config ./playwright.config.mjs e2e/api-token.spec.ts`, and a final passing `npm run test:e2e`. The merged Wave 2 stack now passes backend fast/system suites plus all 6 Playwright smoke specs.

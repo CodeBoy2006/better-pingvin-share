@@ -1,66 +1,30 @@
-const assert = require("node:assert/strict");
+import assert from "node:assert/strict";
+import { createScenarioHarness, getCookieHeader, serializeError } from "../helpers/http-scenario.mjs";
 
-const API_URL = process.env.SYSTEM_TEST_API_URL || "http://localhost:8080/api";
-const ADMIN_EMAIL = "system@test.org";
-const ADMIN_PASSWORD = "J2y8unpJUcJDRv";
+const apiUrl = process.env.SYSTEM_TEST_API_URL || "http://127.0.0.1:8080/api";
+const appUrl = process.env.SYSTEM_TEST_APP_URL || "http://localhost:3000";
+const adminEmail = process.env.SYSTEM_TEST_ADMIN_EMAIL || "system@test.org";
+const adminPassword = process.env.SYSTEM_TEST_ADMIN_PASSWORD || "J2y8unpJUcJDRv";
+const runId = process.env.SYSTEM_TEST_RUN_ID || Date.now().toString();
+const resultsDir = process.env.SYSTEM_TEST_STEP_DIR;
 
-function getCookieHeader(response) {
-  const setCookies =
-    typeof response.headers.getSetCookie === "function"
-      ? response.headers.getSetCookie()
-      : [];
-
-  return setCookies
-    .map((cookie) => cookie.split(";", 1)[0])
-    .filter(Boolean)
-    .join("; ");
+if (!resultsDir) {
+  throw new Error("SYSTEM_TEST_STEP_DIR is required for scenario artifacts.");
 }
 
-async function request(path, options = {}) {
-  const response = await fetch(`${API_URL}${path}`, options);
-  const contentType = response.headers.get("content-type") || "";
-  const text = await response.text();
-
-  let json;
-  if (contentType.includes("application/json") && text.length > 0) {
-    json = JSON.parse(text);
-  }
-
-  return {
-    response,
-    status: response.status,
-    headers: response.headers,
-    text,
-    json,
-  };
-}
-
-async function requestAbsolute(url, options = {}) {
-  const response = await fetch(url, options);
-  const contentType = response.headers.get("content-type") || "";
-  const text = await response.text();
-
-  let json;
-  if (contentType.includes("application/json") && text.length > 0) {
-    json = JSON.parse(text);
-  }
-
-  return {
-    response,
-    status: response.status,
-    headers: response.headers,
-    text,
-    json,
-  };
-}
+const harness = createScenarioHarness({
+  scenarioName: "anonymous-owner-flow",
+  apiUrl,
+  resultsDir,
+});
 
 async function main() {
-  const signIn = await request("/auth/signIn", {
+  const signIn = await harness.request("admin sign in", "/auth/signIn", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      email: ADMIN_EMAIL,
-      password: ADMIN_PASSWORD,
+      email: adminEmail,
+      password: adminPassword,
     }),
   });
 
@@ -68,19 +32,23 @@ async function main() {
   const adminCookies = getCookieHeader(signIn.response);
   assert.ok(adminCookies.includes("access_token="), "admin access cookie missing");
 
-  const enableAnonymousShares = await request("/configs/admin", {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      Cookie: adminCookies,
-    },
-    body: JSON.stringify([
-      {
-        key: "share.allowUnauthenticatedShares",
-        value: true,
+  const enableAnonymousShares = await harness.request(
+    "enable anonymous shares",
+    "/configs/admin",
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: adminCookies,
       },
-    ]),
-  });
+      body: JSON.stringify([
+        {
+          key: "share.allowUnauthenticatedShares",
+          value: true,
+        },
+      ]),
+    },
+  );
 
   assert.equal(
     enableAnonymousShares.status,
@@ -88,8 +56,8 @@ async function main() {
     "enabling unauthenticated shares should succeed",
   );
 
-  const shareId = `anonymous-owner-e2e-${Date.now()}`;
-  const createShare = await request("/shares", {
+  const shareId = `anonymous-owner-${runId}`;
+  const createShare = await harness.request("create anonymous share", "/shares", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -112,14 +80,18 @@ async function main() {
 
   const ownerCookie = `share_${shareId}_owner_token=${createShare.json.ownerToken}`;
 
-  const ownerPayloadWithoutToken = await request(`/shares/${shareId}/from-owner`);
+  const ownerPayloadWithoutToken = await harness.request(
+    "owner payload without token",
+    `/shares/${shareId}/from-owner`,
+  );
   assert.equal(
     ownerPayloadWithoutToken.status,
     403,
     "anonymous owner payload should be forbidden without the owner token",
   );
 
-  const uploadFile = await request(
+  const uploadFile = await harness.request(
+    "upload anonymous owner file",
     `/shares/${shareId}/files?name=anonymous-owner.txt&chunkIndex=0&totalChunks=1`,
     {
       method: "POST",
@@ -134,11 +106,15 @@ async function main() {
   assert.equal(uploadFile.status, 201, "anonymous owner upload should succeed");
   assert.equal(uploadFile.json.name, "anonymous-owner.txt");
 
-  const ownerPayloadWithToken = await request(`/shares/${shareId}/from-owner`, {
-    headers: {
-      Cookie: ownerCookie,
+  const ownerPayloadWithToken = await harness.request(
+    "owner payload with token",
+    `/shares/${shareId}/from-owner`,
+    {
+      headers: {
+        Cookie: ownerCookie,
+      },
     },
-  });
+  );
 
   assert.equal(
     ownerPayloadWithToken.status,
@@ -149,15 +125,26 @@ async function main() {
   assert.equal(ownerPayloadWithToken.json.files.length, 1);
   assert.equal(ownerPayloadWithToken.json.files[0].name, "anonymous-owner.txt");
 
-  const completeShare = await request(`/shares/${shareId}/complete`, {
-    method: "POST",
-    headers: {
-      Cookie: ownerCookie,
+  const completeShare = await harness.request(
+    "complete anonymous share",
+    `/shares/${shareId}/complete`,
+    {
+      method: "POST",
+      headers: {
+        Cookie: ownerCookie,
+      },
     },
-  });
+  );
 
-  assert.equal(completeShare.status, 202, "anonymous owner should be able to complete the share");
-  assert.ok(completeShare.json.ownerToken, "owner token should still be returned after completion");
+  assert.equal(
+    completeShare.status,
+    202,
+    "anonymous owner should be able to complete the share",
+  );
+  assert.ok(
+    completeShare.json.ownerToken,
+    "owner token should still be returned after completion",
+  );
   assert.ok(
     completeShare.json.ownerManagementLink.includes(
       `/share/${shareId}/edit#ownerToken=`,
@@ -165,7 +152,10 @@ async function main() {
     "completed share should still expose the owner management link",
   );
 
-  const machineReadableList = await request(`/shares/${shareId}/files.json`);
+  const machineReadableList = await harness.request(
+    "machine readable share listing",
+    `/shares/${shareId}/files.json`,
+  );
   assert.equal(machineReadableList.status, 200, "machine-readable share listing should be public");
   assert.match(
     machineReadableList.headers.get("content-type") || "",
@@ -182,7 +172,7 @@ async function main() {
   assert.equal(machineReadableList.json.share.totalFiles, 1);
   assert.equal(
     machineReadableList.json.share.machineReadableUrl,
-    `http://localhost:3000/s/${shareId}/files.json`,
+    `${appUrl}/s/${shareId}/files.json`,
     "machine-readable URL should point to the share alias",
   );
   assert.equal(machineReadableList.json.files.length, 1);
@@ -193,20 +183,25 @@ async function main() {
     "download URL should expose a tokenized direct link",
   );
 
-  const backendOrigin = API_URL.replace(/\/api$/, "");
+  const backendOrigin = apiUrl.replace(/\/api$/, "");
   const downloadUrl = new URL(machineReadableList.json.files[0].downloadUrl);
-  const directDownload = await requestAbsolute(
+  const directDownload = await harness.request(
+    "direct file download",
     `${backendOrigin}${downloadUrl.pathname}${downloadUrl.search}`,
   );
 
-  assert.equal(directDownload.status, 200, "direct link from machine-readable listing should download");
+  assert.equal(
+    directDownload.status,
+    200,
+    "direct link from machine-readable listing should download",
+  );
   assert.equal(
     directDownload.text,
     "Anonymous owner system test file.",
     "direct link should return the uploaded file contents",
   );
 
-  const deleteShare = await request(`/shares/${shareId}`, {
+  const deleteShare = await harness.request("delete anonymous share", `/shares/${shareId}`, {
     method: "DELETE",
     headers: {
       Cookie: ownerCookie,
@@ -215,11 +210,15 @@ async function main() {
 
   assert.equal(deleteShare.status, 200, "anonymous owner should be able to delete the share");
 
-  const deletedOwnerPayload = await request(`/shares/${shareId}/from-owner`, {
-    headers: {
-      Cookie: ownerCookie,
+  const deletedOwnerPayload = await harness.request(
+    "deleted owner payload",
+    `/shares/${shareId}/from-owner`,
+    {
+      headers: {
+        Cookie: ownerCookie,
+      },
     },
-  });
+  );
 
   assert.equal(
     deletedOwnerPayload.status,
@@ -227,10 +226,23 @@ async function main() {
     "deleted anonymous shares should no longer expose an owner payload",
   );
 
-  console.log("Anonymous owner flow regression passed.");
+  harness.finalize({
+    status: "passed",
+    metadata: {
+      shareId,
+      requestCount: 10,
+    },
+  });
 }
 
 main().catch((error) => {
+  harness.finalize({
+    status: "failed",
+    metadata: {
+      shareId: `anonymous-owner-${runId}`,
+    },
+    error: serializeError(error),
+  });
   console.error("Anonymous owner flow regression failed.");
   console.error(error);
   process.exit(1);
