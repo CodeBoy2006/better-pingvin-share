@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.15.2] - 2026-04-03
+
+### Highlights
+
+Better Pingvin Share 1.15.2 is a follow-up patch to 1.15.1 that repairs the new GitHub Actions gate. It replaces the invalid `22.14.1` Node runtime pin with a supported Node 22 semver target so backend, frontend, API smoke, and browser E2E jobs can bootstrap correctly again.
+
+### Changed
+
+- The unified `CI` workflow now resolves Node.js from the supported `22` semver line instead of a non-existent exact runtime build.
+
+### Fixed
+
+- GitHub Actions no longer fails during `actions/setup-node` on `ubuntu-24.04` runners before any install or test step starts.
+- The `CI / Required checks` gate and the downstream GHCR publish workflow can now execute as intended for `main` and `v*` pushes.
+
+### Upgrade notes
+
+- There are no application, database, or configuration changes in this patch release.
+- If you already deployed `1.15.1`, upgrading to `1.15.2` is only needed to pick up the corrected CI and release automation behavior.
+
 ## [1.15.1] - 2026-04-03
 
 ### Highlights

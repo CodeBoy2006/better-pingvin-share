@@ -116,3 +116,8 @@
 - **Status:** Completed
 - **Next Steps:** Push `main` and the `v1.15.1` tag, then confirm the new `CI` workflow completes and that the gated GHCR publish path runs for the release tag.
 - **Context:** Release notes summarize the automation API ZIP download, backend/frontend/API/browser regression coverage, CI gatekeeping, Docker publication changes, and the associated bug fixes included in this patch release.
+## [2026-04-03 19:15] Release v1.15.2 CI hotfix
+- **Changes:** Updated `.github/workflows/ci.yml` to use a supported Node 22 semver target instead of the invalid `22.14.1` exact pin, bumped the root/backend/frontend package versions to `1.15.2`, and added a follow-up `CHANGELOG.md` entry documenting the release-engineering fix.
+- **Status:** Completed
+- **Next Steps:** Push `main`, verify the repaired `CI` workflow succeeds, then publish the `v1.15.2` tag and GitHub release once the gate is green.
+- **Context:** The original `v1.15.1` GitHub Actions runs failed during `actions/setup-node` because Node `22.14.1` does not exist for Linux x64; this patch keeps the application code unchanged and only repairs CI/release automation.
