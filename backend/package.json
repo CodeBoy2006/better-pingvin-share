@@ -15,9 +15,10 @@
     "test:coverage": "jest --config ./test/jest.config.cjs --coverage --runInBand --passWithNoTests",
     "test:ci": "npm run test:unit && npm run test:integration",
     "test:system": "npm run test:system:smoke",
-    "test:system:smoke": "node ../scripts/testing/run-backend-system-tests.mjs --collection ./test/newman-system-tests.json --script ./test/anonymous-owner-flow.e2e.js --report-name smoke",
-    "test:system:v1": "node ../scripts/testing/run-backend-system-tests.mjs --collection ./test/newman-api-v1.json --report-name api-v1",
-    "test:system:all": "npm run test:system:smoke && npm run test:system:v1"
+    "test:system:smoke": "node ../scripts/testing/run-backend-system-tests.mjs --suite smoke",
+    "test:system:full-regression": "node ../scripts/testing/run-backend-system-tests.mjs --suite full-regression",
+    "test:system:v1": "node ../scripts/testing/run-backend-system-tests.mjs --collection ./test/newman-api-v1.json --report-name api-v1-regression",
+    "test:system:all": "npm run test:system:full-regression"
   },
   "prisma": {
     "seed": "ts-node prisma/seed/config.seed.ts"

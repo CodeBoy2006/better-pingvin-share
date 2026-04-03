@@ -6,11 +6,11 @@ import {
 } from "@nestjs/common";
 import { JwtService, JwtSignOptions } from "@nestjs/jwt";
 import { Share, User } from "@prisma/client";
-import archiver from "archiver";
+import archiver = require("archiver");
 import * as argon from "argon2";
 import * as fs from "fs";
 import * as fsPromises from "fs/promises";
-import moment from "moment";
+import moment = require("moment");
 import { ClamScanService } from "src/clamscan/clamscan.service";
 import { ConfigService } from "src/config/config.service";
 import { EmailService } from "src/email/email.service";
@@ -499,7 +499,7 @@ export class ShareService {
     )
       throw new ForbiddenException("Anonymous shares can't be deleted");
 
-    if (!options?.isDeleterAdmin) {
+    if (!options?.isDeleterAdmin && !options?.allowAnonymousOwner) {
       await this.expire(shareId);
       return;
     }

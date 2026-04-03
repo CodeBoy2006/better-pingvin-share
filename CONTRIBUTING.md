@@ -92,4 +92,4 @@ You're all set!
 
 ### Testing
 
-At the moment we only have system tests for the backend. To run these tests, run `npm run test:system` in the backend folder.
+Use `npm run test:system` in the `backend` folder for the PR-safe API smoke suite, and `npm run test:system:full-regression` for the full Newman + scripted backend regression suite. Generated artifacts land in `test-results/backend/system/`.

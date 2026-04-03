@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { Request } from "express";
-import moment from "moment";
+import moment = require("moment");
 import { PrismaService } from "src/prisma/prisma.service";
 
 @Injectable()

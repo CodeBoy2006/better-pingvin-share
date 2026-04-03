@@ -66,3 +66,8 @@
 - **Status:** Completed
 - **Next Steps:** Hand this integration worktree to Wave 2 consumers (`F/G` first, `H` after they settle) and decide whether to clean up the existing frontend `no-unused-vars` warnings before wiring CI gatekeeping.
 - **Context:** Verified in `/tmp/worktrees/integration-bcde` with symlinked root/backend/frontend `node_modules`, `npm run typecheck`, `npm run test:fast`, `npm --prefix frontend run test`, and `npm run build`. The build now succeeds; remaining output is limited to pre-existing frontend `no-unused-vars` warnings and Next Edge-runtime warnings from `frontend/src/services/config.service.ts` importing `axios`.
+## [2026-04-03 17:31] Batch F API Black-Box Regression
+- **Changes:** Added suite-driven backend API black-box orchestration in `scripts/testing/run-backend-system-tests.mjs`, introduced `backend/test/system/` manifests/environment/scripted regressions plus HTML/JSON/JUnit/snapshot artifacts, updated backend test scripts/docs, and fixed runtime CommonJS import issues plus anonymous-owner deletion semantics that were blocking end-to-end API smoke/full suites.
+- **Status:** Completed
+- **Next Steps:** Batch H can wire `npm run test:system` to PR checks and `npm run test:system:full-regression` to nightly/release workflows, reusing the generated artifacts under `test-results/backend/system/`.
+- **Context:** Verified in the `batch-f-api-blackbox` worktree with `cd backend && npm run build`, `cd backend && npm run test:system:smoke`, and `cd backend && npm run test:system:full-regression`.

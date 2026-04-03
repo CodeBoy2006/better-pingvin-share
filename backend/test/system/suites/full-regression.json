@@ -1,0 +1,27 @@
+{
+  "name": "full-regression",
+  "description": "Nightly/pre-release backend API regression covering the full legacy Newman collection, anonymous owner cleanup, and the full /api/v1 automation collection.",
+  "environment": "./test/system/environments/runtime.postman_environment.json",
+  "steps": [
+    {
+      "id": "legacy-full-regression",
+      "type": "newman",
+      "reportName": "legacy-full-regression",
+      "collection": "./test/newman-system-tests.json",
+      "provides": ["legacy-admin-user"]
+    },
+    {
+      "id": "anonymous-owner-regression",
+      "type": "script",
+      "reportName": "anonymous-owner",
+      "script": "./test/system/scenarios/anonymous-owner-flow.mjs",
+      "requires": ["legacy-admin-user"]
+    },
+    {
+      "id": "api-v1-full-regression",
+      "type": "newman",
+      "reportName": "api-v1-full-regression",
+      "collection": "./test/newman-api-v1.json"
+    }
+  ]
+}
