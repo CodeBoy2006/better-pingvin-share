@@ -49,3 +49,9 @@
 - **Status:** Completed
 - **Next Steps:** Feed these suites into CI jobs, expand component coverage for remaining account/admin edge cases, and keep selectors aligned with accessible labels as new UI lands.
 - **Context:** Frontend tests run from the Batch E worktree using symlinked `node_modules`; reports land in `test-results/frontend/`.
+
+## [2026-04-03 16:24] Batch B auth and management test coverage
+- **Changes:** Added backend unit and HTTP integration coverage for auth, user, config, and reverse-share domains; introduced Batch B-specific fixtures and an isolated Nest app bootstrap helper for SQLite-backed integration tests; fixed CommonJS interop imports for `moment`, `qrcode-svg`, and `clamscan`; added a dedicated backend typecheck config so package type checks stay green without pulling Jest globals into app compilation.
+- **Status:** Completed
+- **Next Steps:** Batch F/G/H can now consume the new backend test suites and CI-safe scripts; if desired, the remaining auth/config runtime warnings can be reduced by moving the ts-jest `isolatedModules` flag into `backend/test/tsconfig.json`.
+- **Context:** Verified in the Batch B worktree with `npm --prefix backend run test:ci`, `npm --prefix backend run typecheck`, and `npm --prefix backend run build`. Integration tests boot a custom Nest module against per-suite temporary SQLite data directories and stub outbound email calls.
