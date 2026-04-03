@@ -5,6 +5,28 @@
     "eslint:recommended",
     "prettier"
   ],
+  "overrides": [
+    {
+      "files": [
+        "src/**/*.test.ts",
+        "src/**/*.test.tsx",
+        "src/**/*.spec.ts",
+        "src/**/*.spec.tsx",
+        "test/**/*.ts",
+        "test/**/*.tsx"
+      ],
+      "globals": {
+        "afterAll": "readonly",
+        "afterEach": "readonly",
+        "beforeAll": "readonly",
+        "beforeEach": "readonly",
+        "describe": "readonly",
+        "expect": "readonly",
+        "it": "readonly",
+        "test": "readonly"
+      }
+    }
+  ],
   "rules": {
     "quotes": ["warn", "double", { "allowTemplateLiterals": true }],
     "react-hooks/exhaustive-deps": ["off"],

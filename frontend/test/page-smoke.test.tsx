@@ -8,15 +8,15 @@ import {
   createMyShare,
   createShare,
   createUser,
-} from "../../test/fixtures";
-import { renderWithProviders } from "../../test/render";
-import { setMockRouter } from "../../test/router";
+} from "./fixtures";
+import { renderWithProviders } from "./render";
+import { setMockRouter } from "./router";
 
-vi.mock("../hooks/confirm-leave.hook", () => ({
+vi.mock("../src/hooks/confirm-leave.hook", () => ({
   default: vi.fn(),
 }));
 
-vi.mock("../components/upload/Dropzone", () => ({
+vi.mock("../src/components/upload/Dropzone", () => ({
   default: ({
     onFilesChanged,
   }: {
@@ -38,81 +38,83 @@ vi.mock("../components/upload/Dropzone", () => ({
   ),
 }));
 
-vi.mock("../components/upload/FileList", () => ({
+vi.mock("../src/components/upload/FileList", () => ({
   default: ({ files }: { files: unknown[] }) => (
     <div>Upload file list ({files.length})</div>
   ),
 }));
 
-vi.mock("../components/share/FileList", () => ({
+vi.mock("../src/components/share/FileList", () => ({
   default: ({ files }: { files?: unknown[] }) => (
     <div>Share file list ({files?.length ?? 0})</div>
   ),
 }));
 
-vi.mock("../components/share/DownloadAllButton", () => ({
+vi.mock("../src/components/share/DownloadAllButton", () => ({
   default: ({ shareId }: { shareId: string }) => (
     <div>Download all for {shareId}</div>
   ),
 }));
 
-vi.mock("../components/admin/configuration/ConfigurationNavBar", () => ({
+vi.mock("../src/components/admin/configuration/ConfigurationNavBar", () => ({
   default: () => <div>Configuration navigation</div>,
 }));
 
-vi.mock("../components/admin/configuration/ConfigurationHeader", () => ({
+vi.mock("../src/components/admin/configuration/ConfigurationHeader", () => ({
   default: () => <div>Configuration header</div>,
 }));
 
-vi.mock("../components/admin/configuration/AdminConfigInput", () => ({
+vi.mock("../src/components/admin/configuration/AdminConfigInput", () => ({
   default: ({ configVariable }: { configVariable: { key: string } }) => (
     <div>Config input: {configVariable.key}</div>
   ),
 }));
 
-vi.mock("../components/admin/configuration/LogoConfigInput", () => ({
+vi.mock("../src/components/admin/configuration/LogoConfigInput", () => ({
   default: () => <div>Logo input</div>,
 }));
 
-vi.mock("../components/admin/configuration/TestEmailButton", () => ({
+vi.mock("../src/components/admin/configuration/TestEmailButton", () => ({
   default: () => <button>Send test email</button>,
 }));
 
-vi.mock("../components/core/CenterLoader", () => ({
+vi.mock("../src/components/core/CenterLoader", () => ({
   default: () => <div>Loading…</div>,
 }));
 
-vi.mock("../components/upload/modals/showCreateUploadModal", () => ({
+vi.mock("../src/components/upload/modals/showCreateUploadModal", () => ({
   default: vi.fn(),
 }));
 
-vi.mock("../components/upload/modals/showCompletedUploadModal", () => ({
+vi.mock("../src/components/upload/modals/showCompletedUploadModal", () => ({
   default: vi.fn(),
 }));
 
-vi.mock("../components/account/showShareInformationsModal", () => ({
+vi.mock("../src/components/account/showShareInformationsModal", () => ({
   default: vi.fn(),
 }));
 
-vi.mock("../components/account/showShareLinkModal", () => ({
+vi.mock("../src/components/account/showShareLinkModal", () => ({
   default: vi.fn(),
 }));
 
-vi.mock("../components/account/showReverseShareLinkModal", () => ({
+vi.mock("../src/components/account/showReverseShareLinkModal", () => ({
   default: vi.fn(),
 }));
 
-vi.mock("../components/share/modals/showCreateReverseShareModal", () => ({
+vi.mock("../src/components/share/modals/showCreateReverseShareModal", () => ({
   default: vi.fn(),
 }));
 
-vi.mock("../components/admin/users/showCreateUserModal", () => ({
+vi.mock("../src/components/admin/users/showCreateUserModal", () => ({
   default: vi.fn(),
 }));
 
-vi.mock("../services/share.service", async () => {
-  const actual = await vi.importActual<typeof import("../services/share.service")>(
-    "../services/share.service",
+vi.mock("../src/services/share.service", async () => {
+  const actual = await vi.importActual<
+    typeof import("../src/services/share.service")
+  >(
+    "../src/services/share.service",
   );
 
   return {
@@ -125,9 +127,11 @@ vi.mock("../services/share.service", async () => {
   };
 });
 
-vi.mock("../services/config.service", async () => {
-  const actual = await vi.importActual<typeof import("../services/config.service")>(
-    "../services/config.service",
+vi.mock("../src/services/config.service", async () => {
+  const actual = await vi.importActual<
+    typeof import("../src/services/config.service")
+  >(
+    "../src/services/config.service",
   );
 
   return {
@@ -139,7 +143,7 @@ vi.mock("../services/config.service", async () => {
   };
 });
 
-vi.mock("../services/user.service", () => ({
+vi.mock("../src/services/user.service", () => ({
   default: {
     list: vi.fn(),
     removeCurrentUser: vi.fn(),
@@ -147,7 +151,7 @@ vi.mock("../services/user.service", () => ({
   },
 }));
 
-vi.mock("../services/auth.service", () => ({
+vi.mock("../src/services/auth.service", () => ({
   default: {
     disableTOTP: vi.fn(),
     enableTOTP: vi.fn(),
@@ -157,7 +161,7 @@ vi.mock("../services/auth.service", () => ({
   },
 }));
 
-vi.mock("../services/apiToken.service", () => ({
+vi.mock("../src/services/apiToken.service", () => ({
   default: {
     create: vi.fn(),
     list: vi.fn(),
@@ -165,7 +169,7 @@ vi.mock("../services/apiToken.service", () => ({
   },
 }));
 
-vi.mock("../utils/toast.util", () => ({
+vi.mock("../src/utils/toast.util", () => ({
   default: {
     axiosError: vi.fn(),
     error: vi.fn(),
@@ -173,20 +177,20 @@ vi.mock("../utils/toast.util", () => ({
   },
 }));
 
-import apiTokenService from "../services/apiToken.service";
-import authService from "../services/auth.service";
-import configService from "../services/config.service";
-import shareService from "../services/share.service";
-import userService from "../services/user.service";
-import AccountPage from "./account/index";
-import AccountReverseSharesPage from "./account/reverseShares";
-import AccountSharesPage from "./account/shares";
-import AdminConfigPage from "./admin/config/[category]";
-import AdminPage from "./admin/index";
-import AdminUsersPage from "./admin/users";
-import HomePage from "./index";
-import SharePage from "./share/[shareId]/index";
-import UploadPage from "./upload/index";
+import apiTokenService from "../src/services/apiToken.service";
+import authService from "../src/services/auth.service";
+import configService from "../src/services/config.service";
+import shareService from "../src/services/share.service";
+import userService from "../src/services/user.service";
+import AccountPage from "../src/pages/account/index";
+import AccountReverseSharesPage from "../src/pages/account/reverseShares";
+import AccountSharesPage from "../src/pages/account/shares";
+import AdminConfigPage from "../src/pages/admin/config/[category]";
+import AdminPage from "../src/pages/admin/index";
+import AdminUsersPage from "../src/pages/admin/users";
+import HomePage from "../src/pages/index";
+import SharePage from "../src/pages/share/[shareId]/index";
+import UploadPage from "../src/pages/upload/index";
 
 const axiosResponse = <T,>(data: T) => ({ data }) as any;
 

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
@@ -9,7 +10,7 @@ import TextEditor from "./TextEditor";
 import showTextEditorModal from "./modals/showTextEditorModal";
 
 type MockDropzoneProps = {
-  children: React.ReactNode;
+  children: ReactNode;
   onDrop: (files: File[]) => void;
   openRef?: { current?: () => void };
 };

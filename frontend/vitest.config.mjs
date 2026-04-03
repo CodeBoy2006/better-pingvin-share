@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 const frontendRoot = path.dirname(fileURLToPath(import.meta.url));
 
@@ -15,6 +15,7 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     css: true,
+    exclude: [...configDefaults.exclude, "**/.next/**"],
     passWithNoTests: true,
     setupFiles: ["./test/setup.ts"],
     restoreMocks: true,
