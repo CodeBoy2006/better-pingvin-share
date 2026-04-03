@@ -173,3 +173,8 @@
 - **Status:** Completed
 - **Next Steps:** Re-run the failed Docker image workflow to confirm the build now exports and pushes successfully for repositories whose owner or repo name contains uppercase characters.
 - **Context:** Validated with local YAML parsing, `git diff --check`, and a workflow diff review. This specifically addresses Buildx rejecting `ghcr.io/CodeBoy2006/better-pingvin-share` because GHCR repository names must be lowercase.
+## [2026-04-03 14:15] Fix Docker seed module resolution
+- **Changes:** Updated `backend/prisma/seed/config.seed.ts` to resolve `configDefinitions` from the source tree during normal development and fall back to the compiled `dist` tree inside production Docker images, eliminating the startup failure introduced when config definitions moved out of the seed file.
+- **Status:** Completed
+- **Next Steps:** Rebuild and republish the `development` image, then restart the server to confirm the backend reaches `node dist/src/main` and `/api/health` returns healthy through Caddy.
+- **Context:** Verified both source-style and runner-style layouts by running `prisma migrate deploy && prisma db seed` in temporary backend copies with and without `src/`; both paths now seed successfully.

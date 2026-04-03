@@ -1,5 +1,35 @@
 import { PrismaClient } from "@prisma/client";
-import { syncConfigVariables } from "../../src/config/configDefinitions";
+
+type SyncConfigVariables = (prisma: PrismaClient) => Promise<void>;
+
+const loadSyncConfigVariables = (): SyncConfigVariables => {
+  const modulePaths = [
+    "../../src/config/configDefinitions",
+    "../../dist/src/config/configDefinitions",
+  ];
+
+  for (const modulePath of modulePaths) {
+    try {
+      require.resolve(modulePath);
+      return require(modulePath).syncConfigVariables as SyncConfigVariables;
+    } catch (error) {
+      if (
+        !error ||
+        typeof error !== "object" ||
+        !("code" in error) ||
+        error.code !== "MODULE_NOT_FOUND"
+      ) {
+        throw error;
+      }
+    }
+  }
+
+  throw new Error(
+    "Unable to load config definitions from source or compiled output.",
+  );
+};
+
+const syncConfigVariables = loadSyncConfigVariables();
 
 const prisma = new PrismaClient({
   datasources: {
