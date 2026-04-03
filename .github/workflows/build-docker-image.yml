@@ -104,11 +104,11 @@ jobs:
           repository="${{ github.repository }}"
           registry_image="ghcr.io/${repository,,}"
 
-          publish_mode=""
-          release_tag=""
-          publish_latest="false"
-          selected_platforms="all"
-          cache_mode="min"
+          publish_mode="${{ inputs.publish_mode }}"
+          release_tag="${{ inputs.release_tag }}"
+          publish_latest="${{ inputs.publish_latest }}"
+          selected_platforms="${{ inputs.platforms }}"
+          cache_mode="${{ inputs.cache_mode }}"
 
           if [ "$event_name" = "workflow_dispatch" ]; then
             publish_mode="${{ github.event.inputs.publish_mode }}"
@@ -116,15 +116,6 @@ jobs:
             publish_latest="${{ github.event.inputs.publish_latest }}"
             selected_platforms="${{ github.event.inputs.platforms }}"
             cache_mode="${{ github.event.inputs.cache_mode }}"
-          elif [ "$event_name" = "workflow_call" ]; then
-            publish_mode="${{ inputs.publish_mode }}"
-            release_tag="${{ inputs.release_tag }}"
-            publish_latest="${{ inputs.publish_latest }}"
-            selected_platforms="${{ inputs.platforms }}"
-            cache_mode="${{ inputs.cache_mode }}"
-          else
-            echo "::error::Unsupported trigger context: $event_name on $ref"
-            exit 1
           fi
 
           case "$publish_mode" in

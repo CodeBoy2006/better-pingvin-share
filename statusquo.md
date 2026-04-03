@@ -126,3 +126,8 @@
 - **Status:** Completed
 - **Next Steps:** Commit the isolated-package CI fixes, push `main`, and rerun the unified GitHub Actions pipeline before tagging `v1.15.2`.
 - **Context:** Local verification now passes with a clean `npm --prefix backend ci && npm --prefix backend run typecheck`, `npm --prefix backend run build`, `npm --prefix backend run test:coverage`, `npm --prefix frontend run test:coverage`, and a full `npm run test:e2e`.
+## [2026-04-03 19:35] Fix reusable GHCR workflow call context
+- **Changes:** Updated `.github/workflows/build-docker-image.yml` so the reusable workflow reads `inputs.*` by default and only falls back to `github.event.inputs` for manual dispatch, which fixes post-CI image publishing when the caller was triggered by a `push`. Also refreshed the `1.15.2` changelog entry to note the reusable workflow fix.
+- **Status:** Completed
+- **Next Steps:** Commit the reusable workflow hotfix, push `main`, confirm the CI run and downstream GHCR publish job succeed, then tag and release `v1.15.2`.
+- **Context:** The earlier `main` CI run had all required checks passing, but the reusable Docker workflow still failed in `Resolve build plan` because `github.event_name` inside the called workflow reflected the caller's `push` event instead of `workflow_call`.
