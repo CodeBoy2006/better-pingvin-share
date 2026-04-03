@@ -86,3 +86,8 @@
 - **Status:** Completed
 - **Next Steps:** Finish the remaining Batch A script parity work (`backend`/`frontend` package-level `test:fast` and `test:all`) or move on to CI wiring once the in-flight Playwright changes are ready.
 - **Context:** Verified with `npm --prefix backend run test:ci`, `npm --prefix frontend run test`, and `npm run test`; reports now land in `test-results/backend/jest.json`, `test-results/backend/junit.xml`, `test-results/frontend/vitest.json`, and `test-results/frontend/junit.xml`.
+## [2026-04-03 17:45] Add package-level fast and full test aliases
+- **Changes:** Added `test:fast` and `test:all` aliases to `backend/package.json` and `frontend/package.json` so package-local test entrypoints now mirror the root-layer naming without changing the underlying test runners.
+- **Status:** Completed
+- **Next Steps:** If we keep pushing Batch A, the next tidy step is deciding whether to add package-local `test` aliases for backend parity or leave `test:ci` as the backend default fast entrypoint.
+- **Context:** Verified with `npm --prefix frontend run test:fast`, `npm --prefix frontend run test:all`, `npm --prefix backend run test:fast`, and `npm --prefix backend run test:all`; backend full runs still surface existing upstream deprecation warnings from Prisma/Newman but pass.

@@ -14,6 +14,8 @@
     "test:integration:watch": "jest --config ./test/jest.config.cjs --selectProjects integration --watch",
     "test:coverage": "jest --config ./test/jest.config.cjs --coverage --runInBand --passWithNoTests",
     "test:ci": "jest --config ./test/jest.config.cjs --runInBand --passWithNoTests --json --outputFile ../test-results/backend/jest.json",
+    "test:fast": "npm run test:ci",
+    "test:all": "npm run test:fast && npm run test:system:all",
     "test:system": "npm run test:system:smoke",
     "test:system:smoke": "node ../scripts/testing/run-backend-system-tests.mjs --collection ./test/newman-system-tests.json --script ./test/anonymous-owner-flow.e2e.js --report-name smoke",
     "test:system:v1": "node ../scripts/testing/run-backend-system-tests.mjs --collection ./test/newman-api-v1.json --report-name api-v1",

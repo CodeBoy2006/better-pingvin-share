@@ -9,6 +9,8 @@
     "format": "prettier --end-of-line=auto --write \"src/**/*.ts*\"",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "test": "vitest run --config ./vitest.config.mjs --passWithNoTests",
+    "test:fast": "npm run test",
+    "test:all": "npm run test:fast",
     "test:watch": "vitest --config ./vitest.config.mjs",
     "test:coverage": "vitest run --config ./vitest.config.mjs --coverage --passWithNoTests"
   },
