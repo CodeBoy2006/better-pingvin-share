@@ -106,3 +106,13 @@
 - **Status:** Completed
 - **Next Steps:** Batch H can branch from `integration-fg` for CI wiring; if desired, promote the `e2e/api-token.spec.ts` fix back into the Batch G source branch or cherry-pick it wherever the browser suite will land.
 - **Context:** Verified in `/tmp/worktrees/integration-fg` with symlinked root/backend/frontend `node_modules`, `npm run typecheck`, `npm run test:all`, targeted `npx playwright test --config ./playwright.config.mjs e2e/api-token.spec.ts`, and a final passing `npm run test:e2e`. The merged Wave 2 stack now passes backend fast/system suites plus all 6 Playwright smoke specs.
+## [2026-04-03 18:57] Batch H CI gate and release wiring
+- **Changes:** Added `.github/workflows/ci.yml` to run backend, frontend, API smoke, and browser E2E jobs in parallel with cached `npm ci`, artifacts, summaries, and a stable `Required checks` gate; converted `.github/workflows/build-docker-image.yml` into a reusable/manual publish workflow so GHCR releases are invoked only after CI succeeds on `main` and `v*` pushes; retired `.github/workflows/backend-system-tests.yml`; and documented the new CI/branch-protection flow in `README.md`, `CONTRIBUTING.md`, and `docs/docs/help-out/contribute.md`.
+- **Status:** Completed
+- **Next Steps:** Configure repository branch protection to require `CI / Required checks`, then verify one PR run and one `main` push to confirm artifact links, PR summary comments, and the gated GHCR publish path behave as expected in GitHub.
+- **Context:** Verified locally with Ruby YAML parsing for `.github/workflows/ci.yml` and `.github/workflows/build-docker-image.yml`, `./backend/node_modules/.bin/prettier --check` on the changed workflow/docs files, and `git diff --check`. DeepWiki lookup for the GitHub Actions repos was unavailable in this session, so the workflow changes were cross-checked against official GitHub docs and action READMEs instead.
+## [2026-04-03 19:06] Release v1.15.1
+- **Changes:** Bumped the root, backend, and frontend package versions to `1.15.1`, refreshed `CHANGELOG.md` with a structured release summary for everything shipped since `v1.15.0`, and prepared the GitHub release payload for the `v1.15.1` tag.
+- **Status:** Completed
+- **Next Steps:** Push `main` and the `v1.15.1` tag, then confirm the new `CI` workflow completes and that the gated GHCR publish path runs for the release tag.
+- **Context:** Release notes summarize the automation API ZIP download, backend/frontend/API/browser regression coverage, CI gatekeeping, Docker publication changes, and the associated bug fixes included in this patch release.

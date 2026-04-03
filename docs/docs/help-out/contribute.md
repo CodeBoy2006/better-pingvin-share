@@ -93,3 +93,9 @@ You're all set!
 - Run `npm run test:all` at the repo root to include the backend Newman/system regressions.
 - Run `npm run test:e2e` at the repo root for the Playwright browser suite in `e2e/`.
 - Run `npm run test:system` in the `backend` folder for the PR-safe API smoke suite, and `npm run test:system:full-regression` for the full Newman + scripted backend regression suite. Generated artifacts land in `test-results/backend/system/`.
+
+### Continuous integration
+
+- Pull requests and `main`/`v*` pushes run `.github/workflows/ci.yml`.
+- The stable branch-protection gate is `CI / Required checks`.
+- Automated GHCR publishing is triggered from CI only after that gate succeeds on `main` or release-tag pushes.

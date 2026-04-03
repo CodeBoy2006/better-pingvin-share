@@ -2,6 +2,43 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.15.1] - 2026-04-03
+
+### Highlights
+
+Better Pingvin Share 1.15.1 strengthens the automation and release pipeline around the product. It adds bearer-token ZIP downloads for the automation API, ships a full backend/frontend/API/browser regression stack, and introduces a unified GitHub Actions gate that validates the repository before GHCR publication.
+
+### Added
+
+- Bearer-token-protected ZIP bundle downloads for `/api/v1/shares/:shareId/files/zip`.
+- Root-level and package-level test commands for fast, coverage, full-regression, and browser smoke execution.
+- Backend Jest unit and integration coverage for authentication, users, config, reverse shares, shares, files, API tokens, and `/api/v1`.
+- Frontend Vitest coverage for utilities, services, hooks, middleware, key UI components, and page smoke scenarios.
+- Newman smoke/full-regression orchestration with structured JSON, JUnit, HTML, and diagnostic artifacts.
+- Playwright browser smoke coverage for anonymous-owner uploads, authenticated sharing, protected shares, API token flows, and reverse-share submissions.
+- A unified `CI` workflow that uploads coverage and regression artifacts, writes PR summaries, and exposes a stable branch-protection gate.
+
+### Changed
+
+- Docker publication now builds `linux/amd64` and `linux/arm64` images on native GitHub-hosted runners with per-platform cache scopes.
+- GHCR tagging is split between `development` on `main` and formal `vX.Y.Z`/`latest` tags on release refs, while manual publish controls remain available for maintainers.
+- Container publication now runs only after the required CI gate succeeds on `main` or `v*` pushes.
+- Test runs now use dynamic ports, isolated SQLite databases, temporary upload directories, shared `.env.test` defaults, and normalized artifact locations for reproducible automation.
+
+### Fixed
+
+- Production Docker seeding now resolves config definitions correctly after the config refactor.
+- Admin logo uploads once again accept valid PNG files.
+- Backend runtime interop is stabilized for CommonJS-backed dependencies used by services such as ClamAV and Sharp.
+- Anonymous-owner flows now handle expired shares and deletion paths correctly across unit, integration, and black-box regression layers.
+- The browser API token smoke flow now uses the same relative expiration format accepted by backend share creation.
+
+### Upgrade notes
+
+- This release includes the API token schema migration used by the automation token flow; ensure backend migrations run before enabling those workflows in production.
+- No manual configuration change is required for the new test and CI tooling, but maintainers should update branch protection to require `CI / Required checks`.
+- GHCR release publication now happens after CI succeeds, so release tags may take slightly longer than before to surface published images.
+
 ## [1.15.0] - 2026-04-03
 
 ### Highlights

@@ -1,14 +1,33 @@
 name: Build and Push Docker Image
 
 on:
-  push:
-    branches:
-      - main
-    tags:
-      - "v*"
-    paths-ignore:
-      - "**/*.md"
-      - "docs/**"
+  workflow_call:
+    inputs:
+      publish_mode:
+        description: "Choose whether to publish a development image, release image, or only run a test build"
+        required: false
+        default: none
+        type: string
+      release_tag:
+        description: "Required when publish_mode=release (example: v1.15.1)"
+        required: false
+        default: ""
+        type: string
+      publish_latest:
+        description: "Also publish the latest tag for release builds"
+        required: false
+        default: false
+        type: boolean
+      platforms:
+        description: "Select which platform set to build"
+        required: false
+        default: all
+        type: string
+      cache_mode:
+        description: "Choose whether to use the GitHub Actions Buildx cache"
+        required: false
+        default: min
+        type: string
   workflow_dispatch:
     inputs:
       publish_mode:
@@ -97,12 +116,12 @@ jobs:
             publish_latest="${{ github.event.inputs.publish_latest }}"
             selected_platforms="${{ github.event.inputs.platforms }}"
             cache_mode="${{ github.event.inputs.cache_mode }}"
-          elif [ "$ref" = "refs/heads/main" ]; then
-            publish_mode="development"
-          elif [[ "$ref" == refs/tags/v* ]]; then
-            publish_mode="release"
-            release_tag="$ref_name"
-            publish_latest="true"
+          elif [ "$event_name" = "workflow_call" ]; then
+            publish_mode="${{ inputs.publish_mode }}"
+            release_tag="${{ inputs.release_tag }}"
+            publish_latest="${{ inputs.publish_latest }}"
+            selected_platforms="${{ inputs.platforms }}"
+            cache_mode="${{ inputs.cache_mode }}"
           else
             echo "::error::Unsupported trigger context: $event_name on $ref"
             exit 1

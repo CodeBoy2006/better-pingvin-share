@@ -93,3 +93,9 @@ You're all set!
 ### Testing
 
 Use `npm run test:system` in the `backend` folder for the PR-safe API smoke suite, and `npm run test:system:full-regression` for the full Newman + scripted backend regression suite. Generated artifacts land in `test-results/backend/system/`.
+
+### Continuous integration
+
+- Pull requests and `main`/`v*` pushes run `.github/workflows/ci.yml`.
+- The stable gate for branch protection is `CI / Required checks`.
+- Automated GHCR publishing is triggered from CI only after that gate succeeds on `main` or release-tag pushes.

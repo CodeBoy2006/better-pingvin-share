@@ -1,0 +1,465 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  ARTIFACT_RETENTION_DAYS: 14
+  NEXT_TELEMETRY_DISABLED: "1"
+  NODE_VERSION: "22.14.1"
+  TZ: UTC
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      artifact_url: ${{ steps.upload.outputs.artifact-url }}
+      branches: ${{ steps.coverage.outputs.branches }}
+      functions: ${{ steps.coverage.outputs.functions }}
+      lines: ${{ steps.coverage.outputs.lines }}
+      statements: ${{ steps.coverage.outputs.statements }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm --prefix backend ci
+
+      - name: Type-check backend
+        run: npm --prefix backend run typecheck
+
+      - name: Build backend
+        run: npm --prefix backend run build
+
+      - name: Run backend coverage
+        run: npm --prefix backend run test:coverage
+
+      - name: Parse backend coverage
+        id: coverage
+        if: always()
+        shell: bash
+        run: |
+          node <<'EOF' >> "$GITHUB_OUTPUT"
+          const fs = require("fs");
+          const summaryPath = "test-results/backend/coverage/coverage-summary.json";
+
+          if (!fs.existsSync(summaryPath)) {
+            for (const key of ["lines", "statements", "functions", "branches"]) {
+              console.log(`${key}=n/a`);
+            }
+            process.exit(0);
+          }
+
+          const total = JSON.parse(fs.readFileSync(summaryPath, "utf8")).total;
+          for (const key of ["lines", "statements", "functions", "branches"]) {
+            console.log(`${key}=${total[key].pct.toFixed(2)}%`);
+          }
+          EOF
+
+      - name: Upload backend artifacts
+        id: upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-results
+          overwrite: true
+          if-no-files-found: warn
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+          path: |
+            test-results/backend/coverage
+            test-results/backend/junit.xml
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      artifact_url: ${{ steps.upload.outputs.artifact-url }}
+      branches: ${{ steps.coverage.outputs.branches }}
+      functions: ${{ steps.coverage.outputs.functions }}
+      lines: ${{ steps.coverage.outputs.lines }}
+      statements: ${{ steps.coverage.outputs.statements }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+
+      - name: Type-check frontend
+        run: npm --prefix frontend run typecheck
+
+      - name: Build frontend
+        run: npm --prefix frontend run build
+
+      - name: Run frontend coverage
+        run: npm --prefix frontend run test:coverage
+
+      - name: Parse frontend coverage
+        id: coverage
+        if: always()
+        shell: bash
+        run: |
+          node <<'EOF' >> "$GITHUB_OUTPUT"
+          const fs = require("fs");
+          const summaryPath = "test-results/frontend/coverage/coverage-summary.json";
+
+          if (!fs.existsSync(summaryPath)) {
+            for (const key of ["lines", "statements", "functions", "branches"]) {
+              console.log(`${key}=n/a`);
+            }
+            process.exit(0);
+          }
+
+          const total = JSON.parse(fs.readFileSync(summaryPath, "utf8")).total;
+          for (const key of ["lines", "statements", "functions", "branches"]) {
+            console.log(`${key}=${total[key].pct.toFixed(2)}%`);
+          }
+          EOF
+
+      - name: Upload frontend artifacts
+        id: upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-results
+          overwrite: true
+          if-no-files-found: warn
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+          path: |
+            test-results/frontend/coverage
+            test-results/frontend/junit.xml
+            test-results/frontend/vitest.json
+
+  api_smoke:
+    name: API smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      artifact_url: ${{ steps.upload.outputs.artifact-url }}
+      assertions_failed: ${{ steps.report.outputs.assertions_failed }}
+      assertions_total: ${{ steps.report.outputs.assertions_total }}
+      requests_total: ${{ steps.report.outputs.requests_total }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm --prefix backend ci
+
+      - name: Run API smoke regression
+        run: npm --prefix backend run test:system
+
+      - name: Parse API smoke report
+        id: report
+        if: always()
+        shell: bash
+        run: |
+          node <<'EOF' >> "$GITHUB_OUTPUT"
+          const fs = require("fs");
+          const reportPath = "test-results/backend/system/smoke/newman.json";
+
+          if (!fs.existsSync(reportPath)) {
+            console.log("requests_total=n/a");
+            console.log("assertions_total=n/a");
+            console.log("assertions_failed=n/a");
+            process.exit(0);
+          }
+
+          const report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+          const stats = report.run?.stats ?? {};
+          console.log(`requests_total=${stats.requests?.total ?? "n/a"}`);
+          console.log(`assertions_total=${stats.assertions?.total ?? "n/a"}`);
+          console.log(`assertions_failed=${stats.assertions?.failed ?? "n/a"}`);
+          EOF
+
+      - name: Upload API smoke artifacts
+        id: upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-smoke-results
+          overwrite: true
+          if-no-files-found: warn
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+          path: test-results/backend/system/smoke
+
+  browser_e2e:
+    name: Browser E2E
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    outputs:
+      artifact_url: ${{ steps.upload.outputs.artifact-url }}
+      flaky: ${{ steps.report.outputs.flaky }}
+      retry_attempts: ${{ steps.report.outputs.retry_attempts }}
+      tests: ${{ steps.report.outputs.tests }}
+      unexpected: ${{ steps.report.outputs.unexpected }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install backend dependencies
+        run: npm --prefix backend ci
+
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run browser smoke suite
+        run: npm run test:e2e
+
+      - name: Parse Playwright report
+        id: report
+        if: always()
+        shell: bash
+        run: |
+          node <<'EOF' >> "$GITHUB_OUTPUT"
+          const fs = require("fs");
+          const reportPath = "test-results/playwright/results.json";
+
+          if (!fs.existsSync(reportPath)) {
+            console.log("tests=n/a");
+            console.log("retry_attempts=n/a");
+            console.log("flaky=n/a");
+            console.log("unexpected=n/a");
+            process.exit(0);
+          }
+
+          const report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+          let tests = 0;
+          let retryAttempts = 0;
+
+          const walkSuites = (suites = []) => {
+            for (const suite of suites) {
+              for (const spec of suite.specs ?? []) {
+                for (const test of spec.tests ?? []) {
+                  if (test.projectName === "setup") {
+                    continue;
+                  }
+
+                  if (test.expectedStatus === "skipped" && test.status === "skipped") {
+                    continue;
+                  }
+
+                  tests += 1;
+                  retryAttempts += Math.max((test.results ?? []).length - 1, 0);
+                }
+              }
+
+              walkSuites(suite.suites ?? []);
+            }
+          };
+
+          walkSuites(report.suites ?? []);
+
+          console.log(`tests=${tests}`);
+          console.log(`retry_attempts=${retryAttempts}`);
+          console.log(`flaky=${report.stats?.flaky ?? "n/a"}`);
+          console.log(`unexpected=${report.stats?.unexpected ?? "n/a"}`);
+          EOF
+
+      - name: Upload browser artifacts
+        id: upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-e2e-results
+          overwrite: true
+          if-no-files-found: warn
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+          path: test-results/playwright
+
+  required_checks:
+    name: Required checks
+    if: always()
+    needs:
+      - backend
+      - frontend
+      - api_smoke
+      - browser_e2e
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Create workflow summary
+        env:
+          API_ARTIFACT_URL: ${{ needs.api_smoke.outputs.artifact_url }}
+          API_ASSERTIONS_FAILED: ${{ needs.api_smoke.outputs.assertions_failed }}
+          API_ASSERTIONS_TOTAL: ${{ needs.api_smoke.outputs.assertions_total }}
+          API_REQUESTS_TOTAL: ${{ needs.api_smoke.outputs.requests_total }}
+          API_RESULT: ${{ needs.api_smoke.result }}
+          BACKEND_ARTIFACT_URL: ${{ needs.backend.outputs.artifact_url }}
+          BACKEND_BRANCHES: ${{ needs.backend.outputs.branches }}
+          BACKEND_FUNCTIONS: ${{ needs.backend.outputs.functions }}
+          BACKEND_LINES: ${{ needs.backend.outputs.lines }}
+          BACKEND_RESULT: ${{ needs.backend.result }}
+          BACKEND_STATEMENTS: ${{ needs.backend.outputs.statements }}
+          E2E_ARTIFACT_URL: ${{ needs.browser_e2e.outputs.artifact_url }}
+          E2E_FLAKY: ${{ needs.browser_e2e.outputs.flaky }}
+          E2E_RESULT: ${{ needs.browser_e2e.result }}
+          E2E_RETRY_ATTEMPTS: ${{ needs.browser_e2e.outputs.retry_attempts }}
+          E2E_TESTS: ${{ needs.browser_e2e.outputs.tests }}
+          E2E_UNEXPECTED: ${{ needs.browser_e2e.outputs.unexpected }}
+          FRONTEND_ARTIFACT_URL: ${{ needs.frontend.outputs.artifact_url }}
+          FRONTEND_BRANCHES: ${{ needs.frontend.outputs.branches }}
+          FRONTEND_FUNCTIONS: ${{ needs.frontend.outputs.functions }}
+          FRONTEND_LINES: ${{ needs.frontend.outputs.lines }}
+          FRONTEND_RESULT: ${{ needs.frontend.result }}
+          FRONTEND_STATEMENTS: ${{ needs.frontend.outputs.statements }}
+        run: |
+          artifact_link() {
+            local url="$1"
+            local label="$2"
+
+            if [ -n "$url" ]; then
+              printf '[%s](%s)' "$label" "$url"
+            else
+              printf 'n/a'
+            fi
+          }
+
+          cat <<EOF > ci-summary.md
+          ## CI summary
+
+          | Check | Result | Details | Artifacts |
+          | --- | --- | --- | --- |
+          | Backend | \`${BACKEND_RESULT}\` | Lines ${BACKEND_LINES} · Statements ${BACKEND_STATEMENTS} · Functions ${BACKEND_FUNCTIONS} · Branches ${BACKEND_BRANCHES} | $(artifact_link "$BACKEND_ARTIFACT_URL" "backend-results") |
+          | Frontend | \`${FRONTEND_RESULT}\` | Lines ${FRONTEND_LINES} · Statements ${FRONTEND_STATEMENTS} · Functions ${FRONTEND_FUNCTIONS} · Branches ${FRONTEND_BRANCHES} | $(artifact_link "$FRONTEND_ARTIFACT_URL" "frontend-results") |
+          | API smoke | \`${API_RESULT}\` | ${API_REQUESTS_TOTAL} requests · ${API_ASSERTIONS_TOTAL} assertions · ${API_ASSERTIONS_FAILED} failed | $(artifact_link "$API_ARTIFACT_URL" "api-smoke-results") |
+          | Browser E2E | \`${E2E_RESULT}\` | ${E2E_TESTS} tests · ${E2E_RETRY_ATTEMPTS} retry attempts · ${E2E_FLAKY} flaky · ${E2E_UNEXPECTED} unexpected | $(artifact_link "$E2E_ARTIFACT_URL" "browser-e2e-results") |
+
+          ### Gatekeeping
+
+          - Recommended branch protection check: \`CI / Required checks\`
+          - Stable drill-down checks: \`CI / Backend\`, \`CI / Frontend\`, \`CI / API smoke\`, \`CI / Browser E2E\`
+          - Automated GHCR publication runs only after this gate passes on \`main\` and \`v*\` tag pushes
+          EOF
+
+          cat ci-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Mirror summary to pull request
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require("fs");
+            const marker = "<!-- ci-summary -->";
+            const body = `${marker}\n${fs.readFileSync("ci-summary.md", "utf8")}`;
+            const issue_number = context.payload.pull_request.number;
+            const comments = await github.paginate(
+              github.rest.issues.listComments,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number,
+                per_page: 100,
+              },
+            );
+
+            const existing = comments.find(
+              (comment) =>
+                comment.user?.type === "Bot" && comment.body?.includes(marker),
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number,
+                body,
+              });
+            }
+
+      - name: Enforce required jobs
+        env:
+          API_RESULT: ${{ needs.api_smoke.result }}
+          BACKEND_RESULT: ${{ needs.backend.result }}
+          E2E_RESULT: ${{ needs.browser_e2e.result }}
+          FRONTEND_RESULT: ${{ needs.frontend.result }}
+        run: |
+          for result in "$BACKEND_RESULT" "$FRONTEND_RESULT" "$API_RESULT" "$E2E_RESULT"; do
+            if [ "$result" != "success" ]; then
+              echo "At least one required job failed or was cancelled."
+              exit 1
+            fi
+          done
+
+  publish_image:
+    name: Publish GHCR image
+    needs:
+      - required_checks
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/build-docker-image.yml
+    with:
+      cache_mode: min
+      platforms: all
+      publish_latest: ${{ startsWith(github.ref, 'refs/tags/v') }}
+      publish_mode: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || 'development' }}
+      release_tag: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
+    secrets: inherit

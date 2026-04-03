@@ -41,6 +41,12 @@ TBD.
 
 Test artifacts are written to `test-results/`, and test-specific runtime files are isolated under `tmp/test-runtime/` or `backend/tmp/`. Backend black-box runs emit Newman JSON/JUnit reports, HTML summaries, and per-request snapshots under `test-results/backend/system/<suite>/`.
 
+## 🚦 CI
+
+- `.github/workflows/ci.yml` runs `Backend`, `Frontend`, `API smoke`, and `Browser E2E` in parallel on pull requests, `main`, and `v*` tags.
+- The recommended branch protection gate is `CI / Required checks`; the per-area jobs stay stable for drill-down and artifact inspection.
+- GHCR publication is no longer an independent push trigger: `build-docker-image.yml` is invoked by CI only after the required checks pass on `main` or release tags.
+
 > [!IMPORTANT]
 > Anonymous browser uploads now generate a dedicated edit link for the uploader. Treat that link as a secret because it grants owner-level access to the share.
 
