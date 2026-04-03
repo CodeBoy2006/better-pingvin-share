@@ -131,3 +131,8 @@
 - **Status:** Completed
 - **Next Steps:** Commit the reusable workflow hotfix, push `main`, confirm the CI run and downstream GHCR publish job succeed, then tag and release `v1.15.2`.
 - **Context:** The earlier `main` CI run had all required checks passing, but the reusable Docker workflow still failed in `Resolve build plan` because `github.event_name` inside the called workflow reflected the caller's `push` event instead of `workflow_call`.
+## [2026-04-03 19:45] Preserve Docker dependency layers with Prisma postinstall
+- **Changes:** Updated the backend `postinstall` hook to generate Prisma client types only when `prisma/schema.prisma` is present, which keeps clean repo installs fixed while avoiding failures in Docker dependency-only layers that copy only `package.json` and `package-lock.json`.
+- **Status:** Completed
+- **Next Steps:** Re-run the unified CI workflow and confirm both GHCR build matrix jobs and the manifest merge succeed before tagging `v1.15.2`.
+- **Context:** The reusable publish workflow fix exposed a second release-gating issue: the Docker backend dependency stage runs `npm ci` before the Prisma schema is copied into the image, so an unconditional postinstall generation step breaks image builds.

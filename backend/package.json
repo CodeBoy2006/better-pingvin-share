@@ -5,7 +5,7 @@
     "build": "nest build",
     "dev": "cross-env NODE_ENV=development nest start --watch",
     "prod": "prisma migrate deploy && prisma db seed && node dist/src/main",
-    "postinstall": "npm run prisma:generate",
+    "postinstall": "node -e \"const fs=require('fs'); const cp=require('child_process'); if (fs.existsSync('./prisma/schema.prisma')) { cp.execSync('npm run prisma:generate', { stdio: 'inherit' }); } else { console.log('Skipping Prisma client generation: prisma/schema.prisma not found.'); }\"",
     "lint": "eslint 'src/**/*.ts'",
     "format": "prettier --end-of-line=auto --write 'src/**/*.ts'",
     "prisma:generate": "prisma generate --schema ./prisma/schema.prisma",
