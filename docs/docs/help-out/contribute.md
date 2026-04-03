@@ -88,4 +88,7 @@ You're all set!
 
 ### Testing
 
-At the moment we only have system tests for the backend. To run these tests, run `npm run test:system` in the backend folder.
+- Run `npm run test` at the repo root for the fast backend/frontend layer.
+- Run `npm run test:coverage` at the repo root for backend and frontend coverage reports.
+- Run `npm run test:all` at the repo root to include the backend Newman/system regressions.
+- Run `npm run test:e2e` at the repo root for the Playwright browser suite in `e2e/`.

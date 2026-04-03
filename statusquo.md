@@ -76,3 +76,8 @@
 - **Status:** Completed
 - **Next Steps:** If desired, the next cleanup pass can fold the backend system-smoke launcher and root test scripts into a root `test` / `test:coverage` workflow.
 - **Context:** Verified with `npm --prefix backend run test:coverage` and `npm --prefix backend run test:system:smoke`; backend coverage now passes `99/99`, and the anonymous owner system regression script now passes end-to-end.
+## [2026-04-03 17:29] Add root test entrypoints
+- **Changes:** Added root-level `test` and `test:coverage` scripts in `package.json` so the repo can run fast tests and coverage from one command, and updated `docs/docs/help-out/contribute.md` so contributor docs reflect the current backend/frontend/system/Playwright test layers.
+- **Status:** Completed
+- **Next Steps:** If we want a fuller Batch A finish, the next isolated step is adding JUnit-style reporters and CI-friendly artifact names without touching the in-flight Playwright workflow changes already present in the worktree.
+- **Context:** Verified with `npm run test` and `npm run test:coverage`; both root commands now execute successfully and route to the expected backend/frontend suites.
