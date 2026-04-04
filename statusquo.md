@@ -173,3 +173,8 @@
 - **Status:** Completed
 - **Next Steps:** Fill the remaining zero-hit admin UI helpers and page wrappers, then codify the improved baseline in CI.
 - **Context:** Verified with `npx vitest run --config ./vitest.config.mjs src/components/account/account-modals.test.tsx` from `frontend/`; Mantine still emits a harmless read-only input warning for the existing reverse-share modal implementation.
+## [$(date '+%Y-%m-%d %H:%M')] Add frontend admin helper coverage
+- **Changes:** Added `frontend/src/components/admin/admin-helpers.test.tsx` to cover the configuration header/navbar, SMTP test-email confirmation flow, and the create-user modal helper.
+- **Status:** Completed
+- **Next Steps:** Expand page-level coverage for auth/legal wrappers and then tighten CI around the improved frontend baseline.
+- **Context:** Verified with `npx vitest run --config ./vitest.config.mjs src/components/admin/admin-helpers.test.tsx` from `frontend/`; the run still shows existing UI-library warnings around `passHref`, jsdom navigation, and controlled inputs, but assertions pass cleanly.
