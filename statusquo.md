@@ -163,3 +163,8 @@
 - **Status:** Completed
 - **Next Steps:** Continue raising backend coverage in other low-signal services (`jobs`, `oauth`, storage backends) and then tighten CI thresholds around the improved baseline.
 - **Context:** Verified with `npx jest --config ./test/jest.config.cjs --selectProjects unit --runInBand --runTestsByPath test/unit/email/email.service.spec.ts` from `backend/`.
+## [$(date '+%Y-%m-%d %H:%M')] Add backend jobs service coverage
+- **Changes:** Added `backend/test/unit/jobs/jobs.service.spec.ts` to cover expired-share cleanup, reverse-share cleanup, unfinished share deletion, temporary chunk pruning, and token expiry aggregation in `JobsService`.
+- **Status:** Completed
+- **Next Steps:** Continue improving frontend coverage around zero-hit account/admin UI helpers, then harden CI thresholds once the new baseline is stable.
+- **Context:** Verified with `npx jest --config ./test/jest.config.cjs --selectProjects unit --runInBand --runTestsByPath test/unit/jobs/jobs.service.spec.ts` from `backend/`.
