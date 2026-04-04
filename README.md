@@ -65,7 +65,7 @@ Test artifacts are written to `test-results/`, and test-specific runtime files a
 
 ## 🚦 CI
 
-- `.github/workflows/ci.yml` runs `Backend`, `Frontend`, `API smoke`, and `Browser E2E` in parallel on pull requests, `main`, and `v*` tags.
+- `.github/workflows/ci.yml` runs `Backend`, `Frontend`, `Docs`, `API smoke`, and `Browser E2E` in parallel on pull requests, `main`, and `v*` tags.
 - The README hero badges show the `main` branch CI status, test pass snapshot, current app version, and the latest backend/frontend line coverage snapshots published by CI.
 - The recommended branch protection gate is `CI / Required checks`; the per-area jobs stay stable for drill-down and artifact inspection.
 - GHCR publication is no longer an independent push trigger: `build-docker-image.yml` is invoked by CI only after the required checks pass on `main` or release tags.

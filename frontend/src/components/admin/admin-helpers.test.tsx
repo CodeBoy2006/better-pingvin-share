@@ -182,7 +182,8 @@ describe("admin helpers", () => {
 
     vi.mocked(userService.create).mockResolvedValue(undefined);
 
-    const modalConfig = showCreateUserModal(modals as never, true, getUsers);
+    showCreateUserModal(modals as never, true, getUsers);
+    const [modalConfig] = openModal.mock.calls[0];
 
     renderWithProviders(modalConfig.children);
 

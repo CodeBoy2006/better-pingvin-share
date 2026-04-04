@@ -170,6 +170,43 @@ jobs:
             test-results/frontend/junit.xml
             test-results/frontend/vitest.json
 
+  docs:
+    name: Docs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      artifact_url: ${{ steps.upload.outputs.artifact-url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+
+      - name: Install docs dependencies
+        run: npm --prefix docs ci
+
+      - name: Type-check docs
+        run: npm --prefix docs run typecheck
+
+      - name: Build docs
+        run: npm --prefix docs run build
+
+      - name: Upload docs artifacts
+        id: upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-results
+          overwrite: true
+          if-no-files-found: warn
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+          path: docs/build
+
   api_smoke:
     name: API smoke
     runs-on: ubuntu-24.04
@@ -372,6 +409,7 @@ jobs:
     needs:
       - backend
       - frontend
+      - docs
       - api_smoke
       - browser_e2e
     runs-on: ubuntu-24.04
@@ -388,6 +426,7 @@ jobs:
           API_RESULT: ${{ needs.api_smoke.result }}
           BACKEND_LINES: ${{ needs.backend.outputs.lines }}
           BACKEND_RESULT: ${{ needs.backend.result }}
+          DOCS_RESULT: ${{ needs.docs.result }}
           E2E_RESULT: ${{ needs.browser_e2e.result }}
           FRONTEND_LINES: ${{ needs.frontend.outputs.lines }}
           FRONTEND_RESULT: ${{ needs.frontend.result }}
@@ -471,6 +510,7 @@ jobs:
           const suiteResults = [
             process.env.BACKEND_RESULT,
             process.env.FRONTEND_RESULT,
+            process.env.DOCS_RESULT,
             process.env.API_RESULT,
             process.env.E2E_RESULT,
           ];
@@ -538,6 +578,7 @@ jobs:
     needs:
       - backend
       - frontend
+      - docs
       - api_smoke
       - browser_e2e
     runs-on: ubuntu-24.04
@@ -559,6 +600,8 @@ jobs:
           BACKEND_LINES: ${{ needs.backend.outputs.lines }}
           BACKEND_RESULT: ${{ needs.backend.result }}
           BACKEND_STATEMENTS: ${{ needs.backend.outputs.statements }}
+          DOCS_ARTIFACT_URL: ${{ needs.docs.outputs.artifact_url }}
+          DOCS_RESULT: ${{ needs.docs.result }}
           E2E_ARTIFACT_URL: ${{ needs.browser_e2e.outputs.artifact_url }}
           E2E_FLAKY: ${{ needs.browser_e2e.outputs.flaky }}
           E2E_RESULT: ${{ needs.browser_e2e.result }}
@@ -590,13 +633,14 @@ jobs:
           | --- | --- | --- | --- |
           | Backend | \`${BACKEND_RESULT}\` | Lines ${BACKEND_LINES} · Statements ${BACKEND_STATEMENTS} · Functions ${BACKEND_FUNCTIONS} · Branches ${BACKEND_BRANCHES} | $(artifact_link "$BACKEND_ARTIFACT_URL" "backend-results") |
           | Frontend | \`${FRONTEND_RESULT}\` | Lines ${FRONTEND_LINES} · Statements ${FRONTEND_STATEMENTS} · Functions ${FRONTEND_FUNCTIONS} · Branches ${FRONTEND_BRANCHES} | $(artifact_link "$FRONTEND_ARTIFACT_URL" "frontend-results") |
+          | Docs | \`${DOCS_RESULT}\` | Docusaurus type-check + production build | $(artifact_link "$DOCS_ARTIFACT_URL" "docs-results") |
           | API smoke | \`${API_RESULT}\` | ${API_REQUESTS_TOTAL} requests · ${API_ASSERTIONS_TOTAL} assertions · ${API_ASSERTIONS_FAILED} failed | $(artifact_link "$API_ARTIFACT_URL" "api-smoke-results") |
           | Browser E2E | \`${E2E_RESULT}\` | ${E2E_TESTS} tests · ${E2E_RETRY_ATTEMPTS} retry attempts · ${E2E_FLAKY} flaky · ${E2E_UNEXPECTED} unexpected | $(artifact_link "$E2E_ARTIFACT_URL" "browser-e2e-results") |
 
           ### Gatekeeping
 
           - Recommended branch protection check: \`CI / Required checks\`
-          - Stable drill-down checks: \`CI / Backend\`, \`CI / Frontend\`, \`CI / API smoke\`, \`CI / Browser E2E\`
+          - Stable drill-down checks: \`CI / Backend\`, \`CI / Frontend\`, \`CI / Docs\`, \`CI / API smoke\`, \`CI / Browser E2E\`
           - Automated GHCR publication runs only after this gate passes on \`main\` and \`v*\` tag pushes
           EOF
 
@@ -647,10 +691,11 @@ jobs:
         env:
           API_RESULT: ${{ needs.api_smoke.result }}
           BACKEND_RESULT: ${{ needs.backend.result }}
+          DOCS_RESULT: ${{ needs.docs.result }}
           E2E_RESULT: ${{ needs.browser_e2e.result }}
           FRONTEND_RESULT: ${{ needs.frontend.result }}
         run: |
-          for result in "$BACKEND_RESULT" "$FRONTEND_RESULT" "$API_RESULT" "$E2E_RESULT"; do
+          for result in "$BACKEND_RESULT" "$FRONTEND_RESULT" "$DOCS_RESULT" "$API_RESULT" "$E2E_RESULT"; do
             if [ "$result" != "success" ]; then
               echo "At least one required job failed or was cancelled."
               exit 1

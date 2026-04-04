@@ -60,7 +60,8 @@ describe("account modal helpers", () => {
   it("opens the reverse-share link modal with the generated upload URL", () => {
     const modals = createModalsMock();
 
-    const config = showReverseShareLinkModal(modals as never, "reverse-token");
+    showReverseShareLinkModal(modals as never, "reverse-token");
+    const [config] = modals.openModal.mock.calls[0];
 
     expect(modals.openModal).toHaveBeenCalledTimes(1);
     renderWithProviders(config.children);
@@ -76,7 +77,8 @@ describe("account modal helpers", () => {
     const user = userEvent.setup();
     const modals = createModalsMock();
 
-    const config = showShareLinkModal(modals as never, "share-123");
+    showShareLinkModal(modals as never, "share-123");
+    const [config] = modals.openModal.mock.calls[0];
 
     renderWithProviders(config.children);
 
@@ -108,11 +110,8 @@ describe("account modal helpers", () => {
       size: 512,
     });
 
-    const config = showShareInformationsModal(
-      modals as never,
-      share,
-      1024,
-    );
+    showShareInformationsModal(modals as never, share, 1024);
+    const [config] = modals.openModal.mock.calls[0];
 
     renderWithProviders(config.children);
 

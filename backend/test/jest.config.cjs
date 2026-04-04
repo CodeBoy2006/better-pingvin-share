@@ -32,6 +32,14 @@ module.exports = {
     "!src/main.ts",
   ],
   coverageDirectory: "<rootDir>/test/coverage",
+  coverageThreshold: {
+    global: {
+      branches: 59,
+      functions: 65,
+      lines: 72,
+      statements: 72,
+    },
+  },
   coverageReporters: ["text", "json-summary", "lcov"],
   reporters: [
     "default",

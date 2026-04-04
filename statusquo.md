@@ -183,3 +183,8 @@
 - **Status:** Completed
 - **Next Steps:** Harden CI with explicit coverage thresholds and bring docs validation into the default gate now that page-level coverage is broader.
 - **Context:** Verified with `npx vitest run --config ./vitest.config.mjs test/page-smoke.test.tsx` from `frontend/`.
+## [$(date '+%Y-%m-%d %H:%M')] Harden CI coverage and docs gating
+- **Changes:** Added global coverage thresholds to `backend/test/jest.config.cjs` and `frontend/vitest.config.mjs`, wired a required `Docs` job into `.github/workflows/ci.yml` with artifact publishing and summary/badge accounting, updated `README.md` CI documentation, fixed the broken Docusaurus upgrading anchor in `docs/docs/setup/upgrading.md`, and finalized the new frontend helper tests so they pass full type-check/build/test runs.
+- **Status:** Completed
+- **Next Steps:** If desired, extend the same CI treatment to the remaining low-signal areas (`oauth`, storage adapters, docs broken-anchor warnings beyond the fixed upgrade link) and consider adding a scheduled full-regression workflow for the backend black-box suite.
+- **Context:** Verified with `npm run quality`, `npm --prefix docs run typecheck && npm --prefix docs run build`, `ruby -e 'require "yaml"; YAML.load_file(".github/workflows/ci.yml"); YAML.load_file(".github/workflows/build-docker-image.yml")'`, `npm --prefix backend run test:system`, and `npm run test:e2e`.
