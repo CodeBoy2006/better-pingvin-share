@@ -23,21 +23,10 @@ import {
 import { FileService } from "./file.service";
 import { FileSecurityGuard } from "./guard/fileSecurity.guard";
 import * as mime from "mime-types";
-import { Readable } from "stream";
 
 @Controller("shares/:shareId/files")
 export class FileController {
   constructor(private fileService: FileService) {}
-
-  private async streamToBuffer(stream: Readable) {
-    const chunks: Buffer[] = [];
-
-    for await (const chunk of stream) {
-      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-    }
-
-    return Buffer.concat(chunks);
-  }
 
   @Post()
   @SkipThrottle()
@@ -120,18 +109,7 @@ export class FileController {
       "X-Robots-Tag": "noindex, nofollow",
     });
 
-    if (
-      descriptor.kind === "image" ||
-      descriptor.kind === "audio" ||
-      descriptor.kind === "video" ||
-      descriptor.kind === "pdf"
-    ) {
-      return new StreamableFile(file.file);
-    }
-
-    const content = (await this.streamToBuffer(file.file)).toString("utf8");
-
-    return content;
+    return new StreamableFile(file.file);
   }
 
   @Get(":fileId")

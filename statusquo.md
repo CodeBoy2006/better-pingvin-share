@@ -200,3 +200,9 @@
 - **Status:** Completed
 - **Next Steps:** Add more browser-renderable MIME aliases only if specific crawler targets require them.
 - **Context:** Text-like files still return raw inline text, while image/audio/video/PDF web views stream original bytes with inline disposition and native content types; MP4 files are normalized to `video/mp4` because the current MIME lookup returns `application/mp4`.
+
+## [2026-04-04 15:11] Stream text files.json web views
+- **Changes:** Simplified `backend/src/file/file.controller.ts` so text-like `webViewUrl` responses stream the original file bytes as `text/plain` instead of buffering the whole file into memory first; media web views continue streaming inline unchanged.
+- **Status:** Completed
+- **Next Steps:** If larger text files become important, consider raising the 5 MiB text gate now that responses no longer need full in-memory buffering.
+- **Context:** This keeps crawler-facing output identical (raw file content only) while reducing per-request memory pressure for text/code/markdown views.
