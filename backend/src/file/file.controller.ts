@@ -109,7 +109,10 @@ export class FileController {
         type: "inline",
       }),
       "Content-Type":
-        descriptor.kind === "image" || descriptor.kind === "audio"
+        descriptor.kind === "image" ||
+        descriptor.kind === "audio" ||
+        descriptor.kind === "video" ||
+        descriptor.kind === "pdf"
           ? descriptor.contentType || contentType
           : "text/plain; charset=utf-8",
       "Content-Length": file.metaData.size,
@@ -117,7 +120,12 @@ export class FileController {
       "X-Robots-Tag": "noindex, nofollow",
     });
 
-    if (descriptor.kind === "image" || descriptor.kind === "audio") {
+    if (
+      descriptor.kind === "image" ||
+      descriptor.kind === "audio" ||
+      descriptor.kind === "video" ||
+      descriptor.kind === "pdf"
+    ) {
       return new StreamableFile(file.file);
     }
 

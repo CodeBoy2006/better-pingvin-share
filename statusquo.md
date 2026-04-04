@@ -194,3 +194,9 @@
 - **Status:** Completed
 - **Next Steps:** Add more media families only if crawler requirements expand beyond images and audio.
 - **Context:** Text-like files still use the 5 MiB raw-content limit, while image/audio web views stream the original bytes inline with their native content types and no extra page chrome.
+
+## [2026-04-04 15:01] Add video and PDF files.json web views
+- **Changes:** Extended `backend/src/file/fileWebView.util.ts` and `backend/src/file/file.controller.ts` so `webViewUrl` now also supports inline video and PDF responses, normalized MP4 handling for crawler-friendly rendering, and expanded `backend/test/integration/share/legacy-share.controller.spec.ts` plus docs/config/admin copy to cover video/PDF support.
+- **Status:** Completed
+- **Next Steps:** Add more browser-renderable MIME aliases only if specific crawler targets require them.
+- **Context:** Text-like files still return raw inline text, while image/audio/video/PDF web views stream original bytes with inline disposition and native content types; MP4 files are normalized to `video/mp4` because the current MIME lookup returns `application/mp4`.

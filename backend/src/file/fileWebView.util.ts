@@ -1,6 +1,13 @@
 import * as mime from "mime-types";
 
-export type FileWebViewKind = "markdown" | "code" | "text" | "image" | "audio";
+export type FileWebViewKind =
+  | "markdown"
+  | "code"
+  | "text"
+  | "image"
+  | "audio"
+  | "video"
+  | "pdf";
 
 export type FileWebViewDescriptor = {
   kind: FileWebViewKind;
@@ -67,6 +74,14 @@ const CODE_LANGUAGE_BY_EXTENSION: Record<string, string> = {
   yaml: "yaml",
   yml: "yaml",
   zsh: "bash",
+};
+
+const VIDEO_CONTENT_TYPE_BY_EXTENSION: Record<string, string> = {
+  mp4: "video/mp4",
+  m4v: "video/x-m4v",
+  mov: "video/quicktime",
+  webm: "video/webm",
+  ogv: "video/ogg",
 };
 
 const LOOKS_TEXTUAL_MIME_TYPES = [
@@ -151,6 +166,34 @@ export function getFileWebViewDescriptor(
     } satisfies FileWebViewDescriptor;
   }
 
+  if (VIDEO_CONTENT_TYPE_BY_EXTENSION[extension]) {
+    return {
+      kind: "video",
+      contentType: VIDEO_CONTENT_TYPE_BY_EXTENSION[extension],
+    } satisfies FileWebViewDescriptor;
+  }
+
+  if (normalizedContentType.startsWith("video/")) {
+    return {
+      kind: "video",
+      contentType: normalizedContentType,
+    } satisfies FileWebViewDescriptor;
+  }
+
+  if (normalizedContentType === "application/mp4") {
+    return {
+      kind: "video",
+      contentType: "video/mp4",
+    } satisfies FileWebViewDescriptor;
+  }
+
+  if (normalizedContentType === "application/pdf") {
+    return {
+      kind: "pdf",
+      contentType: normalizedContentType,
+    } satisfies FileWebViewDescriptor;
+  }
+
   return undefined;
 }
 
@@ -172,7 +215,12 @@ export function canExposeFileWebView(
     return false;
   }
 
-  if (descriptor.kind === "image" || descriptor.kind === "audio") {
+  if (
+    descriptor.kind === "image" ||
+    descriptor.kind === "audio" ||
+    descriptor.kind === "video" ||
+    descriptor.kind === "pdf"
+  ) {
     return true;
   }
 

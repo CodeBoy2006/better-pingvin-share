@@ -541,7 +541,7 @@ export default {
   "admin.config.share.files-json-web-view-links-enabled":
     "Add web-view links to files.json",
   "admin.config.share.files-json-web-view-links-enabled.description":
-    "When enabled, files.json adds a webViewUrl for supported text-like files, images, and audio. The link renders inline instead of forcing a download, which helps crawlers that cannot fetch attachments.",
+    "When enabled, files.json adds a webViewUrl for supported text-like files, images, audio, video, and PDFs. The link renders inline instead of forcing a download, which helps crawlers that cannot fetch attachments.",
   "admin.config.share.file-retention-period": "File retention period",
   "admin.config.share.file-retention-period.description":
     "Keep expired or owner-deleted shares for an additional period before their files are permanently removed.",

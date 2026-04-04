@@ -250,6 +250,11 @@ describe("Legacy share endpoints", () => {
       0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
     ]);
     const audioBytes = Buffer.from([0x49, 0x44, 0x33, 0x04, 0x00, 0x00]);
+    const videoBytes = Buffer.from([
+      0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70,
+      0x6d, 0x70, 0x34, 0x32, 0x00, 0x00, 0x00, 0x00,
+    ]);
+    const pdfBytes = Buffer.from("%PDF-1.4\n1 0 obj\n<<>>\nendobj\n", "utf8");
 
     const createResponse = await fixture.request.post("/api/shares").send(
       buildCreateShareDto({
@@ -291,6 +296,26 @@ describe("Legacy share endpoints", () => {
 
     expect(audioUploadResponse.status).toBe(201);
 
+    const videoUploadResponse = await fixture.request
+      .post(
+        `/api/shares/${shareId}/files?name=clip.mp4&chunkIndex=0&totalChunks=1`,
+      )
+      .set("Cookie", ownerCookie)
+      .set("Content-Type", "application/octet-stream")
+      .send(videoBytes);
+
+    expect(videoUploadResponse.status).toBe(201);
+
+    const pdfUploadResponse = await fixture.request
+      .post(
+        `/api/shares/${shareId}/files?name=manual.pdf&chunkIndex=0&totalChunks=1`,
+      )
+      .set("Cookie", ownerCookie)
+      .set("Content-Type", "application/octet-stream")
+      .send(pdfBytes);
+
+    expect(pdfUploadResponse.status).toBe(201);
+
     const binaryUploadResponse = await fixture.request
       .post(
         `/api/shares/${shareId}/files?name=archive.zip&chunkIndex=0&totalChunks=1`,
@@ -323,6 +348,12 @@ describe("Legacy share endpoints", () => {
     const audioFile = fileListResponse.body.files.find(
       (file: { id: string }) => file.id === audioUploadResponse.body.id,
     );
+    const videoFile = fileListResponse.body.files.find(
+      (file: { id: string }) => file.id === videoUploadResponse.body.id,
+    );
+    const pdfFile = fileListResponse.body.files.find(
+      (file: { id: string }) => file.id === pdfUploadResponse.body.id,
+    );
     const unsupportedFile = fileListResponse.body.files.find(
       (file: { id: string }) => file.id === binaryUploadResponse.body.id,
     );
@@ -335,6 +366,12 @@ describe("Legacy share endpoints", () => {
     );
     expect(audioFile.webViewUrl).toBe(
       `http://localhost:3000/api/shares/${shareId}/files/${audioUploadResponse.body.id}/web`,
+    );
+    expect(videoFile.webViewUrl).toBe(
+      `http://localhost:3000/api/shares/${shareId}/files/${videoUploadResponse.body.id}/web`,
+    );
+    expect(pdfFile.webViewUrl).toBe(
+      `http://localhost:3000/api/shares/${shareId}/files/${pdfUploadResponse.body.id}/web`,
     );
     expect(unsupportedFile.webViewUrl).toBeUndefined();
 
@@ -370,6 +407,30 @@ describe("Legacy share endpoints", () => {
       /^audio\/mpeg\b/,
     );
     expect(Buffer.compare(audioWebViewResponse.body, audioBytes)).toBe(0);
+
+    const videoWebViewUrl = new URL(videoFile.webViewUrl);
+    const videoWebViewResponse = await publicAgent
+      .get(`${videoWebViewUrl.pathname}${videoWebViewUrl.search}`)
+      .buffer(true)
+      .parse(binaryResponseParser);
+
+    expect(videoWebViewResponse.status).toBe(200);
+    expect(videoWebViewResponse.headers["content-type"]).toMatch(
+      /^video\/mp4\b/,
+    );
+    expect(Buffer.compare(videoWebViewResponse.body, videoBytes)).toBe(0);
+
+    const pdfWebViewUrl = new URL(pdfFile.webViewUrl);
+    const pdfWebViewResponse = await publicAgent
+      .get(`${pdfWebViewUrl.pathname}${pdfWebViewUrl.search}`)
+      .buffer(true)
+      .parse(binaryResponseParser);
+
+    expect(pdfWebViewResponse.status).toBe(200);
+    expect(pdfWebViewResponse.headers["content-type"]).toMatch(
+      /^application\/pdf\b/,
+    );
+    expect(Buffer.compare(pdfWebViewResponse.body, pdfBytes)).toBe(0);
 
     await fixture.updateConfig("share.filesJsonWebViewLinksEnabled", false);
   });
