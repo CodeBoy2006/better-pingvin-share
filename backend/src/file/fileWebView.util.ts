@@ -1,6 +1,6 @@
 import * as mime from "mime-types";
 
-export type FileWebViewKind = "markdown" | "code" | "text";
+export type FileWebViewKind = "markdown" | "code" | "text" | "image" | "audio";
 
 export type FileWebViewDescriptor = {
   kind: FileWebViewKind;
@@ -137,6 +137,20 @@ export function getFileWebViewDescriptor(
     } satisfies FileWebViewDescriptor;
   }
 
+  if (normalizedContentType.startsWith("image/")) {
+    return {
+      kind: "image",
+      contentType: normalizedContentType,
+    } satisfies FileWebViewDescriptor;
+  }
+
+  if (normalizedContentType.startsWith("audio/")) {
+    return {
+      kind: "audio",
+      contentType: normalizedContentType,
+    } satisfies FileWebViewDescriptor;
+  }
+
   return undefined;
 }
 
@@ -145,12 +159,22 @@ export function canExposeFileWebView(
   sizeBytes: string | number,
   contentType?: string | false,
 ) {
-  const numericSize =
-    typeof sizeBytes === "string" ? parseInt(sizeBytes, 10) : sizeBytes;
+  const descriptor = getFileWebViewDescriptor(fileName, contentType);
 
-  if (!Number.isFinite(numericSize) || numericSize > MAX_FILE_WEB_VIEW_BYTES) {
+  if (!descriptor) {
     return false;
   }
 
-  return getFileWebViewDescriptor(fileName, contentType) !== undefined;
+  const numericSize =
+    typeof sizeBytes === "string" ? parseInt(sizeBytes, 10) : sizeBytes;
+
+  if (!Number.isFinite(numericSize)) {
+    return false;
+  }
+
+  if (descriptor.kind === "image" || descriptor.kind === "audio") {
+    return true;
+  }
+
+  return numericSize <= MAX_FILE_WEB_VIEW_BYTES;
 }

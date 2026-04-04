@@ -188,3 +188,9 @@
 - **Status:** Completed
 - **Next Steps:** If desired, extend the same CI treatment to the remaining low-signal areas (`oauth`, storage adapters, docs broken-anchor warnings beyond the fixed upgrade link) and consider adding a scheduled full-regression workflow for the backend black-box suite.
 - **Context:** Verified with `npm run quality`, `npm --prefix docs run typecheck && npm --prefix docs run build`, `ruby -e 'require "yaml"; YAML.load_file(".github/workflows/ci.yml"); YAML.load_file(".github/workflows/build-docker-image.yml")'`, `npm --prefix backend run test:system`, and `npm run test:e2e`.
+
+## [2026-04-04 14:49] Extend files.json web-view links to media
+- **Changes:** Expanded `backend/src/file/fileWebView.util.ts` and `backend/src/file/file.controller.ts` so `webViewUrl` also covers inline image and audio responses while keeping raw text responses for text-like files; updated `backend/test/integration/share/legacy-share.controller.spec.ts`, `README.md`, `config.example.yaml`, and admin copy to document the broader media support.
+- **Status:** Completed
+- **Next Steps:** Add more media families only if crawler requirements expand beyond images and audio.
+- **Context:** Text-like files still use the 5 MiB raw-content limit, while image/audio web views stream the original bytes inline with their native content types and no extra page chrome.

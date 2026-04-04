@@ -103,17 +103,25 @@ export class FileController {
       throw new NotFoundException("Web view not available");
     }
 
-    const content = (await this.streamToBuffer(file.file)).toString("utf8");
-
     res.set({
       "Cache-Control": "private, no-store",
       "Content-Disposition": contentDisposition(file.metaData.name, {
         type: "inline",
       }),
-      "Content-Type": "text/plain; charset=utf-8",
+      "Content-Type":
+        descriptor.kind === "image" || descriptor.kind === "audio"
+          ? descriptor.contentType || contentType
+          : "text/plain; charset=utf-8",
+      "Content-Length": file.metaData.size,
       "X-Content-Type-Options": "nosniff",
       "X-Robots-Tag": "noindex, nofollow",
     });
+
+    if (descriptor.kind === "image" || descriptor.kind === "audio") {
+      return new StreamableFile(file.file);
+    }
+
+    const content = (await this.streamToBuffer(file.file)).toString("utf8");
 
     return content;
   }

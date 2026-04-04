@@ -246,6 +246,10 @@ describe("Legacy share endpoints", () => {
     await fixture.updateConfig("share.filesJsonWebViewLinksEnabled", true);
 
     const shareId = `web-view-links-${randomUUID().slice(0, 8)}`;
+    const imageBytes = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+    ]);
+    const audioBytes = Buffer.from([0x49, 0x44, 0x33, 0x04, 0x00, 0x00]);
 
     const createResponse = await fixture.request.post("/api/shares").send(
       buildCreateShareDto({
@@ -266,6 +270,26 @@ describe("Legacy share endpoints", () => {
       .send(Buffer.from("# Guide\n\nCrawler friendly preview."));
 
     expect(textUploadResponse.status).toBe(201);
+
+    const imageUploadResponse = await fixture.request
+      .post(
+        `/api/shares/${shareId}/files?name=cover.png&chunkIndex=0&totalChunks=1`,
+      )
+      .set("Cookie", ownerCookie)
+      .set("Content-Type", "application/octet-stream")
+      .send(imageBytes);
+
+    expect(imageUploadResponse.status).toBe(201);
+
+    const audioUploadResponse = await fixture.request
+      .post(
+        `/api/shares/${shareId}/files?name=theme.mp3&chunkIndex=0&totalChunks=1`,
+      )
+      .set("Cookie", ownerCookie)
+      .set("Content-Type", "application/octet-stream")
+      .send(audioBytes);
+
+    expect(audioUploadResponse.status).toBe(201);
 
     const binaryUploadResponse = await fixture.request
       .post(
@@ -293,12 +317,24 @@ describe("Legacy share endpoints", () => {
     const supportedFile = fileListResponse.body.files.find(
       (file: { id: string }) => file.id === textUploadResponse.body.id,
     );
+    const imageFile = fileListResponse.body.files.find(
+      (file: { id: string }) => file.id === imageUploadResponse.body.id,
+    );
+    const audioFile = fileListResponse.body.files.find(
+      (file: { id: string }) => file.id === audioUploadResponse.body.id,
+    );
     const unsupportedFile = fileListResponse.body.files.find(
       (file: { id: string }) => file.id === binaryUploadResponse.body.id,
     );
 
     expect(supportedFile.webViewUrl).toBe(
       `http://localhost:3000/api/shares/${shareId}/files/${textUploadResponse.body.id}/web`,
+    );
+    expect(imageFile.webViewUrl).toBe(
+      `http://localhost:3000/api/shares/${shareId}/files/${imageUploadResponse.body.id}/web`,
+    );
+    expect(audioFile.webViewUrl).toBe(
+      `http://localhost:3000/api/shares/${shareId}/files/${audioUploadResponse.body.id}/web`,
     );
     expect(unsupportedFile.webViewUrl).toBeUndefined();
 
@@ -310,6 +346,30 @@ describe("Legacy share endpoints", () => {
     expect(webViewResponse.status).toBe(200);
     expect(webViewResponse.headers["content-type"]).toMatch(/^text\/plain\b/);
     expect(webViewResponse.text).toBe("# Guide\n\nCrawler friendly preview.");
+
+    const imageWebViewUrl = new URL(imageFile.webViewUrl);
+    const imageWebViewResponse = await publicAgent
+      .get(`${imageWebViewUrl.pathname}${imageWebViewUrl.search}`)
+      .buffer(true)
+      .parse(binaryResponseParser);
+
+    expect(imageWebViewResponse.status).toBe(200);
+    expect(imageWebViewResponse.headers["content-type"]).toMatch(
+      /^image\/png\b/,
+    );
+    expect(Buffer.compare(imageWebViewResponse.body, imageBytes)).toBe(0);
+
+    const audioWebViewUrl = new URL(audioFile.webViewUrl);
+    const audioWebViewResponse = await publicAgent
+      .get(`${audioWebViewUrl.pathname}${audioWebViewUrl.search}`)
+      .buffer(true)
+      .parse(binaryResponseParser);
+
+    expect(audioWebViewResponse.status).toBe(200);
+    expect(audioWebViewResponse.headers["content-type"]).toMatch(
+      /^audio\/mpeg\b/,
+    );
+    expect(Buffer.compare(audioWebViewResponse.body, audioBytes)).toBe(0);
 
     await fixture.updateConfig("share.filesJsonWebViewLinksEnabled", false);
   });
