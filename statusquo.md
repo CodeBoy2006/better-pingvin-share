@@ -178,3 +178,8 @@
 - **Status:** Completed
 - **Next Steps:** Expand page-level coverage for auth/legal wrappers and then tighten CI around the improved frontend baseline.
 - **Context:** Verified with `npx vitest run --config ./vitest.config.mjs src/components/admin/admin-helpers.test.tsx` from `frontend/`; the run still shows existing UI-library warnings around `passHref`, jsdom navigation, and controlled inputs, but assertions pass cleanly.
+## [$(date '+%Y-%m-%d %H:%M')] Expand frontend page smoke coverage
+- **Changes:** Extended `frontend/test/page-smoke.test.tsx` to cover reset-password submission, sign-up routing, and the config-driven imprint/privacy markdown pages in addition to the existing page smoke layer.
+- **Status:** Completed
+- **Next Steps:** Harden CI with explicit coverage thresholds and bring docs validation into the default gate now that page-level coverage is broader.
+- **Context:** Verified with `npx vitest run --config ./vitest.config.mjs test/page-smoke.test.tsx` from `frontend/`.

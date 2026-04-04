@@ -157,6 +157,8 @@ vi.mock("../src/services/auth.service", () => ({
     enableTOTP: vi.fn(),
     getAvailableOAuth: vi.fn(),
     getOAuthStatus: vi.fn(),
+    requestResetPassword: vi.fn(),
+    signUp: vi.fn(),
     updatePassword: vi.fn(),
   },
 }));
@@ -182,13 +184,18 @@ import authService from "../src/services/auth.service";
 import configService from "../src/services/config.service";
 import shareService from "../src/services/share.service";
 import userService from "../src/services/user.service";
+import toast from "../src/utils/toast.util";
 import AccountPage from "../src/pages/account/index";
 import AccountReverseSharesPage from "../src/pages/account/reverseShares";
 import AccountSharesPage from "../src/pages/account/shares";
 import AdminConfigPage from "../src/pages/admin/config/[category]";
 import AdminPage from "../src/pages/admin/index";
 import AdminUsersPage from "../src/pages/admin/users";
+import ResetPasswordPage from "../src/pages/auth/resetPassword/index";
+import SignUpPage from "../src/pages/auth/signUp";
 import HomePage from "../src/pages/index";
+import ImprintPage from "../src/pages/imprint/index";
+import PrivacyPolicyPage from "../src/pages/privacy/index";
 import SharePage from "../src/pages/share/[shareId]/index";
 import UploadPage from "../src/pages/upload/index";
 
@@ -222,6 +229,19 @@ const baseUploadConfig = [
   }),
 ];
 
+const legalPageConfig = [
+  createConfig({
+    key: "legal.imprintText",
+    type: "string",
+    value: "[Legal contact](https://example.com/imprint)",
+  }),
+  createConfig({
+    key: "legal.privacyPolicyText",
+    type: "string",
+    value: "[Privacy details](https://example.com/privacy)",
+  }),
+];
+
 describe("page smoke tests", () => {
   beforeEach(() => {
     setMockRouter();
@@ -232,6 +252,10 @@ describe("page smoke tests", () => {
     vi.mocked(authService.getOAuthStatus).mockResolvedValue(
       axiosResponse({}),
     );
+    vi.mocked(authService.requestResetPassword).mockResolvedValue(
+      axiosResponse({}),
+    );
+    vi.mocked(authService.signUp).mockResolvedValue(axiosResponse({}));
     vi.mocked(apiTokenService.list).mockResolvedValue([]);
     vi.mocked(shareService.getMyShares).mockResolvedValue([]);
     vi.mocked(shareService.getMyReverseShares).mockResolvedValue([]);
@@ -411,5 +435,89 @@ describe("page smoke tests", () => {
     expect(screen.getByRole("heading", { name: /general/i })).toBeInTheDocument();
     expect(screen.getByText(/config input: general\.appUrl/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^save$/i })).toBeInTheDocument();
+  });
+
+  it("submits the reset-password page and redirects back to sign-in", async () => {
+    const user = userEvent.setup();
+    const router = setMockRouter({
+      pathname: "/auth/resetPassword",
+    });
+
+    renderWithProviders(<ResetPasswordPage />);
+
+    await user.type(screen.getByLabelText(/^email$/i), "reset@example.com");
+    await user.click(
+      screen.getByRole("button", { name: /reset password/i }),
+    );
+
+    await waitFor(() => {
+      expect(authService.requestResetPassword).toHaveBeenCalledWith(
+        "reset@example.com",
+      );
+    });
+    expect(toast.success).toHaveBeenCalled();
+    expect(router.push).toHaveBeenCalledWith("/auth/signIn");
+  });
+
+  it("renders the sign-up page wrapper and routes new members to uploads", async () => {
+    const user = userEvent.setup();
+    const router = setMockRouter({
+      pathname: "/auth/signUp",
+    });
+    const refreshUser = vi.fn().mockResolvedValue(createUser());
+
+    renderWithProviders(<SignUpPage />, {
+      providers: {
+        configVariables: baseUploadConfig,
+        refreshUser,
+      },
+    });
+
+    await user.type(screen.getByLabelText(/^username$/i), "newuser");
+    await user.type(screen.getByLabelText(/^email$/i), "new@example.com");
+    await user.type(screen.getByLabelText(/^password$/i), "Password123!");
+    await user.click(
+      screen.getByRole("button", { name: /let'?s get started/i }),
+    );
+
+    await waitFor(() => {
+      expect(authService.signUp).toHaveBeenCalledWith(
+        "new@example.com",
+        "newuser",
+        "Password123!",
+      );
+    });
+    expect(router.replace).toHaveBeenCalledWith("/upload");
+  });
+
+  it("renders the imprint markdown page from config text", async () => {
+    renderWithProviders(<ImprintPage />, {
+      providers: {
+        configVariables: [...baseUploadConfig, ...legalPageConfig],
+      },
+    });
+
+    expect(
+      await screen.findByRole("heading", { name: /imprint/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /legal contact/i })).toHaveAttribute(
+      "href",
+      "https://example.com/imprint",
+    );
+  });
+
+  it("renders the privacy policy markdown page from config text", async () => {
+    renderWithProviders(<PrivacyPolicyPage />, {
+      providers: {
+        configVariables: [...baseUploadConfig, ...legalPageConfig],
+      },
+    });
+
+    expect(
+      await screen.findByRole("heading", { name: /privacy policy/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /privacy details/i }),
+    ).toHaveAttribute("href", "https://example.com/privacy");
   });
 });
