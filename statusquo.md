@@ -158,3 +158,8 @@
 - **Status:** Completed
 - **Next Steps:** If needed, broaden the supported file-type matcher for additional text-based formats.
 - **Context:** `webViewUrl` stays opt-in via `share.filesJsonWebViewLinksEnabled`; supported files are limited to text-like content so crawlers can fetch source without triggering attachment downloads.
+## [$(date '+%Y-%m-%d %H:%M')] Add backend email service coverage
+- **Changes:** Added `backend/test/unit/email/email.service.spec.ts` to cover SMTP gating, transporter configuration, share recipient templating, reverse-share/reset/invite email payloads, and transport error propagation.
+- **Status:** Completed
+- **Next Steps:** Continue raising backend coverage in other low-signal services (`jobs`, `oauth`, storage backends) and then tighten CI thresholds around the improved baseline.
+- **Context:** Verified with `npx jest --config ./test/jest.config.cjs --selectProjects unit --runInBand --runTestsByPath test/unit/email/email.service.spec.ts` from `backend/`.
