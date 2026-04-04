@@ -168,3 +168,8 @@
 - **Status:** Completed
 - **Next Steps:** Continue improving frontend coverage around zero-hit account/admin UI helpers, then harden CI thresholds once the new baseline is stable.
 - **Context:** Verified with `npx jest --config ./test/jest.config.cjs --selectProjects unit --runInBand --runTestsByPath test/unit/jobs/jobs.service.spec.ts` from `backend/`.
+## [$(date '+%Y-%m-%d %H:%M')] Add frontend account modal coverage
+- **Changes:** Added `frontend/src/components/account/account-modals.test.tsx` to exercise reverse-share link generation, share-link/files.json modal rendering, QR toggle behavior, and share information details/usage output.
+- **Status:** Completed
+- **Next Steps:** Fill the remaining zero-hit admin UI helpers and page wrappers, then codify the improved baseline in CI.
+- **Context:** Verified with `npx vitest run --config ./vitest.config.mjs src/components/account/account-modals.test.tsx` from `frontend/`; Mantine still emits a harmless read-only input warning for the existing reverse-share modal implementation.
