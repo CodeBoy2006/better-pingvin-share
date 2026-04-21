@@ -24,6 +24,14 @@ import { FileService } from "./file.service";
 import { FileSecurityGuard } from "./guard/fileSecurity.guard";
 import * as mime from "mime-types";
 
+const PRIVATE_NO_STORE_HEADERS = {
+  "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+  Expires: "0",
+  Pragma: "no-cache",
+  Vary: "Cookie",
+  "X-Robots-Tag": "noindex, nofollow",
+} as const;
+
 @Controller("shares/:shareId/files")
 export class FileController {
   constructor(private fileService: FileService) {}
@@ -59,9 +67,12 @@ export class FileController {
     @Res({ passthrough: true }) res: Response,
     @Param("shareId") shareId: string,
   ) {
+    res.set(PRIVATE_NO_STORE_HEADERS);
+
     const zipStream = await this.fileService.getZip(shareId);
 
     res.set({
+      ...PRIVATE_NO_STORE_HEADERS,
       "Content-Type": "application/zip",
       "Content-Disposition": contentDisposition(`${shareId}.zip`),
     });
@@ -76,6 +87,8 @@ export class FileController {
     @Param("shareId") shareId: string,
     @Param("fileId") fileId: string,
   ) {
+    res.set(PRIVATE_NO_STORE_HEADERS);
+
     const file = await this.fileService.get(shareId, fileId);
     const contentType =
       mime?.lookup?.(file.metaData.name) || "application/octet-stream";
@@ -86,14 +99,17 @@ export class FileController {
       throw new NotFoundException("Web view not available");
     }
 
-    const descriptor = getFileWebViewDescriptor(file.metaData.name, contentType);
+    const descriptor = getFileWebViewDescriptor(
+      file.metaData.name,
+      contentType,
+    );
 
     if (!descriptor) {
       throw new NotFoundException("Web view not available");
     }
 
     res.set({
-      "Cache-Control": "private, no-store",
+      ...PRIVATE_NO_STORE_HEADERS,
       "Content-Disposition": contentDisposition(file.metaData.name, {
         type: "inline",
       }),
@@ -106,7 +122,6 @@ export class FileController {
           : "text/plain; charset=utf-8",
       "Content-Length": file.metaData.size,
       "X-Content-Type-Options": "nosniff",
-      "X-Robots-Tag": "noindex, nofollow",
     });
 
     return new StreamableFile(file.file);
@@ -120,9 +135,12 @@ export class FileController {
     @Param("fileId") fileId: string,
     @Query("download") download = "true",
   ) {
+    res.set(PRIVATE_NO_STORE_HEADERS);
+
     const file = await this.fileService.get(shareId, fileId);
 
     const headers = {
+      ...PRIVATE_NO_STORE_HEADERS,
       "Content-Type":
         mime?.lookup?.(file.metaData.name) || "application/octet-stream",
       "Content-Length": file.metaData.size,

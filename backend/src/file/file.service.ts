@@ -15,7 +15,6 @@ export class FileService {
   ) {}
 
   // Determine which service to use based on the current config value
-  // shareId is optional -> can be used to overwrite a storage provider
   private getStorageService(
     storageProvider?: string,
   ): S3FileService | LocalFileService {
@@ -70,17 +69,19 @@ export class FileService {
       throw new NotFoundException("File not found");
     }
 
-    const storageService = this.getStorageService();
+    const storageService = await this.getStorageServiceForShare(shareId);
     return storageService.remove(shareId, fileId);
   }
 
-  async deleteAllFiles(shareId: string) {
-    const storageService = this.getStorageService();
+  async deleteAllFiles(shareId: string, storageProvider?: string) {
+    const storageService = storageProvider
+      ? this.getStorageService(storageProvider)
+      : await this.getStorageServiceForShare(shareId);
     return storageService.deleteAllFiles(shareId);
   }
 
   async getZip(shareId: string): Promise<Readable> {
-    const storageService = this.getStorageService();
+    const storageService = await this.getStorageServiceForShare(shareId);
     return await storageService.getZip(shareId);
   }
 
@@ -98,6 +99,19 @@ export class FileService {
     }
 
     return await this.localFileService.getZipForOwner(shareId);
+  }
+
+  private async getStorageServiceForShare(shareId: string) {
+    const share = await this.prisma.share.findUnique({
+      where: { id: shareId },
+      select: { storageProvider: true },
+    });
+
+    if (!share) {
+      throw new NotFoundException("Share not found");
+    }
+
+    return this.getStorageService(share.storageProvider);
   }
 
   private async streamToUint8Array(stream: Readable): Promise<Uint8Array> {

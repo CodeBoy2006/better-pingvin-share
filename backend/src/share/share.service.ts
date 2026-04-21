@@ -20,6 +20,7 @@ import { ReverseShareService } from "src/reverseShare/reverseShare.service";
 import { parseRelativeDateToAbsolute } from "src/utils/date.util";
 import { SHARE_DIRECTORY } from "../constants";
 import { CreateShareDTO } from "./dto/createShare.dto";
+import { isShareExpired, isShareRemoved } from "./shareAccess.util";
 
 @Injectable()
 export class ShareService {
@@ -251,11 +252,16 @@ export class ShareService {
     const totalShareSizeBytes = shares.reduce(
       (shareTotal, share) =>
         shareTotal +
-        share.files.reduce((fileTotal, file) => fileTotal + parseInt(file.size), 0),
+        share.files.reduce(
+          (fileTotal, file) => fileTotal + parseInt(file.size),
+          0,
+        ),
       0,
     );
 
-    const storageProvider = this.configService.get("s3.enabled") ? "S3" : "LOCAL";
+    const storageProvider = this.configService.get("s3.enabled")
+      ? "S3"
+      : "LOCAL";
 
     if (storageProvider === "S3") {
       return {
@@ -328,7 +334,7 @@ export class ShareService {
       },
     });
 
-    if (share.removedReason)
+    if (isShareRemoved(share))
       throw new NotFoundException(share.removedReason, "share_removed");
 
     if (!share || !share.uploadLocked)
@@ -370,21 +376,17 @@ export class ShareService {
       throw new NotFoundException("Share not found");
     }
 
-    if (share.removedReason) {
+    if (isShareRemoved(share)) {
       throw new NotFoundException(share.removedReason, "share_removed");
+    }
+
+    if (isShareExpired(share)) {
+      throw new NotFoundException("Share not found");
     }
 
     const hasAdminAccess =
       options?.isAdmin &&
       this.configService.get("share.allowAdminAccessAllShares");
-
-    if (
-      !hasAdminAccess &&
-      moment().isAfter(share.expiration) &&
-      !moment(share.expiration).isSame(0)
-    ) {
-      throw new NotFoundException("Share not found");
-    }
 
     if (
       !hasAdminAccess &&
@@ -678,14 +680,11 @@ export class ShareService {
       throw new NotFoundException("Share not found");
     }
 
-    if (share.removedReason) {
+    if (isShareRemoved(share)) {
       throw new NotFoundException(share.removedReason, "share_removed");
     }
 
-    if (
-      moment().isAfter(share.expiration) &&
-      !moment(share.expiration).isSame(0)
-    ) {
+    if (isShareExpired(share)) {
       throw new NotFoundException("Share not found");
     }
 

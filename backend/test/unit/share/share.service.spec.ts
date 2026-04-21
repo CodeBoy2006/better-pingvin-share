@@ -3,13 +3,7 @@ import {
   ForbiddenException,
   NotFoundException,
 } from "@nestjs/common";
-import {
-  beforeEach,
-  describe,
-  expect,
-  it,
-  jest,
-} from "@jest/globals";
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import * as argon from "argon2";
 import { ShareService } from "src/share/share.service";
 import { buildCreateShareDto } from "../../fixtures/share.fixture";
@@ -119,9 +113,12 @@ describe("ShareService", () => {
 
     const createCall = prisma.share.create.mock.calls[0][0] as any;
 
-    expect(await argon.verify(createCall.data.security.create.password, "super-secret")).toBe(
-      true,
-    );
+    expect(
+      await argon.verify(
+        createCall.data.security.create.password,
+        "super-secret",
+      ),
+    ).toBe(true);
     expect(createCall.data.storageProvider).toBe("LOCAL");
     expect(result).toEqual(
       expect.objectContaining({
@@ -284,6 +281,44 @@ describe("ShareService", () => {
     ).rejects.toThrow(ForbiddenException);
   });
 
+  it("does not let admin access bypass share expiration for file listings", async () => {
+    config.get.mockImplementation((key: string) => {
+      const values: Record<string, unknown> = {
+        "share.maxExpiration": { value: 0, unit: "days" },
+        "share.allowAdminAccessAllShares": true,
+        "share.zipCompressionLevel": 9,
+        "s3.enabled": false,
+        "smtp.enabled": false,
+        "general.appUrl": "http://localhost:3000",
+        "internal.jwtSecret": "jwt-secret",
+      };
+
+      if (!(key in values)) {
+        throw new Error(`Unexpected config lookup: ${key}`);
+      }
+
+      return values[key];
+    });
+
+    prisma.share.findUnique.mockResolvedValue({
+      id: "share-expired-admin",
+      uploadLocked: true,
+      removedReason: null,
+      creatorId: "share-owner",
+      expiration: new Date("2000-01-01T00:00:00.000Z"),
+      files: [],
+      security: null,
+      reverseShare: null,
+      views: 0,
+    });
+
+    await expect(
+      service.getFileList("share-expired-admin", {
+        isAdmin: true,
+      }),
+    ).rejects.toThrow(NotFoundException);
+  });
+
   it("generates share tokens for public file listings and increments view counts", async () => {
     prisma.share.findUnique.mockResolvedValue({
       id: "share-public",
@@ -329,7 +364,9 @@ describe("ShareService", () => {
 
     await service.remove("share-admin-delete", { isDeleterAdmin: true });
 
-    expect(fileService.deleteAllFiles).toHaveBeenCalledWith("share-admin-delete");
+    expect(fileService.deleteAllFiles).toHaveBeenCalledWith(
+      "share-admin-delete",
+    );
     expect(prisma.share.delete).toHaveBeenCalledWith({
       where: { id: "share-admin-delete" },
     });

@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
 import request from "supertest";
 import { binaryResponseParser } from "../../fixtures/file.fixture";
-import { buildCreateShareDto } from "../../fixtures/share.fixture";
+import { seedStoredFile } from "../../fixtures/file.fixture";
+import { buildCreateShareDto, seedShare } from "../../fixtures/share.fixture";
 import { createIntegrationApp } from "../../fixtures/test-app.fixture";
 
 describe("Legacy share endpoints", () => {
@@ -22,13 +23,11 @@ describe("Legacy share endpoints", () => {
   it("supports the anonymous owner flow, files.json, and owner-token protected uploads", async () => {
     const shareId = `anonymous-owner-${randomUUID().slice(0, 8)}`;
 
-    const createResponse = await fixture.request
-      .post("/api/shares")
-      .send(
-        buildCreateShareDto({
-          id: shareId,
-        }),
-      );
+    const createResponse = await fixture.request.post("/api/shares").send(
+      buildCreateShareDto({
+        id: shareId,
+      }),
+    );
 
     expect(createResponse.status).toBe(201);
     expect(createResponse.body).toEqual(
@@ -156,6 +155,7 @@ describe("Legacy share endpoints", () => {
     expect(downloadResponse.body.toString()).toBe(
       "Anonymous owner integration test file",
     );
+    expect(downloadResponse.headers["cache-control"]).toContain("no-store");
 
     const deleteResponse = await fixture.request
       .delete(`/api/shares/${shareId}`)
@@ -168,6 +168,43 @@ describe("Legacy share endpoints", () => {
       .set("Cookie", ownerCookie);
 
     expect(deletedOwnerPayload.status).toBe(404);
+  });
+
+  it("does not let admin access bypass expiration for retained shares", async () => {
+    await fixture.updateConfig("share.allowAdminAccessAllShares", true);
+    await fixture.updateConfig("share.fileRetentionPeriod", "7 days");
+
+    const owner = await fixture.createUser();
+    const admin = await fixture.createSession({ isAdmin: true });
+    const shareId = `expired-admin-${randomUUID().slice(0, 8)}`;
+    const share = await seedShare(fixture, {
+      id: shareId,
+      creatorId: owner.user.id,
+      uploadLocked: true,
+      expiration: new Date("2000-01-01T00:00:00.000Z"),
+    });
+    const file = await seedStoredFile(fixture, {
+      shareId: share.id,
+      name: "retained.txt",
+      contents: "retained but expired",
+    });
+
+    const shareResponse = await admin.agent.get(`/api/shares/${share.id}`);
+    expect(shareResponse.status).toBe(404);
+
+    const fileListResponse = await admin.agent.get(
+      `/api/shares/${share.id}/files.json`,
+    );
+    expect(fileListResponse.status).toBe(404);
+
+    const downloadResponse = await admin.agent
+      .get(`/api/shares/${share.id}/files/${file.id}`)
+      .buffer(true)
+      .parse(binaryResponseParser);
+    expect(downloadResponse.status).toBe(404);
+
+    await fixture.updateConfig("share.allowAdminAccessAllShares", false);
+    await fixture.updateConfig("share.fileRetentionPeriod", "0 days");
   });
 
   it("refreshes the share cookie for files.json token queries and returns clean URLs", async () => {
@@ -251,8 +288,8 @@ describe("Legacy share endpoints", () => {
     ]);
     const audioBytes = Buffer.from([0x49, 0x44, 0x33, 0x04, 0x00, 0x00]);
     const videoBytes = Buffer.from([
-      0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70,
-      0x6d, 0x70, 0x34, 0x32, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x6d, 0x70, 0x34, 0x32,
+      0x00, 0x00, 0x00, 0x00,
     ]);
     const pdfBytes = Buffer.from("%PDF-1.4\n1 0 obj\n<<>>\nendobj\n", "utf8");
 
@@ -464,7 +501,9 @@ describe("Legacy share endpoints", () => {
       )
       .set("Cookie", ownerCookie)
       .set("Content-Type", "application/octet-stream")
-      .send(Buffer.from("Protected tokenized files.json integration test file"));
+      .send(
+        Buffer.from("Protected tokenized files.json integration test file"),
+      );
 
     expect(uploadResponse.status).toBe(201);
 

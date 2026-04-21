@@ -5,8 +5,8 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { Request } from "express";
-import moment from "moment";
 import { PrismaService } from "src/prisma/prisma.service";
+import { isShareExpired, isShareRemoved } from "../shareAccess.util";
 
 @Injectable()
 export class ShareTokenSecurity implements CanActivate {
@@ -26,11 +26,7 @@ export class ShareTokenSecurity implements CanActivate {
       include: { security: true },
     });
 
-    if (
-      !share ||
-      (moment().isAfter(share.expiration) &&
-        !moment(share.expiration).isSame(0))
-    )
+    if (!share || isShareRemoved(share) || isShareExpired(share))
       throw new NotFoundException("Share not found");
 
     return true;

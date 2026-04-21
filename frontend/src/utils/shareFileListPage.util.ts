@@ -5,6 +5,15 @@ const apiUrl = process.env.API_URL || "http://localhost:8080";
 export async function proxyShareFileListResponse(
   context: GetServerSidePropsContext,
 ) {
+  context.res.setHeader(
+    "Cache-Control",
+    "private, no-store, max-age=0, must-revalidate",
+  );
+  context.res.setHeader("Expires", "0");
+  context.res.setHeader("Pragma", "no-cache");
+  context.res.setHeader("Vary", "Cookie");
+  context.res.setHeader("X-Robots-Tag", "noindex, nofollow");
+
   const shareId = encodeURIComponent(String(context.params?.shareId || ""));
   const queryString = context.resolvedUrl.includes("?")
     ? context.resolvedUrl.slice(context.resolvedUrl.indexOf("?"))

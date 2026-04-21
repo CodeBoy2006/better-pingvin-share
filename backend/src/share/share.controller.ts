@@ -97,6 +97,15 @@ export class ShareController {
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
+    response.set({
+      "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+      "Content-Type": "application/json; charset=utf-8",
+      Expires: "0",
+      Pragma: "no-cache",
+      Vary: "Cookie",
+      "X-Robots-Tag": "noindex, nofollow",
+    });
+
     const shareToken = getShareTokenFromRequest(request, id);
     const user = this.getUserFromRequest(request);
     const fileList = await this.shareService.getFileList(id, {
@@ -119,9 +128,7 @@ export class ShareController {
       "share.filesJsonWebViewLinksEnabled",
     );
     const appendTokenQuery = (url: string) =>
-      tokenQuery
-        ? `${url}${url.includes("?") ? "&" : "?"}${tokenQuery}`
-        : url;
+      tokenQuery ? `${url}${url.includes("?") ? "&" : "?"}${tokenQuery}` : url;
 
     if (
       fileList.shareToken &&
@@ -133,13 +140,6 @@ export class ShareController {
         httpOnly: true,
       });
     }
-
-    response.set({
-      "Cache-Control": "private, no-store",
-      "Content-Type": "application/json; charset=utf-8",
-      Vary: "Cookie",
-      "X-Robots-Tag": "noindex, nofollow",
-    });
 
     return new ShareFileListDTO().from({
       type: "pingvin-share-file-list",
@@ -159,11 +159,14 @@ export class ShareController {
         machineReadableUrl: `${appUrl}/s/${fileList.share.id}/files.json`,
         zipDownloadUrl:
           fileList.share.isZipReady && fileList.share.files.length > 1
-            ? appendTokenQuery(`${appUrl}/api/shares/${fileList.share.id}/files/zip`)
+            ? appendTokenQuery(
+                `${appUrl}/api/shares/${fileList.share.id}/files/zip`,
+              )
             : undefined,
       },
       files: fileList.share.files.map((file) => {
-        const contentType = mime.lookup(file.name) || "application/octet-stream";
+        const contentType =
+          mime.lookup(file.name) || "application/octet-stream";
         const fileUrl = `${appUrl}/api/shares/${fileList.share.id}/files/${file.id}`;
 
         return {

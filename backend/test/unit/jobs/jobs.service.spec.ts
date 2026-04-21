@@ -73,8 +73,8 @@ describe("JobsService", () => {
     const { prisma, fileService, loggerLog, service } = createService();
 
     prisma.share.findMany.mockResolvedValue([
-      { id: "share-1" },
-      { id: "share-2" },
+      { id: "share-1", storageProvider: "LOCAL" },
+      { id: "share-2", storageProvider: "S3" },
     ]);
 
     await service.deleteExpiredShares();
@@ -87,14 +87,28 @@ describe("JobsService", () => {
         ],
       },
     });
+    expect(fileService.deleteAllFiles).toHaveBeenNthCalledWith(
+      1,
+      "share-1",
+      "LOCAL",
+    );
     expect(prisma.share.delete).toHaveBeenNthCalledWith(1, {
       where: { id: "share-1" },
     });
+    expect(fileService.deleteAllFiles).toHaveBeenNthCalledWith(
+      2,
+      "share-2",
+      "S3",
+    );
     expect(prisma.share.delete).toHaveBeenNthCalledWith(2, {
       where: { id: "share-2" },
     });
-    expect(fileService.deleteAllFiles).toHaveBeenNthCalledWith(1, "share-1");
-    expect(fileService.deleteAllFiles).toHaveBeenNthCalledWith(2, "share-2");
+    expect(fileService.deleteAllFiles.mock.invocationCallOrder[0]).toBeLessThan(
+      prisma.share.delete.mock.invocationCallOrder[0],
+    );
+    expect(fileService.deleteAllFiles.mock.invocationCallOrder[1]).toBeLessThan(
+      prisma.share.delete.mock.invocationCallOrder[1],
+    );
     expect(loggerLog).toHaveBeenCalledWith("Deleted 2 expired shares");
   });
 
@@ -128,7 +142,9 @@ describe("JobsService", () => {
   it("deletes unfinished shares that are older than one day", async () => {
     const { prisma, fileService, loggerLog, service } = createService();
 
-    prisma.share.findMany.mockResolvedValue([{ id: "draft-1" }]);
+    prisma.share.findMany.mockResolvedValue([
+      { id: "draft-1", storageProvider: "LOCAL" },
+    ]);
 
     await service.deleteUnfinishedShares();
 
@@ -138,10 +154,13 @@ describe("JobsService", () => {
         uploadLocked: false,
       },
     });
+    expect(fileService.deleteAllFiles).toHaveBeenCalledWith("draft-1", "LOCAL");
     expect(prisma.share.delete).toHaveBeenCalledWith({
       where: { id: "draft-1" },
     });
-    expect(fileService.deleteAllFiles).toHaveBeenCalledWith("draft-1");
+    expect(fileService.deleteAllFiles.mock.invocationCallOrder[0]).toBeLessThan(
+      prisma.share.delete.mock.invocationCallOrder[0],
+    );
     expect(loggerLog).toHaveBeenCalledWith("Deleted 1 unfinished shares");
   });
 

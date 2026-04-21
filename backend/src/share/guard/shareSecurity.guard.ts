@@ -5,13 +5,13 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { Request } from "express";
-import moment from "moment";
 import { PrismaService } from "src/prisma/prisma.service";
 import { ShareService } from "src/share/share.service";
 import { ConfigService } from "src/config/config.service";
 import { JwtGuard } from "src/auth/guard/jwt.guard";
 import { User } from "@prisma/client";
 import { getShareTokenFromRequest } from "../shareRequest.util";
+import { isShareExpired, isShareRemoved } from "../shareAccess.util";
 
 @Injectable()
 export class ShareSecurityGuard extends JwtGuard {
@@ -42,6 +42,14 @@ export class ShareSecurityGuard extends JwtGuard {
 
     if (!share) throw new NotFoundException("Share not found");
 
+    if (isShareRemoved(share)) {
+      throw new NotFoundException(share.removedReason, "share_removed");
+    }
+
+    if (isShareExpired(share)) {
+      throw new NotFoundException("Share not found");
+    }
+
     const user = await this.getAuthenticatedUser(context);
 
     if (
@@ -50,12 +58,6 @@ export class ShareSecurityGuard extends JwtGuard {
     ) {
       return true;
     }
-
-    if (
-      moment().isAfter(share.expiration) &&
-      !moment(share.expiration).isSame(0)
-    )
-      throw new NotFoundException("Share not found");
 
     if (share.security?.password && !shareToken)
       throw new ForbiddenException(

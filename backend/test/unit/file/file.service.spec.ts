@@ -58,7 +58,12 @@ describe("FileService", () => {
     localFileService.create.mockResolvedValue({ id: "local-file" });
 
     await expect(
-      localService.create("payload", { index: 0, total: 1 }, { name: "a.txt" }, "share-1"),
+      localService.create(
+        "payload",
+        { index: 0, total: 1 },
+        { name: "a.txt" },
+        "share-1",
+      ),
     ).resolves.toEqual({ id: "local-file" });
     expect(localFileService.create).toHaveBeenCalledWith(
       "payload",
@@ -71,7 +76,12 @@ describe("FileService", () => {
     s3FileService.create.mockResolvedValue({ id: "remote-file" });
 
     await expect(
-      remoteService.create("payload", { index: 0, total: 1 }, { name: "b.txt" }, "share-2"),
+      remoteService.create(
+        "payload",
+        { index: 0, total: 1 },
+        { name: "b.txt" },
+        "share-2",
+      ),
     ).resolves.toEqual({ id: "remote-file" });
     expect(s3FileService.create).toHaveBeenCalled();
   });
@@ -122,6 +132,22 @@ describe("FileService", () => {
     );
   });
 
+  it("removes files through the share's declared storage provider", async () => {
+    const service = createService(false);
+
+    prisma.file.findUnique.mockResolvedValue({
+      id: "file-3",
+      shareId: "share-s3",
+    });
+    prisma.share.findUnique.mockResolvedValue({
+      id: "share-s3",
+      storageProvider: "S3",
+    });
+
+    await service.remove("share-s3", "file-3");
+    expect(s3FileService.remove).toHaveBeenCalledWith("share-s3", "file-3");
+  });
+
   it("serves owner ZIP downloads from the active backend", async () => {
     const service = createService(false);
     const localZip = Readable.from(["zip-data"]);
@@ -146,6 +172,57 @@ describe("FileService", () => {
     prisma.share.findUnique.mockResolvedValueOnce(null);
 
     await expect(service.getZipForOwner("missing-share")).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+
+  it("loads public ZIP downloads through the share's declared storage provider", async () => {
+    const service = createService(false);
+    const remoteZip = Readable.from(["remote-zip"]);
+
+    prisma.share.findUnique.mockResolvedValue({
+      id: "share-s3",
+      storageProvider: "S3",
+    });
+    s3FileService.getZip.mockResolvedValue(remoteZip);
+
+    await expect(service.getZip("share-s3")).resolves.toBe(remoteZip);
+    expect(s3FileService.getZip).toHaveBeenCalledWith("share-s3");
+
+    prisma.share.findUnique.mockResolvedValue(null);
+
+    await expect(service.getZip("missing-share")).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+
+  it("deletes stored files through the share's declared storage provider", async () => {
+    const service = createService(true);
+
+    prisma.share.findUnique.mockResolvedValueOnce({
+      id: "share-local",
+      storageProvider: "LOCAL",
+    });
+
+    await service.deleteAllFiles("share-local");
+    expect(localFileService.deleteAllFiles).toHaveBeenCalledWith("share-local");
+
+    prisma.share.findUnique.mockResolvedValueOnce({
+      id: "share-s3",
+      storageProvider: "S3",
+    });
+
+    await service.deleteAllFiles("share-s3");
+    expect(s3FileService.deleteAllFiles).toHaveBeenCalledWith("share-s3");
+
+    await service.deleteAllFiles("share-orphaned", "LOCAL");
+    expect(localFileService.deleteAllFiles).toHaveBeenCalledWith(
+      "share-orphaned",
+    );
+
+    prisma.share.findUnique.mockResolvedValueOnce(null);
+
+    await expect(service.deleteAllFiles("missing-share")).rejects.toThrow(
       NotFoundException,
     );
   });

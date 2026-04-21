@@ -206,3 +206,9 @@
 - **Status:** Completed
 - **Next Steps:** If larger text files become important, consider raising the 5 MiB text gate now that responses no longer need full in-memory buffering.
 - **Context:** This keeps crawler-facing output identical (raw file content only) while reducing per-request memory pressure for text/code/markdown views.
+
+## [2026-04-21 20:04] Block Expired Share Artifact Access
+- **Changes:** Centralized expired/removed share checks, prevented admin-all-shares access from bypassing expiration for share details, files, and `files.json`, made file/ZIP deletion honor each share's persisted storage provider, and added strict no-store headers to file and `files.json` responses.
+- **Status:** Completed
+- **Next Steps:** Monitor production logs after deployment to confirm old retained expired shares now return 404 and cleanup jobs remove files from the correct backend.
+- **Context:** Verified with targeted backend unit/integration tests, backend typecheck, frontend typecheck, a focused frontend `files.json` proxy test, and a single-file TypeScript compile for the proxy utility.

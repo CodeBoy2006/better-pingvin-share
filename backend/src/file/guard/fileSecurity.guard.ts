@@ -5,12 +5,12 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { Request } from "express";
-import moment from "moment";
 import { PrismaService } from "src/prisma/prisma.service";
 import { ShareSecurityGuard } from "src/share/guard/shareSecurity.guard";
 import { ShareService } from "src/share/share.service";
 import { ConfigService } from "src/config/config.service";
 import { getShareTokenFromRequest } from "src/share/shareRequest.util";
+import { isShareExpired, isShareRemoved } from "src/share/shareAccess.util";
 
 @Injectable()
 export class FileSecurityGuard extends ShareSecurityGuard {
@@ -41,19 +41,15 @@ export class FileSecurityGuard extends ShareSecurityGuard {
 
     // If there is no share token the user requests a file directly
     if (!shareToken) {
+      if (!share || isShareRemoved(share) || isShareExpired(share)) {
+        throw new NotFoundException("File not found");
+      }
+
       if (this._config.get("share.allowAdminAccessAllShares")) {
         const user = await this.getAuthenticatedUser(context);
         if (user?.isAdmin) {
           return true;
         }
-      }
-
-      if (
-        !share ||
-        (moment().isAfter(share.expiration) &&
-          !moment(share.expiration).isSame(0))
-      ) {
-        throw new NotFoundException("File not found");
       }
 
       if (share.security?.password)
