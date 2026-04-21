@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.15.3] - 2026-04-21
+
+### Highlights
+
+Better Pingvin Share 1.15.3 packages the recent share-hardening and machine-consumption work into a formal patch release. It adds share-level IP access restrictions, introduces administrator-only retained-file audit access, expands `files.json` with optional inline web-view links for crawler-friendly integrations, and closes the remaining gaps that allowed expired share artifacts to leak through normal download paths.
+
+### Added
+
+- Share-level IP restrictions with two modes: a fixed allow list of IP addresses or a first-come-first-served `maxIps` slot limit. The new rules are enforced across share pages, downloads, ZIPs, `files.json`, and web-view routes, and are exposed in the upload UI plus owner/API DTOs.
+- Administrator-only retained-file audit endpoints at `GET /api/shares/:id/audit` and `GET /api/shares/:id/audit/files/:fileId`, together with a new admin share-table action and modal for inspecting retained files without reopening public access to expired shares.
+- Optional `webViewUrl` entries in `files.json` for supported text/code/Markdown files, images, audio, video, and PDFs so crawlers and machine consumers can request inline-renderable resources directly.
+- Expanded backend/frontend automated coverage for email delivery, cleanup jobs, admin helpers, account share modals, share-route aliases, IP normalization, and `files.json` proxy behavior. The CI gate now also validates the documentation build.
+
+### Changed
+
+- Password-protected `files.json` responses can now optionally embed tokenized download and inline-view URLs when `share.filesJsonPasswordProtectedLinksIncludeToken` is enabled. The default behavior remains plain links.
+- Text-like `webViewUrl` responses now stream the original file bytes as raw `text/plain`, while image/audio/video/PDF web views stream the original bytes inline without wrapper HTML.
+- Public share detail, file download, ZIP, `files.json`, and web-view responses now send strict private `no-store` headers to reduce caching of sensitive artifacts.
+- CI now enforces explicit backend/frontend coverage thresholds and a docs build gate, and the README badge snapshots are refreshed from `main` branch CI runs.
+- Share pages now surface dedicated error handling for IP allow-list denials and exhausted dynamic IP-slot claims instead of falling back to generic failures.
+
+### Fixed
+
+- Expired shares and removed artifacts can no longer be fetched through normal share detail, file download, ZIP, or `files.json` routes, even when administrator-wide share access is enabled.
+- File and ZIP deletion now honors the share's persisted storage provider instead of assuming the currently active backend, preventing cleanup from targeting the wrong storage layer.
+- Inline media web views now normalize MP4 delivery and serve image/audio/video/PDF content with browser-friendly inline headers for better crawler and preview compatibility.
+- Retained-share administrator inspection now stays on dedicated audit routes, so administrators can review preserved files without restoring public access to expired links.
+
+### Upgrade notes
+
+- This release includes the Prisma migration `20260421090000_share_ip_access_restrictions`. Run the normal backend migration flow before creating or editing shares that use IP restrictions.
+- IP-based share access depends on accurate client IP resolution. If Better Pingvin Share sits behind a reverse proxy, verify that the real client address is preserved in `X-Forwarded-For` and exposed correctly to the backend.
+- No manual configuration migration is required for the new share settings, but the new `share.filesJsonPasswordProtectedLinksIncludeToken` and `share.filesJsonWebViewLinksEnabled` behaviors remain opt-in.
+- Administrator retained-file audit is most useful when `share.fileRetentionPeriod` is non-zero. Public access to expired shares remains blocked regardless of the retention setting.
+
 ## [1.15.2] - 2026-04-03
 
 ### Highlights

@@ -230,3 +230,9 @@
 - **Status:** Completed
 - **Next Steps:** If CI coverage regresses again, the next cheapest targets are low-coverage auth and account page wrappers rather than broad component snapshot tests.
 - **Context:** Verified with `npm --prefix frontend run test:coverage`; current totals are 80.62% lines/statements and 74.51% branches, above the configured 80%/72% thresholds.
+
+## [2026-04-21 23:45] Release v1.15.3
+- **Changes:** Bumped the root, backend, and frontend package versions to `1.15.3`, updated the version badge snapshot, and added a full `CHANGELOG.md` entry covering the unreleased security, audit, `files.json`, and CI hardening work shipped since `v1.15.2`.
+- **Status:** Completed
+- **Next Steps:** Monitor the `v1.15.3` GitHub release workflow and follow-on `main` branch CI run so the published image/tag flow and badge refreshes settle on the new version.
+- **Context:** Verified with `npm run quality`, `npm --prefix docs ci`, `npm --prefix docs run build`, and `git diff --check`. The existing frontend lint and test warnings remain non-fatal and unchanged from the pre-release branch state.
