@@ -3,6 +3,7 @@ import mime from "mime-types";
 import { FileUploadResponse } from "../types/File.type";
 
 import {
+  AdminShareAudit,
   CreateShare,
   MyReverseShare,
   MyShare,
@@ -29,6 +30,12 @@ const list = async (): Promise<MyShare[]> => {
 
 const getStorageStats = async (): Promise<ShareStorageStats> => {
   return (await api.get(`shares/stats/storage`)).data;
+};
+
+const getAdminAuditShare = async (
+  shareId: string,
+): Promise<AdminShareAudit> => {
+  return (await api.get(`shares/${shareId}/audit`)).data;
 };
 
 const create = async (share: CreateShare, isReverseShare = false) => {
@@ -105,6 +112,10 @@ const downloadFile = async (shareId: string, fileId: string) => {
   window.location.href = `${window.location.origin}/api/shares/${shareId}/files/${fileId}`;
 };
 
+const downloadAdminAuditFile = async (shareId: string, fileId: string) => {
+  window.location.href = `${window.location.origin}/api/shares/${shareId}/audit/files/${fileId}`;
+};
+
 const removeFile = async (shareId: string, fileId: string) => {
   await api.delete(`shares/${shareId}/files/${fileId}`);
 };
@@ -169,6 +180,7 @@ const removeReverseShare = async (id: string) => {
 export default {
   list,
   getStorageStats,
+  getAdminAuditShare,
   create,
   completeShare,
   revertComplete,
@@ -182,6 +194,7 @@ export default {
   getMyShares,
   isShareIdAvailable,
   downloadFile,
+  downloadAdminAuditFile,
   removeFile,
   uploadFile,
   setReverseShare,

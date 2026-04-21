@@ -1,7 +1,11 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
-import { createConfig, createUser } from "../../../test/fixtures";
+import {
+  createConfig,
+  createMyShare,
+  createUser,
+} from "../../../test/fixtures";
 import { renderWithProviders } from "../../../test/render";
 
 vi.mock("./users/showUpdateUserModal", () => ({
@@ -9,6 +13,7 @@ vi.mock("./users/showUpdateUserModal", () => ({
 }));
 
 import AdminConfigInput from "./configuration/AdminConfigInput";
+import ManageShareTable from "./shares/ManageShareTable";
 import ManageUserTable from "./users/ManageUserTable";
 import showUpdateUserModal from "./users/showUpdateUserModal";
 
@@ -109,5 +114,51 @@ describe("admin components", () => {
       key: "smtp.enabled",
       value: true,
     });
+  });
+
+  it("renders admin share audit, link, and delete actions", async () => {
+    const user = userEvent.setup();
+    const auditShare = vi.fn();
+    const deleteShare = vi.fn();
+
+    renderWithProviders(
+      <ManageShareTable
+        auditShare={auditShare}
+        deleteShare={deleteShare}
+        isLoading={false}
+        shares={[
+          createMyShare({
+            id: "retained-share",
+            name: "Retained share",
+          }),
+        ]}
+      />,
+      {
+        providers: {
+          configVariables: [
+            createConfig({
+              key: "share.fileRetentionPeriod",
+              type: "timespan",
+              value: "7 days",
+            }),
+          ],
+        },
+      },
+    );
+
+    const row = screen.getByRole("row", { name: /retained-share/i });
+
+    await user.click(within(row).getByRole("button", { name: /audit files/i }));
+    await user.click(within(row).getByRole("button", { name: /delete/i }));
+
+    expect(auditShare).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "retained-share" }),
+    );
+    expect(deleteShare).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "retained-share" }),
+    );
+    expect(
+      within(row).getByRole("button", { name: /open public links/i }),
+    ).toBeInTheDocument();
   });
 });

@@ -8,11 +8,13 @@ import {
   Post,
   Req,
   Res,
+  StreamableFile,
   UseGuards,
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { Throttle } from "@nestjs/throttler";
 import { User } from "@prisma/client";
+import contentDisposition from "content-disposition";
 import { Request, Response } from "express";
 import moment from "moment";
 import { GetUser } from "src/auth/decorator/getUser.decorator";
@@ -22,6 +24,7 @@ import { ConfigService } from "src/config/config.service";
 import { canExposeFileWebView } from "src/file/fileWebView.util";
 import * as mime from "mime-types";
 import { AdminShareDTO } from "./dto/adminShare.dto";
+import { AdminShareAuditDTO } from "./dto/adminShareAudit.dto";
 import { CompletedShareDTO } from "./dto/shareComplete.dto";
 import { CreateShareDTO } from "./dto/createShare.dto";
 import { MyShareDTO } from "./dto/myShare.dto";
@@ -43,6 +46,14 @@ function hasAnonymousOwnerAccess(value: object): value is {
   return "ownerToken" in value && "ownerManagementLink" in value;
 }
 
+const PRIVATE_NO_STORE_HEADERS = {
+  "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+  Expires: "0",
+  Pragma: "no-cache",
+  Vary: "Cookie",
+  "X-Robots-Tag": "noindex, nofollow",
+} as const;
+
 @Controller("shares")
 export class ShareController {
   constructor(
@@ -55,6 +66,43 @@ export class ShareController {
   @UseGuards(JwtGuard, AdministratorGuard)
   async getAllShares() {
     return new AdminShareDTO().fromList(await this.shareService.getShares());
+  }
+
+  @Get(":id/audit")
+  @UseGuards(JwtGuard, AdministratorGuard)
+  async getAdminAuditShare(
+    @Param("id") id: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    response.set(PRIVATE_NO_STORE_HEADERS);
+
+    return new AdminShareAuditDTO().from(
+      await this.shareService.getAdminAuditShare(id),
+    );
+  }
+
+  @Get(":id/audit/files/:fileId")
+  @UseGuards(JwtGuard, AdministratorGuard)
+  async getAdminAuditFile(
+    @Param("id") id: string,
+    @Param("fileId") fileId: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    response.set(PRIVATE_NO_STORE_HEADERS);
+
+    const file = await this.shareService.getAdminAuditFile(id, fileId);
+
+    response.set({
+      ...PRIVATE_NO_STORE_HEADERS,
+      "Content-Type":
+        mime?.lookup?.(file.metaData.name) || "application/octet-stream",
+      "Content-Length": file.metaData.size,
+      "Content-Disposition": contentDisposition(file.metaData.name),
+      "Content-Security-Policy": "sandbox",
+      "X-Content-Type-Options": "nosniff",
+    });
+
+    return new StreamableFile(file.file);
   }
 
   @Get()
@@ -98,12 +146,8 @@ export class ShareController {
     @Res({ passthrough: true }) response: Response,
   ) {
     response.set({
-      "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+      ...PRIVATE_NO_STORE_HEADERS,
       "Content-Type": "application/json; charset=utf-8",
-      Expires: "0",
-      Pragma: "no-cache",
-      Vary: "Cookie",
-      "X-Robots-Tag": "noindex, nofollow",
     });
 
     const shareToken = getShareTokenFromRequest(request, id);

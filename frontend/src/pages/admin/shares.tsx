@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { FormattedMessage } from "react-intl";
 import Meta from "../../components/Meta";
 import ManageShareTable from "../../components/admin/shares/ManageShareTable";
+import showShareAuditModal from "../../components/admin/shares/showShareAuditModal";
 import useTranslate from "../../hooks/useTranslate.hook";
 import shareService from "../../services/share.service";
 import { MyShare, ShareStorageStats } from "../../types/share.type";
@@ -62,6 +63,10 @@ const Shares = () => {
     });
   };
 
+  const auditShare = (share: MyShare) => {
+    showShareAuditModal(modals, share);
+  };
+
   useEffect(() => {
     getShares();
   }, []);
@@ -115,6 +120,7 @@ const Shares = () => {
 
       <ManageShareTable
         shares={shares}
+        auditShare={auditShare}
         deleteShare={deleteShare}
         isLoading={isLoading}
       />

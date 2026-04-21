@@ -236,6 +236,52 @@ export class ShareService {
     });
   }
 
+  async getAdminAuditShare(id: string) {
+    const share = await this.prisma.share.findUnique({
+      where: { id },
+      include: {
+        files: {
+          orderBy: {
+            name: "asc",
+          },
+        },
+        creator: true,
+        security: true,
+      },
+    });
+
+    if (!share) {
+      throw new NotFoundException("Share not found");
+    }
+
+    if (isShareRemoved(share)) {
+      throw new NotFoundException(share.removedReason, "share_removed");
+    }
+
+    return {
+      ...share,
+      hasPassword: !!share.security?.password,
+      size: share.files.reduce((acc, file) => acc + parseInt(file.size), 0),
+    };
+  }
+
+  async getAdminAuditFile(shareId: string, fileId: string) {
+    const share = await this.prisma.share.findUnique({
+      where: { id: shareId },
+      select: { removedReason: true },
+    });
+
+    if (!share) {
+      throw new NotFoundException("Share not found");
+    }
+
+    if (isShareRemoved(share)) {
+      throw new NotFoundException(share.removedReason, "share_removed");
+    }
+
+    return this.fileService.get(shareId, fileId);
+  }
+
   async getStorageStats() {
     const shares = await this.prisma.share.findMany({
       select: {

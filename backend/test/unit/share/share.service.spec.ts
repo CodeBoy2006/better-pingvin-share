@@ -319,6 +319,44 @@ describe("ShareService", () => {
     ).rejects.toThrow(NotFoundException);
   });
 
+  it("returns retained expired share contents through the admin audit path", async () => {
+    prisma.share.findUnique.mockResolvedValue({
+      id: "share-expired-admin",
+      uploadLocked: true,
+      removedReason: null,
+      creatorId: "share-owner",
+      expiration: new Date("2000-01-01T00:00:00.000Z"),
+      files: [{ id: "file-1", name: "retained.txt", size: "8" }],
+      security: null,
+      creator: { id: "share-owner" },
+      views: 0,
+    });
+
+    await expect(
+      service.getAdminAuditShare("share-expired-admin"),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        id: "share-expired-admin",
+        files: [expect.objectContaining({ id: "file-1" })],
+        size: 8,
+      }),
+    );
+  });
+
+  it("blocks admin audit access to removed shares", async () => {
+    prisma.share.findUnique.mockResolvedValue({
+      id: "share-removed",
+      removedReason: "Removed by malware scan",
+    });
+
+    await expect(service.getAdminAuditShare("share-removed")).rejects.toThrow(
+      NotFoundException,
+    );
+    await expect(
+      service.getAdminAuditFile("share-removed", "file-1"),
+    ).rejects.toThrow(NotFoundException);
+  });
+
   it("generates share tokens for public file listings and increments view counts", async () => {
     prisma.share.findUnique.mockResolvedValue({
       id: "share-public",

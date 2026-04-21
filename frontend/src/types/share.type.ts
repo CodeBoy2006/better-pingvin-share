@@ -1,3 +1,4 @@
+import { FileMetaData } from "./File.type";
 import User from "./user.type";
 
 export type Share = {
@@ -40,6 +41,20 @@ export type MyShare = Omit<Share, "hasPassword"> & {
   views: number;
   createdAt: Date;
   security: MyShareSecurity;
+};
+
+export type AdminShareAudit = {
+  id: string;
+  name?: string;
+  description?: string;
+  creator?: User;
+  createdAt: Date;
+  expiration: Date;
+  views: number;
+  size: number;
+  files: FileMetaData[];
+  storageProvider: "LOCAL" | "S3";
+  uploadLocked: boolean;
 };
 
 export type ShareStorageStats = {

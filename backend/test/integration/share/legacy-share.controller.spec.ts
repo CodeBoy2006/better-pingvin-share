@@ -203,6 +203,38 @@ describe("Legacy share endpoints", () => {
       .parse(binaryResponseParser);
     expect(downloadResponse.status).toBe(404);
 
+    const auditResponse = await admin.agent.get(
+      `/api/shares/${share.id}/audit`,
+    );
+    expect(auditResponse.status).toBe(200);
+    expect(auditResponse.headers["cache-control"]).toContain("no-store");
+    expect(auditResponse.body).toEqual(
+      expect.objectContaining({
+        id: share.id,
+        files: [
+          expect.objectContaining({
+            id: file.id,
+            name: "retained.txt",
+          }),
+        ],
+      }),
+    );
+
+    const auditDownloadResponse = await admin.agent
+      .get(`/api/shares/${share.id}/audit/files/${file.id}`)
+      .buffer(true)
+      .parse(binaryResponseParser);
+    expect(auditDownloadResponse.status).toBe(200);
+    expect(auditDownloadResponse.headers["cache-control"]).toContain(
+      "no-store",
+    );
+    expect(auditDownloadResponse.body.toString()).toBe("retained but expired");
+
+    const unauthenticatedAuditResponse = await fixture.request.get(
+      `/api/shares/${share.id}/audit`,
+    );
+    expect(unauthenticatedAuditResponse.status).toBe(403);
+
     await fixture.updateConfig("share.allowAdminAccessAllShares", false);
     await fixture.updateConfig("share.fileRetentionPeriod", "0 days");
   });

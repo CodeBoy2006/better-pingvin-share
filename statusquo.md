@@ -212,3 +212,9 @@
 - **Status:** Completed
 - **Next Steps:** Monitor production logs after deployment to confirm old retained expired shares now return 404 and cleanup jobs remove files from the correct backend.
 - **Context:** Verified with targeted backend unit/integration tests, backend typecheck, frontend typecheck, a focused frontend `files.json` proxy test, and a single-file TypeScript compile for the proxy utility.
+
+## [2026-04-21 21:14] Admin Retained Share Audit
+- **Changes:** Added admin-only retained share audit API endpoints and DTOs, exposed an admin share-table audit action with a file download modal, and covered expired retained share audit behavior across backend integration/unit and frontend service/component tests.
+- **Status:** Completed
+- **Next Steps:** Deploy with the expired artifact access fix so public expired routes stay blocked while administrators can inspect retained files from the admin shares page.
+- **Context:** Admin audit intentionally uses `/api/shares/:id/audit` and `/api/shares/:id/audit/files/:fileId` instead of public share, file, ZIP, or `files.json` paths; removed shares remain blocked from audit access.

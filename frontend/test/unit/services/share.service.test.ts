@@ -62,6 +62,12 @@ describe("share.service", () => {
           totalShareSizeBytes: 1024,
         }),
       )
+      .mockResolvedValueOnce(
+        createAxiosResponse({
+          files: [{ id: "file-1", name: "retained.txt", size: "8" }],
+          id: "share-1",
+        }),
+      )
       .mockResolvedValueOnce(createAxiosResponse([{ id: "mine-1" }]));
 
     await expect(shareService.list()).resolves.toEqual([{ id: "share-1" }]);
@@ -71,11 +77,18 @@ describe("share.service", () => {
       storageProvider: "LOCAL",
       totalShareSizeBytes: 1024,
     });
-    await expect(shareService.getMyShares()).resolves.toEqual([{ id: "mine-1" }]);
+    await expect(shareService.getAdminAuditShare("share-1")).resolves.toEqual({
+      files: [{ id: "file-1", name: "retained.txt", size: "8" }],
+      id: "share-1",
+    });
+    await expect(shareService.getMyShares()).resolves.toEqual([
+      { id: "mine-1" },
+    ]);
 
     expect(apiMock.get).toHaveBeenNthCalledWith(1, "shares/all");
     expect(apiMock.get).toHaveBeenNthCalledWith(2, "shares/stats/storage");
-    expect(apiMock.get).toHaveBeenNthCalledWith(3, "shares");
+    expect(apiMock.get).toHaveBeenNthCalledWith(3, "shares/share-1/audit");
+    expect(apiMock.get).toHaveBeenNthCalledWith(4, "shares");
   });
 
   it("creates shares and persists owner tokens for non-reverse shares", async () => {
@@ -170,14 +183,18 @@ describe("share.service", () => {
   it("loads share details, metadata, and share tokens", async () => {
     apiMock.get
       .mockResolvedValueOnce(createAxiosResponse({ id: "share-1" }))
-      .mockResolvedValueOnce(createAxiosResponse({ id: "share-1", owner: true }))
+      .mockResolvedValueOnce(
+        createAxiosResponse({ id: "share-1", owner: true }),
+      )
       .mockResolvedValueOnce(
         createAxiosResponse({ id: "share-1", isZipReady: true }),
       )
       .mockResolvedValueOnce(createAxiosResponse({ isAvailable: true }));
     apiMock.post.mockResolvedValue(createAxiosResponse({}));
 
-    await expect(shareService.get("share-1")).resolves.toEqual({ id: "share-1" });
+    await expect(shareService.get("share-1")).resolves.toEqual({
+      id: "share-1",
+    });
     await expect(shareService.getFromOwner("share-1")).resolves.toEqual({
       id: "share-1",
       owner: true,
@@ -187,17 +204,13 @@ describe("share.service", () => {
       isZipReady: true,
     });
     await shareService.getShareToken("share-1", "password");
-    await expect(shareService.isShareIdAvailable("share-1")).resolves.toBe(true);
+    await expect(shareService.isShareIdAvailable("share-1")).resolves.toBe(
+      true,
+    );
 
     expect(apiMock.get).toHaveBeenNthCalledWith(1, "shares/share-1");
-    expect(apiMock.get).toHaveBeenNthCalledWith(
-      2,
-      "shares/share-1/from-owner",
-    );
-    expect(apiMock.get).toHaveBeenNthCalledWith(
-      3,
-      "shares/share-1/metaData",
-    );
+    expect(apiMock.get).toHaveBeenNthCalledWith(2, "shares/share-1/from-owner");
+    expect(apiMock.get).toHaveBeenNthCalledWith(3, "shares/share-1/metaData");
     expect(apiMock.post).toHaveBeenCalledWith("/shares/share-1/token", {
       password: "password",
     });
@@ -218,9 +231,12 @@ describe("share.service", () => {
   it("downloads, deletes, and uploads share files", async () => {
     const location = mockWindowLocation();
     const chunk = new Blob(["hello"]);
-    apiMock.post.mockResolvedValue(createAxiosResponse({ id: "file-1", name: "greeting.txt" }));
+    apiMock.post.mockResolvedValue(
+      createAxiosResponse({ id: "file-1", name: "greeting.txt" }),
+    );
 
     await shareService.downloadFile("share-1", "file-1");
+    await shareService.downloadAdminAuditFile("share-1", "file-1");
     await shareService.removeFile("share-1", "file-1");
     await expect(
       shareService.uploadFile(
@@ -239,7 +255,7 @@ describe("share.service", () => {
     });
 
     expect(location.href).toBe(
-      "http://localhost/api/shares/share-1/files/file-1",
+      "http://localhost/api/shares/share-1/audit/files/file-1",
     );
     expect(apiMock.delete).toHaveBeenCalledWith("shares/share-1/files/file-1");
     expect(apiMock.post).toHaveBeenCalledWith("shares/share-1/files", chunk, {

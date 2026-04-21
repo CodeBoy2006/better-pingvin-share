@@ -9,7 +9,7 @@ import {
 } from "@mantine/core";
 import { useModals } from "@mantine/modals";
 import moment from "moment";
-import { TbLink, TbTrash } from "react-icons/tb";
+import { TbFileSearch, TbLink, TbTrash } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import useConfig from "../../../hooks/config.hook";
 import { MyShare } from "../../../types/share.type";
@@ -18,10 +18,12 @@ import showShareLinkModal from "../../account/showShareLinkModal";
 
 const ManageShareTable = ({
   shares,
+  auditShare,
   deleteShare,
   isLoading,
 }: {
   shares: MyShare[];
+  auditShare: (share: MyShare) => void;
   deleteShare: (share: MyShare) => void;
   isLoading: boolean;
 }) => {
@@ -97,6 +99,16 @@ const ManageShareTable = ({
                   <td>
                     <Group position="right">
                       <ActionIcon
+                        aria-label={`Audit files for ${share.id}`}
+                        color="victoria"
+                        variant="light"
+                        size={25}
+                        onClick={() => auditShare(share)}
+                      >
+                        <TbFileSearch />
+                      </ActionIcon>
+                      <ActionIcon
+                        aria-label={`Open public links for ${share.id}`}
                         color="victoria"
                         variant="light"
                         size={25}
@@ -105,6 +117,7 @@ const ManageShareTable = ({
                         <TbLink />
                       </ActionIcon>
                       <ActionIcon
+                        aria-label={`Delete ${share.id}`}
                         variant="light"
                         color="red"
                         size="sm"
@@ -124,33 +137,33 @@ const ManageShareTable = ({
 
 const getSkeletonRows = (showDeletesOnColumn: boolean) =>
   [...Array(10)].map((v, i) => (
-  <tr key={i}>
-    <td>
-      <Skeleton key={i} height={20} />
-    </td>
-    <MediaQuery smallerThan="md" styles={{ display: "none" }}>
+    <tr key={i}>
       <td>
         <Skeleton key={i} height={20} />
       </td>
-    </MediaQuery>
-    <td>
-      <Skeleton key={i} height={20} />
-    </td>
-    <td>
-      <Skeleton key={i} height={20} />
-    </td>
-    <td>
-      <Skeleton key={i} height={20} />
-    </td>
-    <td>
-      <Skeleton key={i} height={20} />
-    </td>
-    {showDeletesOnColumn && (
+      <MediaQuery smallerThan="md" styles={{ display: "none" }}>
+        <td>
+          <Skeleton key={i} height={20} />
+        </td>
+      </MediaQuery>
       <td>
-        <Skeleton key={`${i}-delete`} height={20} />
+        <Skeleton key={i} height={20} />
       </td>
-    )}
-  </tr>
+      <td>
+        <Skeleton key={i} height={20} />
+      </td>
+      <td>
+        <Skeleton key={i} height={20} />
+      </td>
+      <td>
+        <Skeleton key={i} height={20} />
+      </td>
+      {showDeletesOnColumn && (
+        <td>
+          <Skeleton key={`${i}-delete`} height={20} />
+        </td>
+      )}
+    </tr>
   ));
 
 export default ManageShareTable;
