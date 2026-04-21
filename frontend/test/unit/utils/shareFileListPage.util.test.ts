@@ -64,4 +64,99 @@ describe("shareFileListPage.util", () => {
     ]);
     expect(end).toHaveBeenCalledWith('{"error":"Share not found"}');
   });
+
+  it("forwards query strings, falls back to JSON content type, and omits optional upstream headers when absent", async () => {
+    const upstreamHeaders = new Headers();
+    const fetchMock = vi.fn().mockResolvedValue({
+      headers: upstreamHeaders,
+      status: 200,
+      text: vi.fn().mockResolvedValue('{"ok":true}'),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const setHeader = vi.fn();
+    const end = vi.fn();
+    const context = {
+      params: { shareId: "folder name/and?symbols" },
+      resolvedUrl: "/s/folder/files.json?token=abc&download=false",
+      req: {
+        headers: {},
+      },
+      res: {
+        statusCode: 500,
+        setHeader,
+        end,
+      },
+    } as any;
+
+    await proxyShareFileListResponse(context);
+
+    const apiUrl = process.env.API_URL || "http://localhost:8080";
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${apiUrl}/api/shares/folder%20name%2Fand%3Fsymbols/files.json?token=abc&download=false`,
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Accept: "application/json",
+          Cookie: "",
+        }),
+      }),
+    );
+    expect(context.res.statusCode).toBe(200);
+    expect(setHeader).toHaveBeenCalledWith(
+      "Content-Type",
+      "application/json; charset=utf-8",
+    );
+    expect(setHeader).not.toHaveBeenCalledWith("Set-Cookie", expect.anything());
+    expect(end).toHaveBeenCalledWith('{"ok":true}');
+  });
+
+  it("overrides cache-related headers with upstream values when they are present", async () => {
+    const upstreamHeaders = new Headers({
+      "cache-control": "public, max-age=60",
+      vary: "Cookie, Accept-Encoding",
+      "x-robots-tag": "none",
+      "content-type": "application/problem+json",
+    }) as Headers & {
+      getSetCookie?: () => string[];
+    };
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      headers: upstreamHeaders,
+      status: 503,
+      text: vi.fn().mockResolvedValue('{"error":"upstream"}'),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const setHeader = vi.fn();
+    const end = vi.fn();
+    const context = {
+      params: { shareId: "demo" },
+      resolvedUrl: "/share/demo/files.json",
+      req: {
+        headers: {
+          cookie: "share_demo_token=token",
+        },
+      },
+      res: {
+        statusCode: 200,
+        setHeader,
+        end,
+      },
+    } as any;
+
+    await proxyShareFileListResponse(context);
+
+    expect(setHeader).toHaveBeenCalledWith(
+      "Cache-Control",
+      "public, max-age=60",
+    );
+    expect(setHeader).toHaveBeenCalledWith("Vary", "Cookie, Accept-Encoding");
+    expect(setHeader).toHaveBeenCalledWith("X-Robots-Tag", "none");
+    expect(setHeader).toHaveBeenCalledWith(
+      "Content-Type",
+      "application/problem+json",
+    );
+    expect(context.res.statusCode).toBe(503);
+  });
 });

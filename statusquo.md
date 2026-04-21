@@ -224,3 +224,9 @@
 - **Status:** Completed
 - **Next Steps:** Watch for real-world reverse proxy IP formatting edge cases after deployment and decide whether the owner UI should later expose inline management/reset of dynamically assigned IP slots.
 - **Context:** Verified with backend Prisma client generation, backend/frontend typecheck, focused backend unit and integration suites for share access, and the full frontend Vitest suite; share tokens no longer bypass IP restrictions, and first-come IP slots are only claimed when access is actually granted.
+
+## [2026-04-21 23:27] Raise Frontend Coverage Gate
+- **Changes:** Added targeted frontend unit tests for `frontend/src/utils/ipAddress.util.ts`, `frontend/src/utils/i18n.util.ts`, share-route alias pages, and expanded `frontend/test/unit/utils/shareFileListPage.util.test.ts` to cover proxy header and query forwarding paths so the global Vitest coverage thresholds pass again.
+- **Status:** Completed
+- **Next Steps:** If CI coverage regresses again, the next cheapest targets are low-coverage auth and account page wrappers rather than broad component snapshot tests.
+- **Context:** Verified with `npm --prefix frontend run test:coverage`; current totals are 80.62% lines/statements and 74.51% branches, above the configured 80%/72% thresholds.
