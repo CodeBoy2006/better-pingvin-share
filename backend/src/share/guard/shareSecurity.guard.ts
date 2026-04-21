@@ -37,7 +37,15 @@ export class ShareSecurityGuard extends JwtGuard {
 
     const share = await this.prisma.share.findUnique({
       where: { id: shareId },
-      include: { security: true, reverseShare: true },
+      include: {
+        security: {
+          include: {
+            allowedIps: true,
+            assignedIps: true,
+          },
+        },
+        reverseShare: true,
+      },
     });
 
     if (!share) throw new NotFoundException("Share not found");
@@ -59,18 +67,6 @@ export class ShareSecurityGuard extends JwtGuard {
       return true;
     }
 
-    if (share.security?.password && !shareToken)
-      throw new ForbiddenException(
-        "This share is password protected",
-        "share_password_required",
-      );
-
-    if (!(await this.shareService.verifyShareToken(shareId, shareToken)))
-      throw new ForbiddenException(
-        "Share token required",
-        "share_token_required",
-      );
-
     // Only the creator and reverse share creator can access the reverse share if it's not public
     if (
       share.reverseShare &&
@@ -82,6 +78,25 @@ export class ShareSecurityGuard extends JwtGuard {
         "Only reverse share creator can access this share",
         "private_share",
       );
+
+    if (share.security?.password && !shareToken) {
+      await this.shareService.assertShareIpAccess(share, request);
+
+      throw new ForbiddenException(
+        "This share is password protected",
+        "share_password_required",
+      );
+    }
+
+    if (!(await this.shareService.verifyShareToken(shareId, shareToken)))
+      throw new ForbiddenException(
+        "Share token required",
+        "share_token_required",
+      );
+
+    await this.shareService.assertShareIpAccess(share, request, {
+      assignIfNeeded: true,
+    });
 
     return true;
   }

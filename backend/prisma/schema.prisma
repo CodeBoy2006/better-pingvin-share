@@ -159,9 +159,35 @@ model ShareSecurity {
 
   password String?
   maxViews Int?
+  maxIps   Int?
 
   shareId String? @unique
   share   Share?  @relation(fields: [shareId], references: [id], onDelete: Cascade)
+
+  allowedIps  ShareSecurityAllowedIp[]
+  assignedIps ShareSecurityAssignedIp[]
+}
+
+model ShareSecurityAllowedIp {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  ipAddress String
+
+  shareSecurityId String
+  shareSecurity   ShareSecurity @relation(fields: [shareSecurityId], references: [id], onDelete: Cascade)
+
+  @@unique([shareSecurityId, ipAddress])
+}
+
+model ShareSecurityAssignedIp {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  ipAddress String
+
+  shareSecurityId String
+  shareSecurity   ShareSecurity @relation(fields: [shareSecurityId], references: [id], onDelete: Cascade)
+
+  @@unique([shareSecurityId, ipAddress])
 }
 
 model Config {

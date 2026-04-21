@@ -16,8 +16,7 @@ export default {
   // /
   "home.title": "A <h>better</h> self-hosted file sharing platform.",
 
-  "home.description":
-    "More advanced features, better UX.",
+  "home.description": "More advanced features, better UX.",
 
   "home.button.start": "Get started",
   "home.button.source": "Source code",
@@ -159,6 +158,17 @@ export default {
 
   "account.shares.modal.share-informations": "Share informations",
   "account.shares.modal.share-link": "Share link",
+  "account.shares.modal.security.password": "Password protection",
+  "account.shares.modal.security.max-views": "Maximum views",
+  "account.shares.modal.security.ip-access": "IP access",
+  "account.shares.modal.security.allowed-ips": "Allowed IPs",
+  "account.shares.modal.security.assigned-ips": "Assigned IPs",
+  "account.shares.modal.security.enabled": "Enabled",
+  "account.shares.modal.security.disabled": "Disabled",
+  "account.shares.modal.security.no-limit": "No limit",
+  "account.shares.modal.security.ip-mode.allowed-ips":
+    "{count, plural, =1 {1 specific IP} other {# specific IPs}}",
+  "account.shares.modal.security.ip-mode.max-ips": "First {count} IPs",
 
   "account.shares.modal.delete.title": "Delete share: {share}",
   "account.shares.modal.delete.description":
@@ -357,6 +367,19 @@ export default {
   "upload.modal.accordion.security.password.placeholder": "No password",
   "upload.modal.accordion.security.max-views.label": "Maximum views",
   "upload.modal.accordion.security.max-views.placeholder": "No limit",
+  "upload.modal.accordion.security.ip-mode.label": "IP access restriction",
+  "upload.modal.accordion.security.ip-mode.disabled": "Disabled",
+  "upload.modal.accordion.security.ip-mode.max-ips": "First N IPs",
+  "upload.modal.accordion.security.ip-mode.allowed-ips": "Specific IPs",
+  "upload.modal.accordion.security.max-ips.label": "Maximum unique IPs",
+  "upload.modal.accordion.security.max-ips.placeholder": "e.g. 3",
+  "upload.modal.accordion.security.ip-allowed.label": "Allowed IP addresses",
+  "upload.modal.accordion.security.ip-allowed.placeholder":
+    "Add an IPv4 or IPv6 address",
+  "upload.modal.accordion.security.ip-allowed.description":
+    "Add one IPv4 or IPv6 address per entry. Only these IPs will be allowed.",
+  "upload.modal.accordion.security.ip-allowed.invalid":
+    "Please enter a valid IPv4 or IPv6 address",
 
   // showCompletedUploadModal.tsx
   "upload.modal.completed.never-expires": "This share will never expire.",
@@ -383,6 +406,12 @@ export default {
   "share.error.access-denied.title": "Private share",
   "share.error.access-denied.description":
     "The current account does not have permission to access this share",
+  "share.error.ip-not-allowed.title": "IP address not allowed",
+  "share.error.ip-not-allowed.description":
+    "Your current IP address is not allowed to access this share.",
+  "share.error.ip-limit-exceeded.title": "IP limit reached",
+  "share.error.ip-limit-exceeded.description":
+    "This share has already been claimed by the maximum number of IP addresses.",
 
   "share.modal.password.title": "Password required",
   "share.modal.password.description":

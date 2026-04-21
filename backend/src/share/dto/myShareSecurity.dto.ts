@@ -5,5 +5,14 @@ export class MyShareSecurityDTO {
   passwordProtected: boolean;
 
   @Expose()
-  maxViews: number;
+  maxViews?: number;
+
+  @Expose()
+  maxIps?: number;
+
+  @Expose()
+  allowedIps?: string[];
+
+  @Expose()
+  assignedIps?: string[];
 }

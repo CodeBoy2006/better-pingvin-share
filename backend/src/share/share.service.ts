@@ -8,6 +8,7 @@ import { JwtService, JwtSignOptions } from "@nestjs/jwt";
 import { Share, User } from "@prisma/client";
 import archiver from "archiver";
 import * as argon from "argon2";
+import { Request } from "express";
 import * as fs from "fs";
 import * as fsPromises from "fs/promises";
 import moment from "moment";
@@ -21,6 +22,16 @@ import { parseRelativeDateToAbsolute } from "src/utils/date.util";
 import { SHARE_DIRECTORY } from "../constants";
 import { CreateShareDTO } from "./dto/createShare.dto";
 import { isShareExpired, isShareRemoved } from "./shareAccess.util";
+import { getRequestIpAddress, normalizeIpAddress } from "./shareIp.util";
+
+type ShareSecurityWithIpRules = {
+  id: string;
+  password: string | null;
+  maxViews: number | null;
+  maxIps: number | null;
+  allowedIps: { ipAddress: string }[];
+  assignedIps: { ipAddress: string }[];
+};
 
 @Injectable()
 export class ShareService {
@@ -39,11 +50,12 @@ export class ShareService {
     if (!(await this.isShareIdAvailable(share.id)).isAvailable)
       throw new BadRequestException("Share id already in use");
 
-    if (!share.security || Object.keys(share.security).length == 0)
-      share.security = undefined;
+    const normalizedSecurity = this.normalizeShareSecurity(share.security);
 
-    if (share.security?.password) {
-      share.security.password = await argon.hash(share.security.password);
+    if (normalizedSecurity?.password) {
+      normalizedSecurity.password = await argon.hash(
+        normalizedSecurity.password,
+      );
     }
 
     let expirationDate: Date;
@@ -82,7 +94,26 @@ export class ShareService {
         ...share,
         expiration: expirationDate,
         creator: { connect: user ? { id: user.id } : undefined },
-        security: { create: share.security },
+        security: normalizedSecurity
+          ? {
+              create: {
+                password: normalizedSecurity.password,
+                maxViews: normalizedSecurity.maxViews,
+                maxIps: normalizedSecurity.maxIps,
+                ...(normalizedSecurity.allowedIps.length > 0
+                  ? {
+                      allowedIps: {
+                        create: normalizedSecurity.allowedIps.map(
+                          (ipAddress) => ({
+                            ipAddress,
+                          }),
+                        ),
+                      },
+                    }
+                  : {}),
+              },
+            }
+          : undefined,
         recipients: {
           create: share.recipients
             ? share.recipients.map((email) => ({ email }))
@@ -350,7 +381,16 @@ export class ShareService {
       orderBy: {
         expiration: "desc",
       },
-      include: { recipients: true, files: true, security: true },
+      include: {
+        recipients: true,
+        files: true,
+        security: {
+          include: {
+            allowedIps: true,
+            assignedIps: true,
+          },
+        },
+      },
     });
 
     return shares.map((share) => {
@@ -361,6 +401,11 @@ export class ShareService {
         security: {
           maxViews: share.security?.maxViews,
           passwordProtected: !!share.security?.password,
+          maxIps: share.security?.maxIps,
+          allowedIps:
+            share.security?.allowedIps.map((ip) => ip.ipAddress) ?? [],
+          assignedIps:
+            share.security?.assignedIps.map((ip) => ip.ipAddress) ?? [],
         },
       };
     });
@@ -403,6 +448,7 @@ export class ShareService {
 
   async getFileList(
     id: string,
+    request: Request,
     options?: { shareToken?: string; userId?: string; isAdmin?: boolean },
   ) {
     const share = await this.prisma.share.findUnique({
@@ -413,7 +459,12 @@ export class ShareService {
             name: "asc",
           },
         },
-        security: true,
+        security: {
+          include: {
+            allowedIps: true,
+            assignedIps: true,
+          },
+        },
         reverseShare: true,
       },
     });
@@ -452,6 +503,8 @@ export class ShareService {
       (await this.verifyShareToken(id, options.shareToken));
 
     if (!hasAdminAccess && !hasValidShareToken && share.security?.password) {
+      await this.assertShareIpAccess(share, request);
+
       throw new ForbiddenException(
         options?.shareToken
           ? "Share token required"
@@ -462,6 +515,12 @@ export class ShareService {
       );
     }
 
+    if (!hasAdminAccess && hasValidShareToken) {
+      await this.assertShareIpAccess(share, request, {
+        assignIfNeeded: true,
+      });
+    }
+
     if (!hasAdminAccess && !hasValidShareToken) {
       if (share.security?.maxViews && share.security.maxViews <= share.views) {
         throw new ForbiddenException(
@@ -470,6 +529,9 @@ export class ShareService {
         );
       }
 
+      await this.assertShareIpAccess(share, request, {
+        assignIfNeeded: true,
+      });
       await this.increaseViewCount(share);
     }
 
@@ -502,7 +564,12 @@ export class ShareService {
             name: "asc",
           },
         },
-        security: true,
+        security: {
+          include: {
+            allowedIps: true,
+            assignedIps: true,
+          },
+        },
       },
     });
 
@@ -585,11 +652,16 @@ export class ShareService {
     });
   }
 
-  async getShareToken(shareId: string, password: string) {
+  async getShareToken(shareId: string, password: string, request: Request) {
     const share = await this.prisma.share.findFirst({
       where: { id: shareId },
       include: {
-        security: true,
+        security: {
+          include: {
+            allowedIps: true,
+            assignedIps: true,
+          },
+        },
       },
     });
 
@@ -616,6 +688,10 @@ export class ShareService {
         "share_max_views_exceeded",
       );
     }
+
+    await this.assertShareIpAccess(share, request, {
+      assignIfNeeded: true,
+    });
 
     const token = await this.generateShareToken(shareId);
     await this.increaseViewCount(share);
@@ -718,7 +794,12 @@ export class ShareService {
             name: "asc",
           },
         },
-        security: true,
+        security: {
+          include: {
+            allowedIps: true,
+            assignedIps: true,
+          },
+        },
       },
     });
 
@@ -752,7 +833,13 @@ export class ShareService {
     isZipReady: boolean;
     name: string | null;
     recipients: { email: string }[];
-    security: { maxViews: number | null; password: string | null } | null;
+    security: {
+      maxViews: number | null;
+      password: string | null;
+      maxIps: number | null;
+      allowedIps: { ipAddress: string }[];
+      assignedIps: { ipAddress: string }[];
+    } | null;
     uploadLocked: boolean;
     views: number;
   }) {
@@ -768,12 +855,14 @@ export class ShareService {
       recipients: share.recipients.map((recipient) => recipient.email),
       files: share.files,
       size: share.files.reduce((acc, file) => acc + parseInt(file.size), 0),
-      security: share.security
-        ? {
-            maxViews: share.security.maxViews,
-            passwordProtected: !!share.security.password,
-          }
-        : undefined,
+      security: {
+        maxViews: share.security?.maxViews,
+        passwordProtected: !!share.security?.password,
+        maxIps: share.security?.maxIps,
+        allowedIps: share.security?.allowedIps.map((ip) => ip.ipAddress) ?? [],
+        assignedIps:
+          share.security?.assignedIps.map((ip) => ip.ipAddress) ?? [],
+      },
     };
   }
 
@@ -786,5 +875,176 @@ export class ShareService {
         "general.appUrl",
       )}/share/${shareId}/edit#ownerToken=${encodeURIComponent(ownerToken)}`,
     };
+  }
+
+  async assertShareIpAccess(
+    share: {
+      security?: ShareSecurityWithIpRules | null;
+    },
+    request: Request,
+    options?: { assignIfNeeded?: boolean },
+  ) {
+    const security = share.security;
+
+    if (!security) {
+      return;
+    }
+
+    const allowedIps = security.allowedIps.map((ip) => ip.ipAddress);
+    const hasAllowedIpList = allowedIps.length > 0;
+    const hasDynamicIpLimit = !!security.maxIps;
+
+    if (!hasAllowedIpList && !hasDynamicIpLimit) {
+      return;
+    }
+
+    const requestIp = getRequestIpAddress(request);
+    if (!requestIp) {
+      throw new ForbiddenException(
+        "Could not determine the request IP address",
+        "share_ip_not_allowed",
+      );
+    }
+
+    if (hasAllowedIpList) {
+      if (allowedIps.includes(requestIp)) {
+        return;
+      }
+
+      throw new ForbiddenException(
+        "Your IP address is not allowed to access this share",
+        "share_ip_not_allowed",
+      );
+    }
+
+    const assignedIps = security.assignedIps.map((ip) => ip.ipAddress);
+    if (assignedIps.includes(requestIp)) {
+      return;
+    }
+
+    if (!options?.assignIfNeeded) {
+      return;
+    }
+
+    const wasAssigned = await this.assignShareIpAddress(
+      security.id,
+      requestIp,
+      security.maxIps,
+    );
+
+    if (wasAssigned) {
+      return;
+    }
+
+    throw new ForbiddenException(
+      "This share has already been claimed by the maximum number of IP addresses",
+      "share_ip_limit_exceeded",
+    );
+  }
+
+  private normalizeShareSecurity(security?: CreateShareDTO["security"]) {
+    if (!security) {
+      return undefined;
+    }
+
+    const password = security.password || undefined;
+    const maxViews =
+      typeof security.maxViews === "number" ? security.maxViews : undefined;
+    const maxIps =
+      typeof security.maxIps === "number" ? security.maxIps : undefined;
+    const rawAllowedIps = (security.allowedIps ?? [])
+      .map((ip) => ip?.trim())
+      .filter((ip): ip is string => !!ip);
+    const normalizedAllowedIps = [
+      ...new Set(
+        rawAllowedIps.map((ip) => {
+          const normalizedIp = normalizeIpAddress(ip);
+
+          if (!normalizedIp) {
+            throw new BadRequestException(`Invalid IP address: ${ip}`);
+          }
+
+          return normalizedIp;
+        }),
+      ),
+    ];
+
+    if (maxIps && normalizedAllowedIps.length > 0) {
+      throw new BadRequestException(
+        "Cannot combine a maximum IP limit with specific IP addresses",
+      );
+    }
+
+    if (
+      !password &&
+      maxViews === undefined &&
+      maxIps === undefined &&
+      normalizedAllowedIps.length === 0
+    ) {
+      return undefined;
+    }
+
+    return {
+      password,
+      maxViews,
+      maxIps,
+      allowedIps: normalizedAllowedIps,
+    };
+  }
+
+  private async assignShareIpAddress(
+    shareSecurityId: string,
+    ipAddress: string,
+    maxIps?: number | null,
+  ) {
+    if (!maxIps) {
+      return true;
+    }
+
+    return this.prisma.$transaction(async (transaction) => {
+      const existingAssignment =
+        await transaction.shareSecurityAssignedIp.findUnique({
+          where: {
+            shareSecurityId_ipAddress: {
+              shareSecurityId,
+              ipAddress,
+            },
+          },
+        });
+
+      if (existingAssignment) {
+        return true;
+      }
+
+      const assignedIpCount = await transaction.shareSecurityAssignedIp.count({
+        where: { shareSecurityId },
+      });
+
+      if (assignedIpCount >= maxIps) {
+        return false;
+      }
+
+      try {
+        await transaction.shareSecurityAssignedIp.create({
+          data: {
+            shareSecurityId,
+            ipAddress,
+          },
+        });
+
+        return true;
+      } catch (error) {
+        if (
+          typeof error === "object" &&
+          error !== null &&
+          "code" in error &&
+          error.code === "P2002"
+        ) {
+          return true;
+        }
+
+        throw error;
+      }
+    });
   }
 }

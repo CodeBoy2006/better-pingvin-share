@@ -80,9 +80,14 @@ export type MyReverseShare = {
 export type ShareSecurity = {
   maxViews?: number;
   password?: string;
+  maxIps?: number;
+  allowedIps?: string[];
 };
 
 export type MyShareSecurity = {
   passwordProtected: boolean;
-  maxViews: number;
+  maxViews?: number;
+  maxIps?: number;
+  allowedIps?: string[];
+  assignedIps?: string[];
 };

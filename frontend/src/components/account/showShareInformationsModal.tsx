@@ -42,6 +42,15 @@ const Body = ({
     moment(share.expiration).unix() === 0
       ? "Never"
       : moment(share.expiration).format("LLL");
+  const formattedIpAccess = share.security.allowedIps?.length
+    ? t("account.shares.modal.security.ip-mode.allowed-ips", {
+        count: share.security.allowedIps.length,
+      })
+    : share.security.maxIps
+      ? t("account.shares.modal.security.ip-mode.max-ips", {
+          count: share.security.maxIps,
+        })
+      : t("account.shares.modal.security.disabled");
 
   return (
     <Stack align="stretch" spacing="md">
@@ -78,6 +87,48 @@ const Body = ({
         </b>
         {formattedExpiration}
       </Text>
+      <Text size="sm">
+        <b>
+          <FormattedMessage id="account.shares.modal.security.password" />:{" "}
+        </b>
+        {share.security.passwordProtected
+          ? t("account.shares.modal.security.enabled")
+          : t("account.shares.modal.security.disabled")}
+      </Text>
+      <Text size="sm">
+        <b>
+          <FormattedMessage id="account.shares.modal.security.max-views" />
+          :{" "}
+        </b>
+        {share.security.maxViews ?? t("account.shares.modal.security.no-limit")}
+      </Text>
+      <Text size="sm">
+        <b>
+          <FormattedMessage id="account.shares.modal.security.ip-access" />
+          :{" "}
+        </b>
+        {formattedIpAccess}
+      </Text>
+      {share.security.allowedIps && share.security.allowedIps.length > 0 && (
+        <Text size="sm">
+          <b>
+            <FormattedMessage id="account.shares.modal.security.allowed-ips" />
+            :{" "}
+          </b>
+          {share.security.allowedIps.join(", ")}
+        </Text>
+      )}
+      {share.security.maxIps && (
+        <Text size="sm">
+          <b>
+            <FormattedMessage id="account.shares.modal.security.assigned-ips" />
+            :{" "}
+          </b>
+          {share.security.assignedIps && share.security.assignedIps.length > 0
+            ? share.security.assignedIps.join(", ")
+            : "-"}
+        </Text>
+      )}
       <Divider />
       <CopyTextField
         label={t("account.shares.modal.share-link")}

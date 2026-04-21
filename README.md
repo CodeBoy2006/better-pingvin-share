@@ -27,7 +27,7 @@
 - Share files using a link
 - Unlimited file size (restricted only by disk space)
 - Set an expiration date for shares
-- Secure shares with visitor limits and passwords
+- Secure shares with visitor limits, passwords, and IP-based access restrictions
 - Email recipients
 - Reverse shares
 - OIDC and LDAP authentication
@@ -122,4 +122,5 @@ Every public share exposes a JSON file list at `<share-url>/files.json` (for exa
 - Admins can opt in to tokenized URLs for password-protected shares with `share.filesJsonPasswordProtectedLinksIncludeToken`
 - Admins can opt in to per-file `webViewUrl` links for supported text-like files, images, audio, video, and PDFs with `share.filesJsonWebViewLinksEnabled`; these render inline without extra page chrome
 - Password-protected shares still require a valid share token before the JSON listing can be fetched
+- Shares can optionally restrict access to a fixed IP allow list or the first `N` unique client IPs that reach the share
 - Clients that access protected or view-limited shares through `files.json` should preserve the `Set-Cookie` header returned by that response

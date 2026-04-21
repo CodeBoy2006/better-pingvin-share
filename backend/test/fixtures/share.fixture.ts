@@ -18,6 +18,9 @@ type SeedShareInput = Partial<{
   security: {
     password?: string | null;
     maxViews?: number | null;
+    maxIps?: number | null;
+    allowedIps?: string[];
+    assignedIps?: string[];
   };
 }>;
 
@@ -42,6 +45,8 @@ export function buildCreateShareDto(
     security: {
       password?: string;
       maxViews?: number;
+      maxIps?: number;
+      allowedIps?: string[];
     };
   }> = {},
 ) {
@@ -111,7 +116,30 @@ export async function seedShare(
             security: {
               create: {
                 maxViews: overrides.security.maxViews,
+                maxIps: overrides.security.maxIps,
                 password,
+                ...(overrides.security.allowedIps?.length
+                  ? {
+                      allowedIps: {
+                        create: overrides.security.allowedIps.map(
+                          (ipAddress) => ({
+                            ipAddress,
+                          }),
+                        ),
+                      },
+                    }
+                  : {}),
+                ...(overrides.security.assignedIps?.length
+                  ? {
+                      assignedIps: {
+                        create: overrides.security.assignedIps.map(
+                          (ipAddress) => ({
+                            ipAddress,
+                          }),
+                        ),
+                      },
+                    }
+                  : {}),
               },
             },
           }
@@ -120,7 +148,12 @@ export async function seedShare(
     include: {
       recipients: true,
       files: true,
-      security: true,
+      security: {
+        include: {
+          allowedIps: true,
+          assignedIps: true,
+        },
+      },
       reverseShare: true,
       creator: true,
     },

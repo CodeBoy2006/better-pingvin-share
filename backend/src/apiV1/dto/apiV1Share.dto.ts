@@ -7,6 +7,15 @@ class ApiV1ShareSecurityDTO {
 
   @Expose()
   maxViews?: number;
+
+  @Expose()
+  maxIps?: number;
+
+  @Expose()
+  allowedIps?: string[];
+
+  @Expose()
+  assignedIps?: string[];
 }
 
 export class ApiV1ShareDTO {

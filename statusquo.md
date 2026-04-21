@@ -218,3 +218,9 @@
 - **Status:** Completed
 - **Next Steps:** Deploy with the expired artifact access fix so public expired routes stay blocked while administrators can inspect retained files from the admin shares page.
 - **Context:** Admin audit intentionally uses `/api/shares/:id/audit` and `/api/shares/:id/audit/files/:fileId` instead of public share, file, ZIP, or `files.json` paths; removed shares remain blocked from audit access.
+
+## [2026-04-21 23:02] Share IP Access Restrictions
+- **Changes:** Added share-level IP restriction support with Prisma schema/migration changes for fixed allow lists and first-come-first-served IP slot assignment, enforced the rules across share tokens, public share guards, `files.json`, downloads, ZIPs, and web views, extended owner/API DTOs and upload UI with IP restriction controls, and documented the new security option in `README.md`.
+- **Status:** Completed
+- **Next Steps:** Watch for real-world reverse proxy IP formatting edge cases after deployment and decide whether the owner UI should later expose inline management/reset of dynamically assigned IP slots.
+- **Context:** Verified with backend Prisma client generation, backend/frontend typecheck, focused backend unit and integration suites for share access, and the full frontend Vitest suite; share tokens no longer bypass IP restrictions, and first-come IP slots are only claimed when access is actually granted.

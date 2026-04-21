@@ -152,7 +152,7 @@ export class ShareController {
 
     const shareToken = getShareTokenFromRequest(request, id);
     const user = this.getUserFromRequest(request);
-    const fileList = await this.shareService.getFileList(id, {
+    const fileList = await this.shareService.getFileList(id, request, {
       shareToken,
       userId: user?.sub,
       isAdmin: user?.isAdmin,
@@ -314,7 +314,11 @@ export class ShareController {
     @Res({ passthrough: true }) response: Response,
     @Body() body: SharePasswordDto,
   ) {
-    const token = await this.shareService.getShareToken(id, body.password);
+    const token = await this.shareService.getShareToken(
+      id,
+      body.password,
+      request,
+    );
 
     this.clearShareTokenCookies(request, response);
     response.cookie(`share_${id}_token`, token, {

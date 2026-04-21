@@ -623,4 +623,130 @@ describe("Legacy share endpoints", () => {
       false,
     );
   });
+
+  it("enforces specific IP allow lists even when a valid share token is reused elsewhere", async () => {
+    const shareId = `ip-allow-list-${randomUUID().slice(0, 8)}`;
+
+    const createResponse = await fixture.request.post("/api/shares").send(
+      buildCreateShareDto({
+        id: shareId,
+        security: {
+          allowedIps: ["198.51.100.10"],
+        },
+      }),
+    );
+
+    expect(createResponse.status).toBe(201);
+
+    const ownerCookie = `share_${shareId}_owner_token=${createResponse.body.ownerToken}`;
+
+    const uploadResponse = await fixture.request
+      .post(
+        `/api/shares/${shareId}/files?name=restricted.txt&chunkIndex=0&totalChunks=1`,
+      )
+      .set("Cookie", ownerCookie)
+      .set("Content-Type", "application/octet-stream")
+      .send(Buffer.from("Restricted by IP"));
+
+    expect(uploadResponse.status).toBe(201);
+
+    const completeResponse = await fixture.request
+      .post(`/api/shares/${shareId}/complete`)
+      .set("Cookie", ownerCookie);
+
+    expect(completeResponse.status).toBe(202);
+
+    const tokenResponse = await fixture.request
+      .post(`/api/shares/${shareId}/token`)
+      .set("X-Forwarded-For", "198.51.100.10")
+      .send({});
+
+    expect(tokenResponse.status).toBe(200);
+
+    const allowedResponse = await fixture.request
+      .get(`/api/shares/${shareId}/files.json`)
+      .set("X-Forwarded-For", "198.51.100.10");
+
+    expect(allowedResponse.status).toBe(200);
+
+    const deniedResponse = await fixture.request
+      .get(`/api/shares/${shareId}`)
+      .query({ token: tokenResponse.body.token })
+      .set("X-Forwarded-For", "198.51.100.20");
+
+    expect(deniedResponse.status).toBe(403);
+    expect(deniedResponse.body.error).toBe("share_ip_not_allowed");
+  });
+
+  it("assigns the first allowed IPs and rejects new ones after the quota is reached", async () => {
+    const shareId = `ip-quota-${randomUUID().slice(0, 8)}`;
+
+    const createResponse = await fixture.request.post("/api/shares").send(
+      buildCreateShareDto({
+        id: shareId,
+        security: {
+          maxIps: 2,
+        },
+      }),
+    );
+
+    expect(createResponse.status).toBe(201);
+
+    const ownerCookie = `share_${shareId}_owner_token=${createResponse.body.ownerToken}`;
+
+    const uploadResponse = await fixture.request
+      .post(
+        `/api/shares/${shareId}/files?name=quota.txt&chunkIndex=0&totalChunks=1`,
+      )
+      .set("Cookie", ownerCookie)
+      .set("Content-Type", "application/octet-stream")
+      .send(Buffer.from("First come first served"));
+
+    expect(uploadResponse.status).toBe(201);
+
+    const completeResponse = await fixture.request
+      .post(`/api/shares/${shareId}/complete`)
+      .set("Cookie", ownerCookie);
+
+    expect(completeResponse.status).toBe(202);
+
+    const firstResponse = await fixture.request
+      .get(`/api/shares/${shareId}/files.json`)
+      .set("X-Forwarded-For", "198.51.100.10");
+
+    expect(firstResponse.status).toBe(200);
+
+    const secondResponse = await fixture.request
+      .get(`/api/shares/${shareId}/files.json`)
+      .set("X-Forwarded-For", "198.51.100.11");
+
+    expect(secondResponse.status).toBe(200);
+
+    const deniedResponse = await fixture.request
+      .get(`/api/shares/${shareId}/files.json`)
+      .set("X-Forwarded-For", "198.51.100.12");
+
+    expect(deniedResponse.status).toBe(403);
+    expect(deniedResponse.body.error).toBe("share_ip_limit_exceeded");
+
+    const storedShare = await fixture.prisma.share.findUnique({
+      where: { id: shareId },
+      include: {
+        security: {
+          include: {
+            assignedIps: {
+              orderBy: {
+                ipAddress: "asc",
+              },
+            },
+          },
+        },
+      },
+    });
+
+    expect(storedShare.security.assignedIps).toEqual([
+      expect.objectContaining({ ipAddress: "198.51.100.10" }),
+      expect.objectContaining({ ipAddress: "198.51.100.11" }),
+    ]);
+  });
 });

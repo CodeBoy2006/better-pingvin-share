@@ -36,7 +36,14 @@ export class FileSecurityGuard extends ShareSecurityGuard {
 
     const share = await this._prisma.share.findUnique({
       where: { id: shareId },
-      include: { security: true },
+      include: {
+        security: {
+          include: {
+            allowedIps: true,
+            assignedIps: true,
+          },
+        },
+      },
     });
 
     // If there is no share token the user requests a file directly
@@ -62,6 +69,9 @@ export class FileSecurityGuard extends ShareSecurityGuard {
         );
       }
 
+      await this._shareService.assertShareIpAccess(share, request, {
+        assignIfNeeded: true,
+      });
       await this._shareService.increaseViewCount(share);
       return true;
     } else {

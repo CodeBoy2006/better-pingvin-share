@@ -30,6 +30,7 @@ import shareService from "../../../services/share.service";
 import { FileUpload } from "../../../types/File.type";
 import { CreateShare } from "../../../types/share.type";
 import { getExpirationPreview } from "../../../utils/date.util";
+import { normalizeIpAddress } from "../../../utils/ipAddress.util";
 import toast from "../../../utils/toast.util";
 import { Timespan } from "../../../types/timespan.type";
 
@@ -149,6 +150,37 @@ const CreateUploadModalBody = ({
       .number()
       .transform((value) => value || undefined)
       .min(1),
+    ipRestrictionMode: yup
+      .string()
+      .oneOf(["disabled", "maxIps", "allowedIps"])
+      .required(),
+    maxIps: yup
+      .number()
+      .transform((value) => value || undefined)
+      .when("ipRestrictionMode", {
+        is: "maxIps",
+        then: (schema) =>
+          schema.required(t("common.error.field-required")).min(1),
+        otherwise: (schema) => schema.optional(),
+      }),
+    allowedIps: yup
+      .array()
+      .of(yup.string().required())
+      .when("ipRestrictionMode", {
+        is: "allowedIps",
+        then: (schema) =>
+          schema
+            .min(1, t("common.error.field-required"))
+            .test(
+              "allowed-ips",
+              t("upload.modal.accordion.security.ip-allowed.invalid"),
+              (value) =>
+                (value ?? []).every(
+                  (ip) => normalizeIpAddress(ip) !== undefined,
+                ),
+            ),
+        otherwise: (schema) => schema.optional(),
+      }),
   });
 
   const defaultTimespan = options.defaultExpiration ?? {
@@ -163,6 +195,9 @@ const CreateUploadModalBody = ({
       recipients: [] as string[],
       password: undefined,
       maxViews: undefined,
+      ipRestrictionMode: "disabled",
+      maxIps: undefined,
+      allowedIps: [] as string[],
       description: undefined,
       expiration_num: defaultTimespan.value,
       expiration_unit: `-${defaultTimespan.unit}` as string,
@@ -218,6 +253,16 @@ const CreateUploadModalBody = ({
           security: {
             password: values.password || undefined,
             maxViews: values.maxViews || undefined,
+            maxIps:
+              values.ipRestrictionMode === "maxIps"
+                ? values.maxIps || undefined
+                : undefined,
+            allowedIps:
+              values.ipRestrictionMode === "allowedIps"
+                ? values.allowedIps
+                    .map((ip) => normalizeIpAddress(ip))
+                    .filter((ip): ip is string => !!ip)
+                : undefined,
           },
         },
         files,
@@ -464,6 +509,88 @@ const CreateUploadModalBody = ({
                     label={t("upload.modal.accordion.security.max-views.label")}
                     {...form.getInputProps("maxViews")}
                   />
+                  <Select
+                    variant="filled"
+                    label={t("upload.modal.accordion.security.ip-mode.label")}
+                    data={[
+                      {
+                        value: "disabled",
+                        label: t(
+                          "upload.modal.accordion.security.ip-mode.disabled",
+                        ),
+                      },
+                      {
+                        value: "maxIps",
+                        label: t(
+                          "upload.modal.accordion.security.ip-mode.max-ips",
+                        ),
+                      },
+                      {
+                        value: "allowedIps",
+                        label: t(
+                          "upload.modal.accordion.security.ip-mode.allowed-ips",
+                        ),
+                      },
+                    ]}
+                    {...form.getInputProps("ipRestrictionMode")}
+                  />
+                  {form.values.ipRestrictionMode === "maxIps" && (
+                    <NumberInput
+                      min={1}
+                      type="number"
+                      variant="filled"
+                      placeholder={t(
+                        "upload.modal.accordion.security.max-ips.placeholder",
+                      )}
+                      label={t("upload.modal.accordion.security.max-ips.label")}
+                      {...form.getInputProps("maxIps")}
+                    />
+                  )}
+                  {form.values.ipRestrictionMode === "allowedIps" && (
+                    <Stack spacing={4}>
+                      <MultiSelect
+                        data={form.values.allowedIps}
+                        placeholder={t(
+                          "upload.modal.accordion.security.ip-allowed.placeholder",
+                        )}
+                        searchable
+                        creatable
+                        clearable
+                        getCreateLabel={(query) => `+ ${query}`}
+                        onCreate={(query) => {
+                          const normalizedIp = normalizeIpAddress(query);
+
+                          if (!normalizedIp) {
+                            form.setFieldError(
+                              "allowedIps",
+                              t(
+                                "upload.modal.accordion.security.ip-allowed.invalid",
+                              ),
+                            );
+                            return null;
+                          }
+
+                          form.setFieldError("allowedIps", null);
+
+                          if (!form.values.allowedIps.includes(normalizedIp)) {
+                            form.setFieldValue("allowedIps", [
+                              ...form.values.allowedIps,
+                              normalizedIp,
+                            ]);
+                          }
+
+                          return normalizedIp;
+                        }}
+                        label={t(
+                          "upload.modal.accordion.security.ip-allowed.label",
+                        )}
+                        {...form.getInputProps("allowedIps")}
+                      />
+                      <Text size="xs" color="dimmed">
+                        <FormattedMessage id="upload.modal.accordion.security.ip-allowed.description" />
+                      </Text>
+                    </Stack>
+                  )}
                 </Stack>
               </Accordion.Panel>
             </Accordion.Item>
@@ -536,6 +663,8 @@ const SimplifiedCreateUploadModalModal = ({
         security: {
           password: undefined,
           maxViews: undefined,
+          maxIps: undefined,
+          allowedIps: undefined,
         },
       },
       files,

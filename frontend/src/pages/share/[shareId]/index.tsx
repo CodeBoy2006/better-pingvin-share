@@ -41,6 +41,20 @@ const Share = ({ shareId }: { shareId: string }) => {
             t("share.error.visitor-limit-exceeded.description"),
             "go-home",
           );
+        } else if (error == "share_ip_not_allowed") {
+          showErrorModal(
+            modals,
+            t("share.error.ip-not-allowed.title"),
+            t("share.error.ip-not-allowed.description"),
+            "go-home",
+          );
+        } else if (error == "share_ip_limit_exceeded") {
+          showErrorModal(
+            modals,
+            t("share.error.ip-limit-exceeded.title"),
+            t("share.error.ip-limit-exceeded.description"),
+            "go-home",
+          );
         } else if (error == "share_password_required") {
           showEnterPasswordModal(modals, getShareToken);
         } else {
@@ -78,6 +92,20 @@ const Share = ({ shareId }: { shareId: string }) => {
             modals,
             t("share.error.access-denied.title"),
             t("share.error.access-denied.description"),
+          );
+        } else if (error == "share_ip_not_allowed") {
+          showErrorModal(
+            modals,
+            t("share.error.ip-not-allowed.title"),
+            t("share.error.ip-not-allowed.description"),
+            "go-home",
+          );
+        } else if (error == "share_ip_limit_exceeded") {
+          showErrorModal(
+            modals,
+            t("share.error.ip-limit-exceeded.title"),
+            t("share.error.ip-limit-exceeded.description"),
+            "go-home",
           );
         } else if (error == "share_password_required") {
           showEnterPasswordModal(modals, getShareToken);

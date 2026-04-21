@@ -8,6 +8,12 @@ import * as argon from "argon2";
 import { ShareService } from "src/share/share.service";
 import { buildCreateShareDto } from "../../fixtures/share.fixture";
 
+const createRequest = (ip: string, forwardedFor?: string) =>
+  ({
+    ip,
+    headers: forwardedFor ? { "x-forwarded-for": forwardedFor } : {},
+  }) as any;
+
 describe("ShareService", () => {
   let prisma: any;
   let config: any;
@@ -20,6 +26,7 @@ describe("ShareService", () => {
 
   beforeEach(() => {
     prisma = {
+      $transaction: jest.fn(),
       share: {
         findFirst: jest.fn(),
         findUnique: jest.fn(),
@@ -35,6 +42,15 @@ describe("ShareService", () => {
         findMany: jest.fn(),
       },
     };
+    prisma.$transaction.mockImplementation((callback) =>
+      callback({
+        shareSecurityAssignedIp: {
+          findUnique: jest.fn(),
+          count: jest.fn(),
+          create: jest.fn(),
+        },
+      }),
+    );
     config = {
       get: jest.fn((key: string) => {
         const values: Record<string, unknown> = {
@@ -128,6 +144,43 @@ describe("ShareService", () => {
           "http://localhost:3000/share/share-anon/edit#ownerToken=owner-token",
       }),
     );
+  });
+
+  it("normalizes specific IP restrictions before persisting a share", async () => {
+    prisma.share.findUnique.mockResolvedValueOnce(null);
+    prisma.share.create.mockResolvedValue({
+      id: "share-ip-restricted",
+      createdAt: new Date("2024-01-01T00:00:00.000Z"),
+      expiration: new Date("2024-01-02T00:00:00.000Z"),
+      name: null,
+      description: null,
+      creatorId: null,
+      uploadLocked: false,
+      isZipReady: false,
+      views: 0,
+      storageProvider: "LOCAL",
+      removedReason: null,
+      reverseShareId: null,
+    });
+    jest
+      .spyOn(service, "generateShareOwnerToken")
+      .mockResolvedValue("owner-token");
+
+    await service.create(
+      buildCreateShareDto({
+        id: "share-ip-restricted",
+        security: {
+          allowedIps: [" ::ffff:203.0.113.7 ", "2001:0db8::1"],
+        },
+      }) as any,
+    );
+
+    const createCall = prisma.share.create.mock.calls[0][0] as any;
+
+    expect(createCall.data.security.create.allowedIps.create).toEqual([
+      { ipAddress: "203.0.113.7" },
+      { ipAddress: "2001:db8::1" },
+    ]);
   });
 
   it("rejects duplicate share identifiers before creating files", async () => {
@@ -275,7 +328,7 @@ describe("ShareService", () => {
     });
 
     await expect(
-      service.getFileList("share-private", {
+      service.getFileList("share-private", createRequest("198.51.100.20"), {
         userId: "outsider",
       }),
     ).rejects.toThrow(ForbiddenException);
@@ -313,9 +366,13 @@ describe("ShareService", () => {
     });
 
     await expect(
-      service.getFileList("share-expired-admin", {
-        isAdmin: true,
-      }),
+      service.getFileList(
+        "share-expired-admin",
+        createRequest("198.51.100.20"),
+        {
+          isAdmin: true,
+        },
+      ),
     ).rejects.toThrow(NotFoundException);
   });
 
@@ -372,7 +429,10 @@ describe("ShareService", () => {
     jest.spyOn(service, "generateShareToken").mockResolvedValue("share-token");
     jest.spyOn(service, "increaseViewCount").mockResolvedValue(undefined);
 
-    const result = await service.getFileList("share-public");
+    const result = await service.getFileList(
+      "share-public",
+      createRequest("198.51.100.20"),
+    );
 
     expect(service.increaseViewCount).toHaveBeenCalledWith(
       expect.objectContaining({ id: "share-public" }),
@@ -433,11 +493,65 @@ describe("ShareService", () => {
       security: {
         password: await argon.hash("correct-password"),
         maxViews: null,
+        maxIps: null,
+        allowedIps: [],
+        assignedIps: [],
       },
     });
 
     await expect(
-      service.getShareToken("share-password", "wrong-password"),
+      service.getShareToken(
+        "share-password",
+        "wrong-password",
+        createRequest("198.51.100.20"),
+      ),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it("allows already assigned IPs and registers new ones when the share has an IP quota", async () => {
+    const assignShareIpAddressSpy = jest
+      .spyOn(service as any, "assignShareIpAddress")
+      .mockResolvedValue(true);
+
+    await expect(
+      service.assertShareIpAccess(
+        {
+          security: {
+            id: "security-1",
+            password: null,
+            maxViews: null,
+            maxIps: 2,
+            allowedIps: [],
+            assignedIps: [{ ipAddress: "198.51.100.10" }],
+          },
+        },
+        createRequest("::ffff:198.51.100.11"),
+        { assignIfNeeded: true },
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(assignShareIpAddressSpy).toHaveBeenCalledWith(
+      "security-1",
+      "198.51.100.11",
+      2,
+    );
+  });
+
+  it("rejects IPs outside the configured allow list", async () => {
+    await expect(
+      service.assertShareIpAccess(
+        {
+          security: {
+            id: "security-allow-list",
+            password: null,
+            maxViews: null,
+            maxIps: null,
+            allowedIps: [{ ipAddress: "198.51.100.10" }],
+            assignedIps: [],
+          },
+        },
+        createRequest("198.51.100.20"),
+      ),
     ).rejects.toThrow(ForbiddenException);
   });
 });
