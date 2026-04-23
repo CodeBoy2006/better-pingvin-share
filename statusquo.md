@@ -236,3 +236,9 @@
 - **Status:** Completed
 - **Next Steps:** Monitor the `v1.15.3` GitHub release workflow and follow-on `main` branch CI run so the published image/tag flow and badge refreshes settle on the new version.
 - **Context:** Verified with `npm run quality`, `npm --prefix docs ci`, `npm --prefix docs run build`, and `git diff --check`. The existing frontend lint and test warnings remain non-fatal and unchanged from the pre-release branch state.
+
+## [2026-04-23 11:24] Expand Text File Web Views
+- **Changes:** Updated `backend/src/file/fileWebView.util.ts`, `backend/src/file/file.controller.ts`, `backend/src/file/file.service.ts`, and `backend/src/share/share.controller.ts` so `files.json` now emits `webViewUrl` for a broader set of text/code/config files, falls back to sampling file bytes when the filename and MIME type are inconclusive, and no longer blocks text web views behind the old 5 MiB cap; added `backend/test/unit/file/fileWebView.util.spec.ts` and expanded `backend/test/integration/share/legacy-share.controller.spec.ts` to cover code files, unknown-but-text payloads, and large text responses.
+- **Status:** Completed
+- **Next Steps:** If users start sharing UTF-16 or other non-UTF-8 text assets that fail the byte sampler, add explicit encoding-aware text detection rather than broadening binary heuristics.
+- **Context:** Verified with backend `typecheck`, focused backend unit/integration suites for file web views, and backend `lint`; media and PDF `webViewUrl` behavior remains unchanged.

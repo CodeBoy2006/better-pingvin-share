@@ -15,7 +15,7 @@ export type FileWebViewDescriptor = {
   language?: string;
 };
 
-export const MAX_FILE_WEB_VIEW_BYTES = 5 * 1024 * 1024;
+export const FILE_WEB_VIEW_SNIFF_BYTES = 8 * 1024;
 
 const MARKDOWN_EXTENSIONS = new Set([
   "md",
@@ -28,16 +28,27 @@ const MARKDOWN_EXTENSIONS = new Set([
 ]);
 
 const CODE_LANGUAGE_BY_EXTENSION: Record<string, string> = {
+  bat: "batch",
   c: "c",
+  cjs: "javascript",
   cc: "cpp",
+  clj: "clojure",
+  cmake: "cmake",
   cpp: "cpp",
+  cts: "typescript",
+  cmd: "batch",
   cs: "csharp",
   css: "css",
   diff: "diff",
   dockerfile: "docker",
   env: "bash",
+  gql: "graphql",
   go: "go",
+  graphql: "graphql",
+  gradle: "groovy",
+  groovy: "groovy",
   h: "c",
+  hcl: "hcl",
   hpp: "cpp",
   htm: "html",
   html: "html",
@@ -45,6 +56,8 @@ const CODE_LANGUAGE_BY_EXTENSION: Record<string, string> = {
   java: "java",
   js: "javascript",
   json: "json",
+  json5: "json",
+  jsonc: "json",
   jsx: "jsx",
   kt: "kotlin",
   kts: "kotlin",
@@ -53,18 +66,28 @@ const CODE_LANGUAGE_BY_EXTENSION: Record<string, string> = {
   lua: "lua",
   m: "matlab",
   makefile: "makefile",
+  mjs: "javascript",
+  mts: "typescript",
+  nix: "nix",
   php: "php",
   pl: "perl",
+  proto: "protobuf",
   properties: "properties",
+  ps1: "powershell",
+  psd1: "powershell",
+  psm1: "powershell",
   py: "python",
   r: "r",
   rb: "ruby",
+  scala: "scala",
   rs: "rust",
   scss: "scss",
   sh: "bash",
   sql: "sql",
   svelte: "svelte",
   swift: "swift",
+  tf: "hcl",
+  tfvars: "hcl",
   toml: "toml",
   ts: "typescript",
   tsx: "tsx",
@@ -76,6 +99,31 @@ const CODE_LANGUAGE_BY_EXTENSION: Record<string, string> = {
   zsh: "bash",
 };
 
+const TEXT_EXTENSIONS = new Set([
+  "adoc",
+  "asc",
+  "cfg",
+  "conf",
+  "csv",
+  "dockerignore",
+  "editorconfig",
+  "eslintrc",
+  "gitattributes",
+  "gitignore",
+  "jsonl",
+  "latex",
+  "ndjson",
+  "npmrc",
+  "plist",
+  "prettierrc",
+  "rst",
+  "tex",
+  "tool-versions",
+  "tsv",
+]);
+
+const TEXTUAL_FILE_NAME_PREFIXES = [".env."];
+
 const VIDEO_CONTENT_TYPE_BY_EXTENSION: Record<string, string> = {
   mp4: "video/mp4",
   m4v: "video/x-m4v",
@@ -86,11 +134,14 @@ const VIDEO_CONTENT_TYPE_BY_EXTENSION: Record<string, string> = {
 
 const LOOKS_TEXTUAL_MIME_TYPES = [
   "application/json",
+  "application/json5",
   "application/ld+json",
+  "application/toml",
   "application/xml",
   "application/x-httpd-php",
   "application/x-sh",
   "application/yaml",
+  "text/yaml",
 ];
 
 function getExtension(fileName: string) {
@@ -115,14 +166,48 @@ function normalizeContentType(contentType?: string | false) {
   return (mime.lookup(contentType || "") || "").toString();
 }
 
+function isTextualMimeType(contentType: string) {
+  return (
+    contentType.startsWith("text/") ||
+    LOOKS_TEXTUAL_MIME_TYPES.includes(contentType) ||
+    contentType.endsWith("+json") ||
+    contentType.endsWith("+xml") ||
+    contentType.endsWith("+yaml")
+  );
+}
+
+function getSpecialFileDescriptor(
+  lowerCasedFileName: string,
+): FileWebViewDescriptor | undefined {
+  if (
+    TEXTUAL_FILE_NAME_PREFIXES.some((prefix) =>
+      lowerCasedFileName.startsWith(prefix),
+    )
+  ) {
+    return {
+      kind: "text",
+      contentType: "text/plain",
+    } satisfies FileWebViewDescriptor;
+  }
+
+  return undefined;
+}
+
 export function getFileWebViewDescriptor(
   fileName: string,
   contentType?: string | false,
 ) {
+  const lowerCasedFileName = fileName.toLowerCase();
   const extension = getExtension(fileName);
   const normalizedContentType =
     normalizeContentType(contentType) ||
     (mime.lookup(fileName) || "").toString().split(";")[0];
+
+  const specialFileDescriptor = getSpecialFileDescriptor(lowerCasedFileName);
+
+  if (specialFileDescriptor) {
+    return specialFileDescriptor;
+  }
 
   if (MARKDOWN_EXTENSIONS.has(extension)) {
     return {
@@ -143,8 +228,8 @@ export function getFileWebViewDescriptor(
   }
 
   if (
-    normalizedContentType.startsWith("text/") ||
-    LOOKS_TEXTUAL_MIME_TYPES.includes(normalizedContentType)
+    TEXT_EXTENSIONS.has(extension) ||
+    isTextualMimeType(normalizedContentType)
   ) {
     return {
       kind: "text",
@@ -197,6 +282,46 @@ export function getFileWebViewDescriptor(
   return undefined;
 }
 
+export function isProbablyText(bytes: Uint8Array) {
+  const sample = bytes.slice(0, Math.min(bytes.length, 2048));
+
+  if (sample.length === 0) {
+    return true;
+  }
+
+  let suspiciousByteCount = 0;
+
+  for (let index = 0; index < sample.length; index++) {
+    const byte = sample[index];
+
+    if (byte === 0) {
+      return false;
+    }
+
+    const isAllowedControlCharacter =
+      byte === 9 || byte === 10 || byte === 13 || byte === 12;
+    const isPrintableAscii = byte >= 32 && byte <= 126;
+    const isExtendedByte = byte >= 128;
+
+    if (!isAllowedControlCharacter && !isPrintableAscii && !isExtendedByte) {
+      suspiciousByteCount++;
+    }
+  }
+
+  return suspiciousByteCount / sample.length < 0.1;
+}
+
+export function getFileWebViewDescriptorFromSample(bytes: Uint8Array) {
+  if (!isProbablyText(bytes)) {
+    return undefined;
+  }
+
+  return {
+    kind: "text",
+    contentType: "text/plain",
+  } satisfies FileWebViewDescriptor;
+}
+
 export function canExposeFileWebView(
   fileName: string,
   sizeBytes: string | number,
@@ -215,14 +340,5 @@ export function canExposeFileWebView(
     return false;
   }
 
-  if (
-    descriptor.kind === "image" ||
-    descriptor.kind === "audio" ||
-    descriptor.kind === "video" ||
-    descriptor.kind === "pdf"
-  ) {
-    return true;
-  }
-
-  return numericSize <= MAX_FILE_WEB_VIEW_BYTES;
+  return true;
 }

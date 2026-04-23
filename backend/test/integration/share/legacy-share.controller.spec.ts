@@ -315,6 +315,10 @@ describe("Legacy share endpoints", () => {
     await fixture.updateConfig("share.filesJsonWebViewLinksEnabled", true);
 
     const shareId = `web-view-links-${randomUUID().slice(0, 8)}`;
+    const largeTextBytes = Buffer.from(
+      `${"A".repeat(5 * 1024 * 1024)}\nstream me too\n`,
+      "utf8",
+    );
     const imageBytes = Buffer.from([
       0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
     ]);
@@ -344,6 +348,40 @@ describe("Legacy share endpoints", () => {
       .send(Buffer.from("# Guide\n\nCrawler friendly preview."));
 
     expect(textUploadResponse.status).toBe(201);
+
+    const codeUploadResponse = await fixture.request
+      .post(
+        `/api/shares/${shareId}/files?name=component.vue&chunkIndex=0&totalChunks=1`,
+      )
+      .set("Cookie", ownerCookie)
+      .set("Content-Type", "application/octet-stream")
+      .send(
+        Buffer.from(
+          '<script setup lang="ts">\nconst answer = 42;\n</script>\n',
+        ),
+      );
+
+    expect(codeUploadResponse.status).toBe(201);
+
+    const sniffedTextUploadResponse = await fixture.request
+      .post(
+        `/api/shares/${shareId}/files?name=unknown.payload&chunkIndex=0&totalChunks=1`,
+      )
+      .set("Cookie", ownerCookie)
+      .set("Content-Type", "application/octet-stream")
+      .send(Buffer.from("first=value\nsecond=value\n"));
+
+    expect(sniffedTextUploadResponse.status).toBe(201);
+
+    const largeTextUploadResponse = await fixture.request
+      .post(
+        `/api/shares/${shareId}/files?name=huge.log&chunkIndex=0&totalChunks=1`,
+      )
+      .set("Cookie", ownerCookie)
+      .set("Content-Type", "application/octet-stream")
+      .send(largeTextBytes);
+
+    expect(largeTextUploadResponse.status).toBe(201);
 
     const imageUploadResponse = await fixture.request
       .post(
@@ -414,8 +452,17 @@ describe("Legacy share endpoints", () => {
     const imageFile = fileListResponse.body.files.find(
       (file: { id: string }) => file.id === imageUploadResponse.body.id,
     );
+    const codeFile = fileListResponse.body.files.find(
+      (file: { id: string }) => file.id === codeUploadResponse.body.id,
+    );
+    const sniffedTextFile = fileListResponse.body.files.find(
+      (file: { id: string }) => file.id === sniffedTextUploadResponse.body.id,
+    );
     const audioFile = fileListResponse.body.files.find(
       (file: { id: string }) => file.id === audioUploadResponse.body.id,
+    );
+    const largeTextFile = fileListResponse.body.files.find(
+      (file: { id: string }) => file.id === largeTextUploadResponse.body.id,
     );
     const videoFile = fileListResponse.body.files.find(
       (file: { id: string }) => file.id === videoUploadResponse.body.id,
@@ -430,11 +477,20 @@ describe("Legacy share endpoints", () => {
     expect(supportedFile.webViewUrl).toBe(
       `http://localhost:3000/api/shares/${shareId}/files/${textUploadResponse.body.id}/web`,
     );
+    expect(codeFile.webViewUrl).toBe(
+      `http://localhost:3000/api/shares/${shareId}/files/${codeUploadResponse.body.id}/web`,
+    );
+    expect(sniffedTextFile.webViewUrl).toBe(
+      `http://localhost:3000/api/shares/${shareId}/files/${sniffedTextUploadResponse.body.id}/web`,
+    );
     expect(imageFile.webViewUrl).toBe(
       `http://localhost:3000/api/shares/${shareId}/files/${imageUploadResponse.body.id}/web`,
     );
     expect(audioFile.webViewUrl).toBe(
       `http://localhost:3000/api/shares/${shareId}/files/${audioUploadResponse.body.id}/web`,
+    );
+    expect(largeTextFile.webViewUrl).toBe(
+      `http://localhost:3000/api/shares/${shareId}/files/${largeTextUploadResponse.body.id}/web`,
     );
     expect(videoFile.webViewUrl).toBe(
       `http://localhost:3000/api/shares/${shareId}/files/${videoUploadResponse.body.id}/web`,
@@ -452,6 +508,28 @@ describe("Legacy share endpoints", () => {
     expect(webViewResponse.status).toBe(200);
     expect(webViewResponse.headers["content-type"]).toMatch(/^text\/plain\b/);
     expect(webViewResponse.text).toBe("# Guide\n\nCrawler friendly preview.");
+
+    const codeWebViewUrl = new URL(codeFile.webViewUrl);
+    const codeWebViewResponse = await publicAgent.get(
+      `${codeWebViewUrl.pathname}${codeWebViewUrl.search}`,
+    );
+
+    expect(codeWebViewResponse.status).toBe(200);
+    expect(codeWebViewResponse.headers["content-type"]).toMatch(
+      /^text\/plain\b/,
+    );
+    expect(codeWebViewResponse.text).toContain("const answer = 42;");
+
+    const sniffedTextWebViewUrl = new URL(sniffedTextFile.webViewUrl);
+    const sniffedTextWebViewResponse = await publicAgent.get(
+      `${sniffedTextWebViewUrl.pathname}${sniffedTextWebViewUrl.search}`,
+    );
+
+    expect(sniffedTextWebViewResponse.status).toBe(200);
+    expect(sniffedTextWebViewResponse.headers["content-type"]).toMatch(
+      /^text\/plain\b/,
+    );
+    expect(sniffedTextWebViewResponse.text).toBe("first=value\nsecond=value\n");
 
     const imageWebViewUrl = new URL(imageFile.webViewUrl);
     const imageWebViewResponse = await publicAgent
@@ -476,6 +554,17 @@ describe("Legacy share endpoints", () => {
       /^audio\/mpeg\b/,
     );
     expect(Buffer.compare(audioWebViewResponse.body, audioBytes)).toBe(0);
+
+    const largeTextWebViewUrl = new URL(largeTextFile.webViewUrl);
+    const largeTextWebViewResponse = await publicAgent.get(
+      `${largeTextWebViewUrl.pathname}${largeTextWebViewUrl.search}`,
+    );
+
+    expect(largeTextWebViewResponse.status).toBe(200);
+    expect(largeTextWebViewResponse.headers["content-type"]).toMatch(
+      /^text\/plain\b/,
+    );
+    expect(largeTextWebViewResponse.text).toContain("stream me too");
 
     const videoWebViewUrl = new URL(videoFile.webViewUrl);
     const videoWebViewResponse = await publicAgent

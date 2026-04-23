@@ -101,6 +101,15 @@ export class FileService {
     return await this.localFileService.getZipForOwner(shareId);
   }
 
+  async readSample(
+    shareId: string,
+    fileId: string,
+    maxBytes: number,
+  ): Promise<Uint8Array> {
+    const file = await this.get(shareId, fileId);
+    return this.streamToUint8Array(file.file, maxBytes);
+  }
+
   private async getStorageServiceForShare(shareId: string) {
     const share = await this.prisma.share.findUnique({
       where: { id: shareId },
@@ -114,14 +123,36 @@ export class FileService {
     return this.getStorageService(share.storageProvider);
   }
 
-  private async streamToUint8Array(stream: Readable): Promise<Uint8Array> {
+  private async streamToUint8Array(
+    stream: Readable,
+    maxBytes = Number.MAX_SAFE_INTEGER,
+  ): Promise<Uint8Array> {
     const chunks: Buffer[] = [];
+    let totalBytes = 0;
 
-    return new Promise((resolve, reject) => {
-      stream.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
-      stream.on("end", () => resolve(new Uint8Array(Buffer.concat(chunks))));
-      stream.on("error", reject);
-    });
+    try {
+      for await (const chunk of stream) {
+        const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+        const remainingBytes = maxBytes - totalBytes;
+
+        if (remainingBytes <= 0) {
+          break;
+        }
+
+        if (buffer.length > remainingBytes) {
+          chunks.push(buffer.subarray(0, remainingBytes));
+          totalBytes += remainingBytes;
+          break;
+        }
+
+        chunks.push(buffer);
+        totalBytes += buffer.length;
+      }
+    } finally {
+      stream.destroy();
+    }
+
+    return new Uint8Array(Buffer.concat(chunks, totalBytes));
   }
 }
 

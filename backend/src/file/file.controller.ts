@@ -17,8 +17,9 @@ import { Response } from "express";
 import { CreateShareGuard } from "src/share/guard/createShare.guard";
 import { ShareOwnerGuard } from "src/share/guard/shareOwner.guard";
 import {
-  canExposeFileWebView,
+  FILE_WEB_VIEW_SNIFF_BYTES,
   getFileWebViewDescriptor,
+  getFileWebViewDescriptorFromSample,
 } from "./fileWebView.util";
 import { FileService } from "./file.service";
 import { FileSecurityGuard } from "./guard/fileSecurity.guard";
@@ -92,17 +93,16 @@ export class FileController {
     const file = await this.fileService.get(shareId, fileId);
     const contentType =
       mime?.lookup?.(file.metaData.name) || "application/octet-stream";
+    let descriptor = getFileWebViewDescriptor(file.metaData.name, contentType);
 
-    if (
-      !canExposeFileWebView(file.metaData.name, file.metaData.size, contentType)
-    ) {
-      throw new NotFoundException("Web view not available");
+    if (!descriptor) {
+      const sample = await this.fileService.readSample(
+        shareId,
+        fileId,
+        FILE_WEB_VIEW_SNIFF_BYTES,
+      );
+      descriptor = getFileWebViewDescriptorFromSample(sample);
     }
-
-    const descriptor = getFileWebViewDescriptor(
-      file.metaData.name,
-      contentType,
-    );
 
     if (!descriptor) {
       throw new NotFoundException("Web view not available");

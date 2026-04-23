@@ -21,7 +21,12 @@ import { GetUser } from "src/auth/decorator/getUser.decorator";
 import { AdministratorGuard } from "src/auth/guard/isAdmin.guard";
 import { JwtGuard } from "src/auth/guard/jwt.guard";
 import { ConfigService } from "src/config/config.service";
-import { canExposeFileWebView } from "src/file/fileWebView.util";
+import { FileService } from "src/file/file.service";
+import {
+  FILE_WEB_VIEW_SNIFF_BYTES,
+  getFileWebViewDescriptor,
+  getFileWebViewDescriptorFromSample,
+} from "src/file/fileWebView.util";
 import * as mime from "mime-types";
 import { AdminShareDTO } from "./dto/adminShare.dto";
 import { AdminShareAuditDTO } from "./dto/adminShareAudit.dto";
@@ -60,6 +65,7 @@ export class ShareController {
     private shareService: ShareService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private fileService: FileService,
   ) {}
 
   @Get("all")
@@ -208,28 +214,58 @@ export class ShareController {
               )
             : undefined,
       },
-      files: fileList.share.files.map((file) => {
-        const contentType =
-          mime.lookup(file.name) || "application/octet-stream";
-        const fileUrl = `${appUrl}/api/shares/${fileList.share.id}/files/${file.id}`;
+      files: await Promise.all(
+        fileList.share.files.map(async (file) => {
+          const contentType =
+            mime.lookup(file.name) || "application/octet-stream";
+          const fileUrl = `${appUrl}/api/shares/${fileList.share.id}/files/${file.id}`;
+          const descriptor = includeWebViewLinks
+            ? await this.getShareFileWebViewDescriptor(
+                fileList.share.id,
+                file.id,
+                file.name,
+                contentType,
+              )
+            : undefined;
 
-        return {
-          id: file.id,
-          name: file.name,
-          sizeBytes: file.size,
-          createdAt: file.createdAt,
-          contentType,
-          downloadUrl: appendTokenQuery(fileUrl),
-          inlineUrl: appendTokenQuery(`${fileUrl}?download=false`),
-          ...(includeWebViewLinks &&
-          canExposeFileWebView(file.name, file.size, contentType)
-            ? {
-                webViewUrl: appendTokenQuery(`${fileUrl}/web`),
-              }
-            : {}),
-        };
-      }),
+          return {
+            id: file.id,
+            name: file.name,
+            sizeBytes: file.size,
+            createdAt: file.createdAt,
+            contentType,
+            downloadUrl: appendTokenQuery(fileUrl),
+            inlineUrl: appendTokenQuery(`${fileUrl}?download=false`),
+            ...(descriptor
+              ? {
+                  webViewUrl: appendTokenQuery(`${fileUrl}/web`),
+                }
+              : {}),
+          };
+        }),
+      ),
     });
+  }
+
+  private async getShareFileWebViewDescriptor(
+    shareId: string,
+    fileId: string,
+    fileName: string,
+    contentType: string | false,
+  ) {
+    const descriptor = getFileWebViewDescriptor(fileName, contentType);
+
+    if (descriptor) {
+      return descriptor;
+    }
+
+    const sample = await this.fileService.readSample(
+      shareId,
+      fileId,
+      FILE_WEB_VIEW_SNIFF_BYTES,
+    );
+
+    return getFileWebViewDescriptorFromSample(sample);
   }
 
   @Post()
