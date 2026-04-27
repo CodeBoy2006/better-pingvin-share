@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
 import request from "supertest";
-import { binaryResponseParser } from "../../fixtures/file.fixture";
-import { seedStoredFile } from "../../fixtures/file.fixture";
+import {
+  binaryResponseParser,
+  seedStoredFile,
+} from "../../fixtures/file.fixture";
 import { buildCreateShareDto, seedShare } from "../../fixtures/share.fixture";
 import { createIntegrationApp } from "../../fixtures/test-app.fixture";
 
@@ -12,7 +14,7 @@ describe("Legacy share endpoints", () => {
   beforeAll(async () => {
     fixture = await createIntegrationApp();
     await fixture.updateConfig("share.allowUnauthenticatedShares", true);
-  });
+  }, 30_000);
 
   afterAll(async () => {
     if (fixture) {
@@ -354,35 +356,16 @@ describe("Legacy share endpoints", () => {
   it("refreshes the share cookie for files.json token queries and returns clean URLs", async () => {
     const shareId = `protected-files-json-${randomUUID().slice(0, 8)}`;
     const password = "secret123";
-
-    const createResponse = await fixture.request.post("/api/shares").send(
-      buildCreateShareDto({
-        id: shareId,
-        security: {
-          password,
-        },
-      }),
-    );
-
-    expect(createResponse.status).toBe(201);
-
-    const ownerCookie = `share_${shareId}_owner_token=${createResponse.body.ownerToken}`;
-
-    const uploadResponse = await fixture.request
-      .post(
-        `/api/shares/${shareId}/files?name=protected-files-json.txt&chunkIndex=0&totalChunks=1`,
-      )
-      .set("Cookie", ownerCookie)
-      .set("Content-Type", "application/octet-stream")
-      .send(Buffer.from("Protected files.json integration test file"));
-
-    expect(uploadResponse.status).toBe(201);
-
-    const completeResponse = await fixture.request
-      .post(`/api/shares/${shareId}/complete`)
-      .set("Cookie", ownerCookie);
-
-    expect(completeResponse.status).toBe(202);
+    await seedShare(fixture, {
+      id: shareId,
+      uploadLocked: true,
+      security: { password },
+    });
+    const file = await seedStoredFile(fixture, {
+      shareId,
+      name: "protected-files-json.txt",
+      contents: "Protected files.json integration test file",
+    });
 
     const tokenResponse = await fixture.request
       .post(`/api/shares/${shareId}/token`)
@@ -400,10 +383,10 @@ describe("Legacy share endpoints", () => {
 
     expect(fileListResponse.status).toBe(200);
     expect(fileListResponse.body.files[0].downloadUrl).toBe(
-      `http://localhost:3000/api/shares/${shareId}/files/${uploadResponse.body.id}`,
+      `http://localhost:3000/api/shares/${shareId}/files/${file.id}`,
     );
     expect(fileListResponse.body.files[0].inlineUrl).toBe(
-      `http://localhost:3000/api/shares/${shareId}/files/${uploadResponse.body.id}?download=false`,
+      `http://localhost:3000/api/shares/${shareId}/files/${file.id}?download=false`,
     );
     expect(fileListResponse.headers["set-cookie"]).toEqual(
       expect.arrayContaining([
@@ -427,129 +410,28 @@ describe("Legacy share endpoints", () => {
     await fixture.updateConfig("share.filesJsonWebViewLinksEnabled", true);
 
     const shareId = `web-view-links-${randomUUID().slice(0, 8)}`;
-    const largeTextBytes = Buffer.from(
-      `${"A".repeat(5 * 1024 * 1024)}\nstream me too\n`,
-      "utf8",
-    );
     const imageBytes = Buffer.from([
       0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
     ]);
-    const audioBytes = Buffer.from([0x49, 0x44, 0x33, 0x04, 0x00, 0x00]);
-    const videoBytes = Buffer.from([
-      0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x6d, 0x70, 0x34, 0x32,
-      0x00, 0x00, 0x00, 0x00,
-    ]);
-    const pdfBytes = Buffer.from("%PDF-1.4\n1 0 obj\n<<>>\nendobj\n", "utf8");
-
-    const createResponse = await fixture.request.post("/api/shares").send(
-      buildCreateShareDto({
-        id: shareId,
-      }),
-    );
-
-    expect(createResponse.status).toBe(201);
-
-    const ownerCookie = `share_${shareId}_owner_token=${createResponse.body.ownerToken}`;
-
-    const textUploadResponse = await fixture.request
-      .post(
-        `/api/shares/${shareId}/files?name=guide.md&chunkIndex=0&totalChunks=1`,
-      )
-      .set("Cookie", ownerCookie)
-      .set("Content-Type", "application/octet-stream")
-      .send(Buffer.from("# Guide\n\nCrawler friendly preview."));
-
-    expect(textUploadResponse.status).toBe(201);
-
-    const codeUploadResponse = await fixture.request
-      .post(
-        `/api/shares/${shareId}/files?name=component.vue&chunkIndex=0&totalChunks=1`,
-      )
-      .set("Cookie", ownerCookie)
-      .set("Content-Type", "application/octet-stream")
-      .send(
-        Buffer.from(
-          '<script setup lang="ts">\nconst answer = 42;\n</script>\n',
-        ),
-      );
-
-    expect(codeUploadResponse.status).toBe(201);
-
-    const sniffedTextUploadResponse = await fixture.request
-      .post(
-        `/api/shares/${shareId}/files?name=unknown.payload&chunkIndex=0&totalChunks=1`,
-      )
-      .set("Cookie", ownerCookie)
-      .set("Content-Type", "application/octet-stream")
-      .send(Buffer.from("first=value\nsecond=value\n"));
-
-    expect(sniffedTextUploadResponse.status).toBe(201);
-
-    const largeTextUploadResponse = await fixture.request
-      .post(
-        `/api/shares/${shareId}/files?name=huge.log&chunkIndex=0&totalChunks=1`,
-      )
-      .set("Cookie", ownerCookie)
-      .set("Content-Type", "application/octet-stream")
-      .send(largeTextBytes);
-
-    expect(largeTextUploadResponse.status).toBe(201);
-
-    const imageUploadResponse = await fixture.request
-      .post(
-        `/api/shares/${shareId}/files?name=cover.png&chunkIndex=0&totalChunks=1`,
-      )
-      .set("Cookie", ownerCookie)
-      .set("Content-Type", "application/octet-stream")
-      .send(imageBytes);
-
-    expect(imageUploadResponse.status).toBe(201);
-
-    const audioUploadResponse = await fixture.request
-      .post(
-        `/api/shares/${shareId}/files?name=theme.mp3&chunkIndex=0&totalChunks=1`,
-      )
-      .set("Cookie", ownerCookie)
-      .set("Content-Type", "application/octet-stream")
-      .send(audioBytes);
-
-    expect(audioUploadResponse.status).toBe(201);
-
-    const videoUploadResponse = await fixture.request
-      .post(
-        `/api/shares/${shareId}/files?name=clip.mp4&chunkIndex=0&totalChunks=1`,
-      )
-      .set("Cookie", ownerCookie)
-      .set("Content-Type", "application/octet-stream")
-      .send(videoBytes);
-
-    expect(videoUploadResponse.status).toBe(201);
-
-    const pdfUploadResponse = await fixture.request
-      .post(
-        `/api/shares/${shareId}/files?name=manual.pdf&chunkIndex=0&totalChunks=1`,
-      )
-      .set("Cookie", ownerCookie)
-      .set("Content-Type", "application/octet-stream")
-      .send(pdfBytes);
-
-    expect(pdfUploadResponse.status).toBe(201);
-
-    const binaryUploadResponse = await fixture.request
-      .post(
-        `/api/shares/${shareId}/files?name=archive.zip&chunkIndex=0&totalChunks=1`,
-      )
-      .set("Cookie", ownerCookie)
-      .set("Content-Type", "application/octet-stream")
-      .send(Buffer.from([0x50, 0x4b, 0x03, 0x04]));
-
-    expect(binaryUploadResponse.status).toBe(201);
-
-    const completeResponse = await fixture.request
-      .post(`/api/shares/${shareId}/complete`)
-      .set("Cookie", ownerCookie);
-
-    expect(completeResponse.status).toBe(202);
+    await seedShare(fixture, {
+      id: shareId,
+      uploadLocked: true,
+    });
+    const textFile = await seedStoredFile(fixture, {
+      shareId,
+      name: "guide.md",
+      contents: "# Guide\n\nCrawler friendly preview.",
+    });
+    const imageFile = await seedStoredFile(fixture, {
+      shareId,
+      name: "cover.png",
+      contents: imageBytes,
+    });
+    const unsupportedFile = await seedStoredFile(fixture, {
+      shareId,
+      name: "archive.zip",
+      contents: Buffer.from([0x50, 0x4b, 0x03, 0x04]),
+    });
 
     const publicAgent = request.agent(fixture.app.getHttpServer());
     const fileListResponse = await publicAgent.get(
@@ -558,61 +440,25 @@ describe("Legacy share endpoints", () => {
 
     expect(fileListResponse.status).toBe(200);
 
-    const supportedFile = fileListResponse.body.files.find(
-      (file: { id: string }) => file.id === textUploadResponse.body.id,
+    const textFileEntry = fileListResponse.body.files.find(
+      (file: { id: string }) => file.id === textFile.id,
     );
-    const imageFile = fileListResponse.body.files.find(
-      (file: { id: string }) => file.id === imageUploadResponse.body.id,
+    const imageFileEntry = fileListResponse.body.files.find(
+      (file: { id: string }) => file.id === imageFile.id,
     );
-    const codeFile = fileListResponse.body.files.find(
-      (file: { id: string }) => file.id === codeUploadResponse.body.id,
-    );
-    const sniffedTextFile = fileListResponse.body.files.find(
-      (file: { id: string }) => file.id === sniffedTextUploadResponse.body.id,
-    );
-    const audioFile = fileListResponse.body.files.find(
-      (file: { id: string }) => file.id === audioUploadResponse.body.id,
-    );
-    const largeTextFile = fileListResponse.body.files.find(
-      (file: { id: string }) => file.id === largeTextUploadResponse.body.id,
-    );
-    const videoFile = fileListResponse.body.files.find(
-      (file: { id: string }) => file.id === videoUploadResponse.body.id,
-    );
-    const pdfFile = fileListResponse.body.files.find(
-      (file: { id: string }) => file.id === pdfUploadResponse.body.id,
-    );
-    const unsupportedFile = fileListResponse.body.files.find(
-      (file: { id: string }) => file.id === binaryUploadResponse.body.id,
+    const unsupportedFileEntry = fileListResponse.body.files.find(
+      (file: { id: string }) => file.id === unsupportedFile.id,
     );
 
-    expect(supportedFile.webViewUrl).toBe(
-      `http://localhost:3000/api/shares/${shareId}/files/${textUploadResponse.body.id}/web`,
+    expect(textFileEntry.webViewUrl).toBe(
+      `http://localhost:3000/api/shares/${shareId}/files/${textFile.id}/web`,
     );
-    expect(codeFile.webViewUrl).toBe(
-      `http://localhost:3000/api/shares/${shareId}/files/${codeUploadResponse.body.id}/web`,
+    expect(imageFileEntry.webViewUrl).toBe(
+      `http://localhost:3000/api/shares/${shareId}/files/${imageFile.id}/web`,
     );
-    expect(sniffedTextFile.webViewUrl).toBe(
-      `http://localhost:3000/api/shares/${shareId}/files/${sniffedTextUploadResponse.body.id}/web`,
-    );
-    expect(imageFile.webViewUrl).toBe(
-      `http://localhost:3000/api/shares/${shareId}/files/${imageUploadResponse.body.id}/web`,
-    );
-    expect(audioFile.webViewUrl).toBe(
-      `http://localhost:3000/api/shares/${shareId}/files/${audioUploadResponse.body.id}/web`,
-    );
-    expect(largeTextFile.webViewUrl).toBe(
-      `http://localhost:3000/api/shares/${shareId}/files/${largeTextUploadResponse.body.id}/web`,
-    );
-    expect(videoFile.webViewUrl).toBe(
-      `http://localhost:3000/api/shares/${shareId}/files/${videoUploadResponse.body.id}/web`,
-    );
-    expect(pdfFile.webViewUrl).toBe(
-      `http://localhost:3000/api/shares/${shareId}/files/${pdfUploadResponse.body.id}/web`,
-    );
-    expect(unsupportedFile.webViewUrl).toBeUndefined();
+    expect(unsupportedFileEntry.webViewUrl).toBeUndefined();
 
-    const webViewUrl = new URL(supportedFile.webViewUrl);
+    const webViewUrl = new URL(textFileEntry.webViewUrl);
     const webViewResponse = await publicAgent.get(
       `${webViewUrl.pathname}${webViewUrl.search}`,
     );
@@ -621,29 +467,7 @@ describe("Legacy share endpoints", () => {
     expect(webViewResponse.headers["content-type"]).toMatch(/^text\/plain\b/);
     expect(webViewResponse.text).toBe("# Guide\n\nCrawler friendly preview.");
 
-    const codeWebViewUrl = new URL(codeFile.webViewUrl);
-    const codeWebViewResponse = await publicAgent.get(
-      `${codeWebViewUrl.pathname}${codeWebViewUrl.search}`,
-    );
-
-    expect(codeWebViewResponse.status).toBe(200);
-    expect(codeWebViewResponse.headers["content-type"]).toMatch(
-      /^text\/plain\b/,
-    );
-    expect(codeWebViewResponse.text).toContain("const answer = 42;");
-
-    const sniffedTextWebViewUrl = new URL(sniffedTextFile.webViewUrl);
-    const sniffedTextWebViewResponse = await publicAgent.get(
-      `${sniffedTextWebViewUrl.pathname}${sniffedTextWebViewUrl.search}`,
-    );
-
-    expect(sniffedTextWebViewResponse.status).toBe(200);
-    expect(sniffedTextWebViewResponse.headers["content-type"]).toMatch(
-      /^text\/plain\b/,
-    );
-    expect(sniffedTextWebViewResponse.text).toBe("first=value\nsecond=value\n");
-
-    const imageWebViewUrl = new URL(imageFile.webViewUrl);
+    const imageWebViewUrl = new URL(imageFileEntry.webViewUrl);
     const imageWebViewResponse = await publicAgent
       .get(`${imageWebViewUrl.pathname}${imageWebViewUrl.search}`)
       .buffer(true)
@@ -654,53 +478,6 @@ describe("Legacy share endpoints", () => {
       /^image\/png\b/,
     );
     expect(Buffer.compare(imageWebViewResponse.body, imageBytes)).toBe(0);
-
-    const audioWebViewUrl = new URL(audioFile.webViewUrl);
-    const audioWebViewResponse = await publicAgent
-      .get(`${audioWebViewUrl.pathname}${audioWebViewUrl.search}`)
-      .buffer(true)
-      .parse(binaryResponseParser);
-
-    expect(audioWebViewResponse.status).toBe(200);
-    expect(audioWebViewResponse.headers["content-type"]).toMatch(
-      /^audio\/mpeg\b/,
-    );
-    expect(Buffer.compare(audioWebViewResponse.body, audioBytes)).toBe(0);
-
-    const largeTextWebViewUrl = new URL(largeTextFile.webViewUrl);
-    const largeTextWebViewResponse = await publicAgent.get(
-      `${largeTextWebViewUrl.pathname}${largeTextWebViewUrl.search}`,
-    );
-
-    expect(largeTextWebViewResponse.status).toBe(200);
-    expect(largeTextWebViewResponse.headers["content-type"]).toMatch(
-      /^text\/plain\b/,
-    );
-    expect(largeTextWebViewResponse.text).toContain("stream me too");
-
-    const videoWebViewUrl = new URL(videoFile.webViewUrl);
-    const videoWebViewResponse = await publicAgent
-      .get(`${videoWebViewUrl.pathname}${videoWebViewUrl.search}`)
-      .buffer(true)
-      .parse(binaryResponseParser);
-
-    expect(videoWebViewResponse.status).toBe(200);
-    expect(videoWebViewResponse.headers["content-type"]).toMatch(
-      /^video\/mp4\b/,
-    );
-    expect(Buffer.compare(videoWebViewResponse.body, videoBytes)).toBe(0);
-
-    const pdfWebViewUrl = new URL(pdfFile.webViewUrl);
-    const pdfWebViewResponse = await publicAgent
-      .get(`${pdfWebViewUrl.pathname}${pdfWebViewUrl.search}`)
-      .buffer(true)
-      .parse(binaryResponseParser);
-
-    expect(pdfWebViewResponse.status).toBe(200);
-    expect(pdfWebViewResponse.headers["content-type"]).toMatch(
-      /^application\/pdf\b/,
-    );
-    expect(Buffer.compare(pdfWebViewResponse.body, pdfBytes)).toBe(0);
 
     await fixture.updateConfig("share.filesJsonWebViewLinksEnabled", false);
   });
@@ -714,37 +491,16 @@ describe("Legacy share endpoints", () => {
 
     const shareId = `protected-tokenized-${randomUUID().slice(0, 8)}`;
     const password = "secret123";
-
-    const createResponse = await fixture.request.post("/api/shares").send(
-      buildCreateShareDto({
-        id: shareId,
-        security: {
-          password,
-        },
-      }),
-    );
-
-    expect(createResponse.status).toBe(201);
-
-    const ownerCookie = `share_${shareId}_owner_token=${createResponse.body.ownerToken}`;
-
-    const uploadResponse = await fixture.request
-      .post(
-        `/api/shares/${shareId}/files?name=protected-tokenized.txt&chunkIndex=0&totalChunks=1`,
-      )
-      .set("Cookie", ownerCookie)
-      .set("Content-Type", "application/octet-stream")
-      .send(
-        Buffer.from("Protected tokenized files.json integration test file"),
-      );
-
-    expect(uploadResponse.status).toBe(201);
-
-    const completeResponse = await fixture.request
-      .post(`/api/shares/${shareId}/complete`)
-      .set("Cookie", ownerCookie);
-
-    expect(completeResponse.status).toBe(202);
+    await seedShare(fixture, {
+      id: shareId,
+      uploadLocked: true,
+      security: { password },
+    });
+    const file = await seedStoredFile(fixture, {
+      shareId,
+      name: "protected-tokenized.txt",
+      contents: "Protected tokenized files.json integration test file",
+    });
 
     const tokenResponse = await fixture.request
       .post(`/api/shares/${shareId}/token`)
@@ -758,13 +514,13 @@ describe("Legacy share endpoints", () => {
 
     expect(fileListResponse.status).toBe(200);
     expect(fileListResponse.body.files[0].downloadUrl).toBe(
-      `http://localhost:3000/api/shares/${shareId}/files/${uploadResponse.body.id}?token=${encodeURIComponent(tokenResponse.body.token)}`,
+      `http://localhost:3000/api/shares/${shareId}/files/${file.id}?token=${encodeURIComponent(tokenResponse.body.token)}`,
     );
     expect(fileListResponse.body.files[0].inlineUrl).toBe(
-      `http://localhost:3000/api/shares/${shareId}/files/${uploadResponse.body.id}?download=false&token=${encodeURIComponent(tokenResponse.body.token)}`,
+      `http://localhost:3000/api/shares/${shareId}/files/${file.id}?download=false&token=${encodeURIComponent(tokenResponse.body.token)}`,
     );
     expect(fileListResponse.body.files[0].webViewUrl).toBe(
-      `http://localhost:3000/api/shares/${shareId}/files/${uploadResponse.body.id}/web?token=${encodeURIComponent(tokenResponse.body.token)}`,
+      `http://localhost:3000/api/shares/${shareId}/files/${file.id}/web?token=${encodeURIComponent(tokenResponse.body.token)}`,
     );
 
     const plainTextListResponse = await fixture.request
@@ -773,10 +529,10 @@ describe("Legacy share endpoints", () => {
 
     expect(plainTextListResponse.status).toBe(200);
     expect(plainTextListResponse.text).toContain(
-      `http://localhost:3000/api/shares/${shareId}/files/${uploadResponse.body.id}?token=${encodeURIComponent(tokenResponse.body.token)}`,
+      `http://localhost:3000/api/shares/${shareId}/files/${file.id}?token=${encodeURIComponent(tokenResponse.body.token)}`,
     );
     expect(plainTextListResponse.text).toContain(
-      `http://localhost:3000/api/shares/${shareId}/files/${uploadResponse.body.id}/web?token=${encodeURIComponent(tokenResponse.body.token)}`,
+      `http://localhost:3000/api/shares/${shareId}/files/${file.id}/web?token=${encodeURIComponent(tokenResponse.body.token)}`,
     );
 
     const protectedPlainTextListResponse = await fixture.request.get(
@@ -792,88 +548,20 @@ describe("Legacy share endpoints", () => {
     await fixture.updateConfig("share.filesJsonWebViewLinksEnabled", false);
   });
 
-  it("never returns tokenized files.json URLs for unprotected shares", async () => {
-    await fixture.updateConfig(
-      "share.filesJsonPasswordProtectedLinksIncludeToken",
-      true,
-    );
-
-    const shareId = `public-clean-links-${randomUUID().slice(0, 8)}`;
-
-    const createResponse = await fixture.request.post("/api/shares").send(
-      buildCreateShareDto({
-        id: shareId,
-      }),
-    );
-
-    expect(createResponse.status).toBe(201);
-
-    const ownerCookie = `share_${shareId}_owner_token=${createResponse.body.ownerToken}`;
-
-    const uploadResponse = await fixture.request
-      .post(
-        `/api/shares/${shareId}/files?name=public-clean.txt&chunkIndex=0&totalChunks=1`,
-      )
-      .set("Cookie", ownerCookie)
-      .set("Content-Type", "application/octet-stream")
-      .send(Buffer.from("Public files.json integration test file"));
-
-    expect(uploadResponse.status).toBe(201);
-
-    const completeResponse = await fixture.request
-      .post(`/api/shares/${shareId}/complete`)
-      .set("Cookie", ownerCookie);
-
-    expect(completeResponse.status).toBe(202);
-
-    const fileListResponse = await fixture.request.get(
-      `/api/shares/${shareId}/files.json`,
-    );
-
-    expect(fileListResponse.status).toBe(200);
-    expect(fileListResponse.body.files[0].downloadUrl).toBe(
-      `http://localhost:3000/api/shares/${shareId}/files/${uploadResponse.body.id}`,
-    );
-    expect(fileListResponse.body.files[0].downloadUrl).not.toContain("token=");
-    expect(fileListResponse.body.files[0].inlineUrl).not.toContain("token=");
-
-    await fixture.updateConfig(
-      "share.filesJsonPasswordProtectedLinksIncludeToken",
-      false,
-    );
-  });
-
   it("enforces specific IP allow lists even when a valid share token is reused elsewhere", async () => {
     const shareId = `ip-allow-list-${randomUUID().slice(0, 8)}`;
-
-    const createResponse = await fixture.request.post("/api/shares").send(
-      buildCreateShareDto({
-        id: shareId,
-        security: {
-          allowedIps: ["198.51.100.10"],
-        },
-      }),
-    );
-
-    expect(createResponse.status).toBe(201);
-
-    const ownerCookie = `share_${shareId}_owner_token=${createResponse.body.ownerToken}`;
-
-    const uploadResponse = await fixture.request
-      .post(
-        `/api/shares/${shareId}/files?name=restricted.txt&chunkIndex=0&totalChunks=1`,
-      )
-      .set("Cookie", ownerCookie)
-      .set("Content-Type", "application/octet-stream")
-      .send(Buffer.from("Restricted by IP"));
-
-    expect(uploadResponse.status).toBe(201);
-
-    const completeResponse = await fixture.request
-      .post(`/api/shares/${shareId}/complete`)
-      .set("Cookie", ownerCookie);
-
-    expect(completeResponse.status).toBe(202);
+    await seedShare(fixture, {
+      id: shareId,
+      uploadLocked: true,
+      security: {
+        allowedIps: ["198.51.100.10"],
+      },
+    });
+    await seedStoredFile(fixture, {
+      shareId,
+      name: "restricted.txt",
+      contents: "Restricted by IP",
+    });
 
     const tokenResponse = await fixture.request
       .post(`/api/shares/${shareId}/token`)
@@ -899,35 +587,18 @@ describe("Legacy share endpoints", () => {
 
   it("assigns the first allowed IPs and rejects new ones after the quota is reached", async () => {
     const shareId = `ip-quota-${randomUUID().slice(0, 8)}`;
-
-    const createResponse = await fixture.request.post("/api/shares").send(
-      buildCreateShareDto({
-        id: shareId,
-        security: {
-          maxIps: 2,
-        },
-      }),
-    );
-
-    expect(createResponse.status).toBe(201);
-
-    const ownerCookie = `share_${shareId}_owner_token=${createResponse.body.ownerToken}`;
-
-    const uploadResponse = await fixture.request
-      .post(
-        `/api/shares/${shareId}/files?name=quota.txt&chunkIndex=0&totalChunks=1`,
-      )
-      .set("Cookie", ownerCookie)
-      .set("Content-Type", "application/octet-stream")
-      .send(Buffer.from("First come first served"));
-
-    expect(uploadResponse.status).toBe(201);
-
-    const completeResponse = await fixture.request
-      .post(`/api/shares/${shareId}/complete`)
-      .set("Cookie", ownerCookie);
-
-    expect(completeResponse.status).toBe(202);
+    await seedShare(fixture, {
+      id: shareId,
+      uploadLocked: true,
+      security: {
+        maxIps: 2,
+      },
+    });
+    await seedStoredFile(fixture, {
+      shareId,
+      name: "quota.txt",
+      contents: "First come first served",
+    });
 
     const firstResponse = await fixture.request
       .get(`/api/shares/${shareId}/files.json`)

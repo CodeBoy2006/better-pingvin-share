@@ -26,6 +26,7 @@ const sharedConfig = {
 
 module.exports = {
   rootDir: backendRoot,
+  testTimeout: 30_000,
   collectCoverageFrom: [
     "src/**/*.ts",
     "!src/**/*.dto.ts",

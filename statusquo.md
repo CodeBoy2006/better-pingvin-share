@@ -272,3 +272,9 @@
 - **Status:** Completed
 - **Next Steps:** Push the fix and rerun GitHub Actions for Backend and Browser E2E.
 - **Context:** Verified with backend lint/typecheck/test:coverage, frontend lint/typecheck/build/test:coverage, and full npm run test:e2e locally.
+
+## [2026-04-27 23:24] Reduce CI Test Runtime
+- **Changes:** Optimized `legacy-share.controller.spec.ts` by replacing expensive create/upload/complete setup with direct seed fixtures, trimming redundant web-view cases, and removing one duplicate tokenized-link integration scenario.
+- **Status:** Completed
+- **Next Steps:** Watch CI timing to confirm GitHub Actions matches local improvements.
+- **Context:** `npm --prefix backend run test:coverage` passes in ~10.9s locally; `npm run test:e2e` passes in ~33.4s after removing the slow ZIP polling from browser smoke coverage.

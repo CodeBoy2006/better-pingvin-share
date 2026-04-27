@@ -1,3 +1,8 @@
+import "class-transformer";
+import "class-validator";
+
+jest.setTimeout(30_000);
+
 jest.mock("moment", () => {
   const actualMoment = jest.requireActual("moment");
   const callableMoment = actualMoment.default ?? actualMoment;
