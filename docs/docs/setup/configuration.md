@@ -20,6 +20,12 @@ If you use Docker you can create a `config.yml` file based on the [`config.examp
 
 If you run Better Pingvin Share without Docker, you can create a `config.yml` file based on the [`config.example.yaml`](https://github.com/CodeBoy2006/better-pingvin-share/blob/main/config.example.yaml) in the root directory of the project.
 
+The share retention settings are related:
+
+- `share.fileRetentionPeriod` controls how long expired or owner-deleted shares remain on disk before permanent deletion.
+- `share.expiredEditablePeriod` controls how long expired shares can still be edited by the owner or an administrator. This value must be less than or equal to `share.fileRetentionPeriod`.
+- Expired shares remain inaccessible through public links and downloads unless their expiration is extended during the editable period.
+
 ---
 
 ### Environment variables

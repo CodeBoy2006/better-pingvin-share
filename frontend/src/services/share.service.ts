@@ -10,6 +10,7 @@ import {
   Share,
   ShareStorageStats,
   ShareMetaData,
+  UpdateShare,
 } from "../types/share.type";
 import { guessFilePreviewDescriptor } from "../utils/filePreview.util";
 import api from "./api.service";
@@ -51,6 +52,10 @@ const create = async (share: CreateShare, isReverseShare = false) => {
   return response;
 };
 
+const update = async (id: string, share: UpdateShare): Promise<MyShare> => {
+  return (await api.patch(`shares/${id}`, share)).data;
+};
+
 const completeShare = async (id: string) => {
   const response = (await api.post(`shares/${id}/complete`)).data;
   deleteCookie("reverse_share_token");
@@ -70,7 +75,7 @@ const get = async (id: string): Promise<Share> => {
   return (await api.get(`shares/${id}`)).data;
 };
 
-const getFromOwner = async (id: string): Promise<Share> => {
+const getFromOwner = async (id: string): Promise<MyShare> => {
   return (await api.get(`shares/${id}/from-owner`)).data;
 };
 
@@ -182,6 +187,7 @@ export default {
   getStorageStats,
   getAdminAuditShare,
   create,
+  update,
   completeShare,
   revertComplete,
   getShareToken,

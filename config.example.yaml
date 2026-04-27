@@ -42,6 +42,8 @@ share:
   filesJsonWebViewLinksEnabled: "false"
   #How long expired or owner-deleted shares should be retained before their files are permanently removed. Set to "0 days" to disable retention.
   fileRetentionPeriod: "0 days"
+  #How long expired shares remain editable by owners and administrators before deletion. Must be less than or equal to fileRetentionPeriod.
+  expiredEditablePeriod: "0 days"
 cache:
   #Normally Better Pingvin Share caches information in memory. If you run multiple instances of Better Pingvin Share, you need to enable Redis caching to share the cache between the instances.
   redis-enabled: "false"

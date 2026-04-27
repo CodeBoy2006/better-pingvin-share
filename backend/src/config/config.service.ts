@@ -18,6 +18,26 @@ import {
   YamlConfig,
 } from "./configDefinitions";
 
+const TIMESPAN_UNITS = [
+  "minutes",
+  "hours",
+  "days",
+  "weeks",
+  "months",
+  "years",
+] as const;
+
+type TimespanUnit = (typeof TIMESPAN_UNITS)[number];
+
+const TIMESPAN_IN_MINUTES: Record<TimespanUnit, number> = {
+  minutes: 1,
+  hours: 60,
+  days: 60 * 24,
+  weeks: 60 * 24 * 7,
+  months: 60 * 24 * 30,
+  years: 60 * 24 * 365,
+};
+
 /**
  * ConfigService extends EventEmitter to allow listening for config updates,
  * now only `update` event will be emitted.
@@ -52,23 +72,20 @@ export class ConfigService extends EventEmitter {
         "Config.yaml is not set. Falling back to UI configuration.",
       );
     }
-    try {
-      this.yamlConfig = yamlParse(configFile);
+    this.yamlConfig = yamlParse(configFile);
 
-      if (this.yamlConfig) {
-        for (const configVariable of this.configVariables) {
-          const category = this.yamlConfig[configVariable.category];
-          if (!category) continue;
-          configVariable.value = category[configVariable.name];
+    if (this.yamlConfig) {
+      for (const configVariable of this.configVariables) {
+        const category = this.yamlConfig[configVariable.category];
+        if (!category) continue;
+        if (category[configVariable.name] !== undefined) {
+          configVariable.value = category[configVariable.name]?.toString();
           this.emit("update", configVariable.name, configVariable.value);
         }
       }
-    } catch (e) {
-      this.logger.error(
-        "Failed to parse config.yaml. Falling back to UI configuration: ",
-        e,
-      );
     }
+
+    this.validateConfigConsistency();
   }
 
   private async migrateInitUser(): Promise<void> {
@@ -146,16 +163,30 @@ export class ConfigService extends EventEmitter {
         "You are only allowed to update config variables via the config.yaml file",
       );
 
+    const nextValues = this.createConfigValueMap();
+    for (const variable of data) {
+      nextValues[variable.key] = this.normalizeConfigValue(variable.value);
+    }
+    this.validateConfigConsistency(nextValues);
+
     const response: Config[] = [];
 
     for (const variable of data) {
-      response.push(await this.update(variable.key, variable.value));
+      response.push(
+        await this.update(variable.key, variable.value, {
+          skipConsistencyValidation: true,
+        }),
+      );
     }
 
     return response;
   }
 
-  async update(key: string, value: string | number | boolean) {
+  async update(
+    key: string,
+    value: string | number | boolean,
+    options?: { skipConsistencyValidation?: boolean },
+  ) {
     if (!this.isEditAllowed())
       throw new BadRequestException(
         "You are only allowed to update config variables via the config.yaml file",
@@ -186,7 +217,14 @@ export class ConfigService extends EventEmitter {
       );
     }
 
-    this.validateConfigVariable(key, value);
+    const normalizedValue = this.normalizeConfigValue(value);
+    const nextValues = this.createConfigValueMap();
+    nextValues[key] = normalizedValue;
+
+    this.validateConfigVariable(key, normalizedValue);
+    if (!options?.skipConsistencyValidation) {
+      this.validateConfigConsistency(nextValues);
+    }
 
     const updatedVariable = await this.prisma.config.update({
       where: {
@@ -205,7 +243,10 @@ export class ConfigService extends EventEmitter {
     return updatedVariable;
   }
 
-  validateConfigVariable(key: string, value: string | number | boolean) {
+  validateConfigVariable(
+    key: string,
+    value: string | number | boolean | null,
+  ) {
     const validations = [
       {
         key: "share.shareIdLength",
@@ -217,16 +258,92 @@ export class ConfigService extends EventEmitter {
         condition: (value: number) => value >= 0 && value <= 9,
         message: "Zip compression level must be between 0 and 9",
       },
-      // TODO add validation for timespan type
     ];
 
     const validation = validations.find((validation) => validation.key == key);
     if (validation && !validation.condition(value as any)) {
       throw new BadRequestException(validation.message);
     }
+
+    const definition = getDefinedConfigVariable(key as `${string}.${string}`);
+    if (definition?.type === "timespan") {
+      this.assertValidTimespan(value);
+    }
   }
 
   isEditAllowed(): boolean {
     return this.yamlConfig === undefined || this.yamlConfig === null;
+  }
+
+  private normalizeConfigValue(value: string | number | boolean) {
+    return value === "" ? null : value;
+  }
+
+  private createConfigValueMap(): Record<
+    string,
+    string | number | boolean | null
+  > {
+    return Object.fromEntries(
+      this.configVariables.map((variable) => [
+        `${variable.category}.${variable.name}`,
+        variable.value ?? variable.defaultValue,
+      ]),
+    );
+  }
+
+  private validateConfigConsistency(
+    values: Record<string, string | number | boolean | null> =
+      this.createConfigValueMap(),
+  ) {
+    for (const [key, value] of Object.entries(values)) {
+      this.validateConfigVariable(key, value);
+    }
+
+    const expiredEditablePeriod = this.parseTimespanValue(
+      values["share.expiredEditablePeriod"],
+    );
+    const fileRetentionPeriod = this.parseTimespanValue(
+      values["share.fileRetentionPeriod"],
+    );
+
+    if (
+      this.timespanToMinutes(expiredEditablePeriod) >
+      this.timespanToMinutes(fileRetentionPeriod)
+    ) {
+      throw new BadRequestException(
+        "Expired editable period must not exceed file retention period",
+      );
+    }
+  }
+
+  private assertValidTimespan(value: string | number | boolean | null) {
+    this.parseTimespanValue(value);
+  }
+
+  private parseTimespanValue(value: string | number | boolean | null) {
+    if (typeof value !== "string") {
+      throw new BadRequestException("Timespan config variables must be strings");
+    }
+
+    const match = value.trim().match(/^(\d+)\s+([a-z]+)$/);
+    if (!match) {
+      throw new BadRequestException(
+        "Timespan config variables must use the format '<number> <unit>'",
+      );
+    }
+
+    const unit = match[2] as TimespanUnit;
+    if (!TIMESPAN_UNITS.includes(unit)) {
+      throw new BadRequestException(`Unsupported timespan unit: ${match[2]}`);
+    }
+
+    return {
+      value: parseInt(match[1]),
+      unit,
+    };
+  }
+
+  private timespanToMinutes(timespan: { value: number; unit: TimespanUnit }) {
+    return timespan.value * TIMESPAN_IN_MINUTES[timespan.unit];
   }
 }

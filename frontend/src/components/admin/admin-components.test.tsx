@@ -120,11 +120,13 @@ describe("admin components", () => {
     const user = userEvent.setup();
     const auditShare = vi.fn();
     const deleteShare = vi.fn();
+    const editShare = vi.fn();
 
     renderWithProviders(
       <ManageShareTable
         auditShare={auditShare}
         deleteShare={deleteShare}
+        editShare={editShare}
         isLoading={false}
         shares={[
           createMyShare({
@@ -149,12 +151,16 @@ describe("admin components", () => {
     const row = screen.getByRole("row", { name: /retained-share/i });
 
     await user.click(within(row).getByRole("button", { name: /audit files/i }));
+    await user.click(within(row).getByRole("button", { name: /edit/i }));
     await user.click(within(row).getByRole("button", { name: /delete/i }));
 
     expect(auditShare).toHaveBeenCalledWith(
       expect.objectContaining({ id: "retained-share" }),
     );
     expect(deleteShare).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "retained-share" }),
+    );
+    expect(editShare).toHaveBeenCalledWith(
       expect.objectContaining({ id: "retained-share" }),
     );
     expect(

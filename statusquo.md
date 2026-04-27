@@ -248,3 +248,9 @@
 - **Status:** Completed
 - **Next Steps:** Deploy and verify crawler/client consumers preserve returned cookies for protected or view-limited shares just like `files.json`.
 - **Context:** Verified with focused backend unit/integration tests, focused frontend Vitest tests, and backend/frontend typecheck; `files.txt` intentionally omits internal file IDs while JSON keeps existing metadata.
+
+## [2026-04-27 18:52] Expired Share Editing
+- **Changes:** Added `share.expiredEditablePeriod` validation, owner/admin/API share metadata PATCH flows, expired-owner-token edit support, reusable share details form, admin/user edit UI, translations, and docs for retained expired share editing.
+- **Status:** Completed
+- **Next Steps:** Run full repository quality checks before release if time allows.
+- **Context:** Verified with backend/frontend typecheck, focused backend unit/integration suites, and focused frontend Vitest suites including admin share table and page smoke coverage.

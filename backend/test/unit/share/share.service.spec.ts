@@ -5,6 +5,7 @@ import {
 } from "@nestjs/common";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import * as argon from "argon2";
+import moment from "moment";
 import { ShareService } from "src/share/share.service";
 import { buildCreateShareDto } from "../../fixtures/share.fixture";
 
@@ -55,6 +56,7 @@ describe("ShareService", () => {
       get: jest.fn((key: string) => {
         const values: Record<string, unknown> = {
           "share.maxExpiration": { value: 0, unit: "days" },
+          "share.expiredEditablePeriod": { value: 0, unit: "days" },
           "share.allowAdminAccessAllShares": false,
           "share.zipCompressionLevel": 9,
           "s3.enabled": false,
@@ -338,6 +340,7 @@ describe("ShareService", () => {
     config.get.mockImplementation((key: string) => {
       const values: Record<string, unknown> = {
         "share.maxExpiration": { value: 0, unit: "days" },
+        "share.expiredEditablePeriod": { value: 0, unit: "days" },
         "share.allowAdminAccessAllShares": true,
         "share.zipCompressionLevel": 9,
         "s3.enabled": false,
@@ -470,7 +473,7 @@ describe("ShareService", () => {
     });
   });
 
-  it("hides expired shares from owner-scoped lookups", async () => {
+  it("hides expired shares outside the editable owner window", async () => {
     prisma.share.findUnique.mockResolvedValue({
       id: "share-expired",
       creatorId: null,
@@ -484,6 +487,173 @@ describe("ShareService", () => {
     await expect(service.getForOwner("share-expired")).rejects.toThrow(
       NotFoundException,
     );
+  });
+
+  it("updates retained expired shares and replaces security rules", async () => {
+    config.get.mockImplementation((key: string) => {
+      const values: Record<string, unknown> = {
+        "share.maxExpiration": { value: 30, unit: "days" },
+        "share.expiredEditablePeriod": { value: 7, unit: "days" },
+        "share.allowAdminAccessAllShares": false,
+        "share.zipCompressionLevel": 9,
+        "s3.enabled": false,
+        "smtp.enabled": false,
+        "general.appUrl": "http://localhost:3000",
+        "internal.jwtSecret": "jwt-secret",
+      };
+
+      if (!(key in values)) {
+        throw new Error(`Unexpected config lookup: ${key}`);
+      }
+
+      return values[key];
+    });
+
+    const recoveredExpiration = moment().add(1, "day").milliseconds(0).toDate();
+
+    prisma.share.findUnique
+      .mockResolvedValueOnce({
+        id: "share-retained",
+        creatorId: "owner-1",
+        expiration: moment().subtract(1, "day").toDate(),
+        removedReason: null,
+        recipients: [{ email: "old@example.com" }],
+        files: [],
+        security: {
+          password: await argon.hash("old-password"),
+          maxViews: null,
+          maxIps: 1,
+          allowedIps: [],
+          assignedIps: [{ ipAddress: "198.51.100.7" }],
+        },
+      })
+      .mockResolvedValueOnce({
+        id: "share-retained",
+        creatorId: "owner-1",
+        expiration: recoveredExpiration,
+        removedReason: null,
+        recipients: [{ email: "new@example.com" }],
+        files: [],
+        security: {
+          password: null,
+          maxViews: 5,
+          maxIps: null,
+          allowedIps: [{ ipAddress: "203.0.113.8" }],
+          assignedIps: [],
+        },
+      });
+    prisma.share.update.mockResolvedValue({});
+
+    await service.update(
+      "share-retained",
+      {
+        expiration: recoveredExpiration.toISOString(),
+        name: "Recovered share",
+        recipients: ["new@example.com"],
+        security: {
+          password: "",
+          maxViews: 5,
+          allowedIps: ["::ffff:203.0.113.8"],
+        },
+      },
+      { userId: "owner-1" },
+    );
+
+    expect(prisma.share.update).toHaveBeenCalledWith({
+      where: { id: "share-retained" },
+      data: expect.objectContaining({
+        name: "Recovered share",
+        expiration: recoveredExpiration,
+        recipients: {
+          deleteMany: {},
+          create: [{ email: "new@example.com" }],
+        },
+        security: {
+          upsert: expect.objectContaining({
+            update: expect.objectContaining({
+              password: null,
+              maxViews: 5,
+              maxIps: null,
+              allowedIps: {
+                deleteMany: {},
+                create: [{ ipAddress: "203.0.113.8" }],
+              },
+              assignedIps: {
+                deleteMany: {},
+              },
+            }),
+          }),
+        },
+      }),
+    });
+  });
+
+  it("lets admins bypass maximum expiration while editing", async () => {
+    config.get.mockImplementation((key: string) => {
+      const values: Record<string, unknown> = {
+        "share.maxExpiration": { value: 1, unit: "days" },
+        "share.expiredEditablePeriod": { value: 7, unit: "days" },
+        "share.allowAdminAccessAllShares": false,
+        "share.zipCompressionLevel": 9,
+        "s3.enabled": false,
+        "smtp.enabled": false,
+        "general.appUrl": "http://localhost:3000",
+        "internal.jwtSecret": "jwt-secret",
+      };
+
+      if (!(key in values)) {
+        throw new Error(`Unexpected config lookup: ${key}`);
+      }
+
+      return values[key];
+    });
+
+    prisma.share.findUnique
+      .mockResolvedValueOnce({
+        id: "share-admin-edit",
+        creatorId: "owner-1",
+        expiration: moment().subtract(1, "day").toDate(),
+        removedReason: null,
+        recipients: [],
+        files: [],
+        security: null,
+      })
+      .mockResolvedValueOnce({
+        id: "share-admin-edit",
+        creatorId: "owner-1",
+        expiration: new Date("2030-01-01T00:00:00.000Z"),
+        removedReason: null,
+        recipients: [],
+        files: [],
+        security: null,
+      });
+    prisma.share.update.mockResolvedValue({});
+
+    await expect(
+      service.update(
+        "share-admin-edit",
+        { expiration: "2030-01-01T00:00:00.000Z" },
+        { isAdmin: true },
+      ),
+    ).resolves.toEqual(expect.objectContaining({ id: "share-admin-edit" }));
+
+    prisma.share.findUnique.mockResolvedValueOnce({
+      id: "share-owner-edit",
+      creatorId: "owner-1",
+      expiration: moment().subtract(1, "day").toDate(),
+      removedReason: null,
+      recipients: [],
+      files: [],
+      security: null,
+    });
+
+    await expect(
+      service.update(
+        "share-owner-edit",
+        { expiration: "2030-01-01T00:00:00.000Z" },
+        { userId: "owner-1" },
+      ),
+    ).rejects.toThrow(BadRequestException);
   });
 
   it("rejects incorrect passwords when minting share tokens", async () => {

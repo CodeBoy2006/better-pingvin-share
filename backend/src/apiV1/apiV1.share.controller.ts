@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   Param,
+  Patch,
   Post,
   UseGuards,
 } from "@nestjs/common";
@@ -21,6 +22,7 @@ import { ApiTokenGuard } from "src/apiToken/guard/apiToken.guard";
 import { ApiV1ThrottlerGuard } from "src/apiToken/guard/apiV1Throttler.guard";
 import { GetUser } from "src/auth/decorator/getUser.decorator";
 import { CreateShareDTO } from "src/share/dto/createShare.dto";
+import { UpdateShareDTO } from "src/share/dto/updateShare.dto";
 import { ShareService } from "src/share/share.service";
 import { ApiV1ShareDTO } from "./dto/apiV1Share.dto";
 
@@ -58,11 +60,27 @@ export class ApiV1ShareController {
     );
   }
 
+  @Patch(":id")
+  @ApiScopes("shares:write")
+  async update(
+    @GetUser() user: User,
+    @Param("id") id: string,
+    @Body() body: UpdateShareDTO,
+  ) {
+    return new ApiV1ShareDTO().from(
+      await this.shareService.update(id, body, {
+        userId: user.id,
+        isAdmin: false,
+      }),
+    );
+  }
+
   @Post(":id/complete")
   @HttpCode(202)
   @ApiScopes("shares:write")
   async complete(@GetUser() user: User, @Param("id") id: string) {
     await this.shareService.assertShareOwnership(id, user.id);
+    await this.shareService.assertShareFilesMutable(id, user.id);
     await this.shareService.complete(id);
 
     return new ApiV1ShareDTO().from(
@@ -74,6 +92,7 @@ export class ApiV1ShareController {
   @ApiScopes("shares:write")
   async revertComplete(@GetUser() user: User, @Param("id") id: string) {
     await this.shareService.assertShareOwnership(id, user.id);
+    await this.shareService.assertShareFilesMutable(id, user.id);
     await this.shareService.revertComplete(id);
 
     return new ApiV1ShareDTO().from(

@@ -112,6 +112,11 @@ export const configVariables = {
       defaultValue: "0 days",
       secret: false,
     },
+    expiredEditablePeriod: {
+      type: "timespan",
+      defaultValue: "0 days",
+      secret: false,
+    },
   },
   cache: {
     "redis-enabled": {

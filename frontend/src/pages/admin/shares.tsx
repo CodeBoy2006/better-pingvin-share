@@ -5,6 +5,7 @@ import { FormattedMessage } from "react-intl";
 import Meta from "../../components/Meta";
 import ManageShareTable from "../../components/admin/shares/ManageShareTable";
 import showShareAuditModal from "../../components/admin/shares/showShareAuditModal";
+import showUpdateShareModal from "../../components/account/showUpdateShareModal";
 import useTranslate from "../../hooks/useTranslate.hook";
 import shareService from "../../services/share.service";
 import { MyShare, ShareStorageStats } from "../../types/share.type";
@@ -67,6 +68,20 @@ const Shares = () => {
     showShareAuditModal(modals, share);
   };
 
+  const editShare = (share: MyShare) => {
+    showUpdateShareModal(
+      modals,
+      share,
+      (updatedShare) =>
+        setShares((shares) =>
+          shares.map((share) =>
+            share.id === updatedShare.id ? updatedShare : share,
+          ),
+        ),
+      { allowUnlimitedExpiration: true },
+    );
+  };
+
   useEffect(() => {
     getShares();
   }, []);
@@ -122,6 +137,7 @@ const Shares = () => {
         shares={shares}
         auditShare={auditShare}
         deleteShare={deleteShare}
+        editShare={editShare}
         isLoading={isLoading}
       />
       <Space h="xl" />

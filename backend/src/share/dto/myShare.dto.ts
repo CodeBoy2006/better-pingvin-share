@@ -25,11 +25,11 @@ export class MyShareDTO extends OmitType(ShareDTO, [
   @Expose()
   security?: MyShareSecurityDTO;
 
-  from(partial: Partial<MyShareDTO>) {
+  from(partial: Partial<MyShareDTO> | any) {
     return plainToClass(MyShareDTO, partial, { excludeExtraneousValues: true });
   }
 
-  fromList(partial: Partial<MyShareDTO>[]) {
+  fromList(partial: (Partial<MyShareDTO> | any)[]) {
     return partial.map((part) =>
       plainToClass(MyShareDTO, part, { excludeExtraneousValues: true }),
     );

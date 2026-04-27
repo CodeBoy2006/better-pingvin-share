@@ -21,7 +21,12 @@ import { ReverseShareService } from "src/reverseShare/reverseShare.service";
 import { parseRelativeDateToAbsolute } from "src/utils/date.util";
 import { SHARE_DIRECTORY } from "../constants";
 import { CreateShareDTO } from "./dto/createShare.dto";
-import { isShareExpired, isShareRemoved } from "./shareAccess.util";
+import { UpdateShareDTO } from "./dto/updateShare.dto";
+import {
+  isShareExpired,
+  isShareRemoved,
+  isShareWithinExpiredEditablePeriod,
+} from "./shareAccess.util";
 import { getRequestIpAddress, normalizeIpAddress } from "./shareIp.util";
 
 type ShareSecurityWithIpRules = {
@@ -32,6 +37,15 @@ type ShareSecurityWithIpRules = {
   allowedIps: { ipAddress: string }[];
   assignedIps: { ipAddress: string }[];
 };
+
+type NormalizedShareSecurity = {
+  password?: string;
+  maxViews?: number;
+  maxIps?: number;
+  allowedIps: string[];
+};
+
+type CurrentShareSecurity = ShareSecurityWithIpRules | null | undefined;
 
 @Injectable()
 export class ShareService {
@@ -251,20 +265,77 @@ export class ShareService {
     });
   }
 
+  async update(
+    id: string,
+    update: UpdateShareDTO,
+    options?: { userId?: string; isAdmin?: boolean },
+  ) {
+    const share = await this.getEditableShareEntity(id, options?.userId, {
+      allowAdmin: options?.isAdmin,
+    });
+    const data: any = {};
+
+    if ("name" in update) {
+      data.name = update.name || null;
+    }
+
+    if ("description" in update) {
+      data.description = update.description || null;
+    }
+
+    if (update.expiration !== undefined) {
+      data.expiration = this.parseAndValidateExpiration(
+        update.expiration,
+        !!options?.isAdmin,
+      );
+    }
+
+    if (update.recipients !== undefined) {
+      data.recipients = {
+        deleteMany: {},
+        create: update.recipients.map((email) => ({ email })),
+      };
+    }
+
+    if (update.security !== undefined) {
+      const securityUpdate = await this.createSecurityUpdateInput(
+        update.security,
+        share.security,
+      );
+      data.security = securityUpdate;
+    }
+
+    await this.prisma.share.update({
+      where: { id },
+      data,
+    });
+
+    return this.toDetailedOwnerShare(
+      await this.getEditableShareEntity(id, options?.userId, {
+        allowAdmin: options?.isAdmin,
+      }),
+    );
+  }
+
   async getShares() {
     const shares = await this.prisma.share.findMany({
       orderBy: {
         expiration: "desc",
       },
-      include: { files: true, creator: true },
+      include: {
+        files: true,
+        creator: true,
+        recipients: true,
+        security: {
+          include: {
+            allowedIps: true,
+            assignedIps: true,
+          },
+        },
+      },
     });
 
-    return shares.map((share) => {
-      return {
-        ...share,
-        size: share.files.reduce((acc, file) => acc + parseInt(file.size), 0),
-      };
-    });
+    return shares.map((share) => this.toDetailedOwnerShare(share));
   }
 
   async getAdminAuditShare(id: string) {
@@ -368,14 +439,20 @@ export class ShareService {
   }
 
   async getSharesByUser(userId: string) {
+    const expiredEditablePeriod = this.configService.get(
+      "share.expiredEditablePeriod",
+    );
+    const oldestEditableExpiration = moment()
+      .subtract(expiredEditablePeriod.value, expiredEditablePeriod.unit)
+      .toDate();
     const shares = await this.prisma.share.findMany({
       where: {
         creator: { id: userId },
         uploadLocked: true,
-        // We want to grab any shares that are not expired or have their expiration date set to "never" (unix 0)
         OR: [
           { expiration: { gt: new Date() } },
           { expiration: { equals: moment(0).toDate() } },
+          { expiration: { gte: oldestEditableExpiration } },
         ],
       },
       orderBy: {
@@ -393,22 +470,7 @@ export class ShareService {
       },
     });
 
-    return shares.map((share) => {
-      return {
-        ...share,
-        size: share.files.reduce((acc, file) => acc + parseInt(file.size), 0),
-        recipients: share.recipients.map((recipients) => recipients.email),
-        security: {
-          maxViews: share.security?.maxViews,
-          passwordProtected: !!share.security?.password,
-          maxIps: share.security?.maxIps,
-          allowedIps:
-            share.security?.allowedIps.map((ip) => ip.ipAddress) ?? [],
-          assignedIps:
-            share.security?.assignedIps.map((ip) => ip.ipAddress) ?? [],
-        },
-      };
-    });
+    return shares.map((share) => this.toDetailedOwnerShare(share));
   }
 
   async get(id: string): Promise<any> {
@@ -437,7 +499,7 @@ export class ShareService {
   }
 
   async getForOwner(id: string, userId?: string): Promise<any> {
-    const share = await this.getOwnerShareEntity(id, userId);
+    const share = await this.getEditableShareEntity(id, userId);
 
     return {
       ...share,
@@ -550,14 +612,26 @@ export class ShareService {
   }
 
   async getDetailedSharesByOwner(userId: string) {
+    const expiredEditablePeriod = this.configService.get(
+      "share.expiredEditablePeriod",
+    );
+    const oldestEditableExpiration = moment()
+      .subtract(expiredEditablePeriod.value, expiredEditablePeriod.unit)
+      .toDate();
     const shares = await this.prisma.share.findMany({
       where: {
         creatorId: userId,
+        OR: [
+          { expiration: { gt: new Date() } },
+          { expiration: { equals: moment(0).toDate() } },
+          { expiration: { gte: oldestEditableExpiration } },
+        ],
       },
       orderBy: {
         createdAt: "desc",
       },
       include: {
+        creator: true,
         recipients: true,
         files: {
           orderBy: {
@@ -578,12 +652,23 @@ export class ShareService {
 
   async getDetailedShareByOwner(id: string, userId: string) {
     return this.toDetailedOwnerShare(
-      await this.getOwnerShareEntity(id, userId),
+      await this.getEditableShareEntity(id, userId),
     );
   }
 
   async assertShareOwnership(id: string, userId: string) {
-    await this.getOwnerShareEntity(id, userId);
+    await this.getEditableShareEntity(id, userId);
+  }
+
+  async assertShareFilesMutable(id: string, userId?: string) {
+    const share = await this.getEditableShareEntity(id, userId);
+
+    if (isShareExpired(share)) {
+      throw new BadRequestException(
+        "Expired shares must be extended before files can be changed",
+      );
+    }
+
   }
 
   async getMetaData(id: string) {
@@ -767,11 +852,20 @@ export class ShareService {
     const { expiration, createdAt } = await this.prisma.share.findUnique({
       where: { id: shareId },
     });
+    const expiredEditablePeriod = this.configService.get(
+      "share.expiredEditablePeriod",
+    );
 
     try {
       const claims = this.jwtService.verify(token, {
         secret: this.config.get("internal.jwtSecret"),
-        ignoreExpiration: moment(expiration).isSame(0),
+        ignoreExpiration:
+          moment(expiration).isSame(0) ||
+          isShareWithinExpiredEditablePeriod(
+            { expiration },
+            expiredEditablePeriod.value,
+            expiredEditablePeriod.unit,
+          ),
       });
 
       return (
@@ -784,7 +878,11 @@ export class ShareService {
     }
   }
 
-  private async getOwnerShareEntity(id: string, userId?: string) {
+  private async getEditableShareEntity(
+    id: string,
+    userId?: string,
+    options?: { allowAdmin?: boolean },
+  ) {
     const share = await this.prisma.share.findUnique({
       where: { id },
       include: {
@@ -803,7 +901,10 @@ export class ShareService {
       },
     });
 
-    if (!share || (share.creatorId && share.creatorId !== userId)) {
+    if (
+      !share ||
+      (!options?.allowAdmin && share.creatorId && share.creatorId !== userId)
+    ) {
       throw new NotFoundException("Share not found");
     }
 
@@ -811,15 +912,157 @@ export class ShareService {
       throw new NotFoundException(share.removedReason, "share_removed");
     }
 
-    if (isShareExpired(share)) {
+    const expiredEditablePeriod = this.configService.get(
+      "share.expiredEditablePeriod",
+    );
+
+    if (
+      !isShareWithinExpiredEditablePeriod(
+        share,
+        expiredEditablePeriod.value,
+        expiredEditablePeriod.unit,
+      )
+    ) {
       throw new NotFoundException("Share not found");
     }
 
     return share;
   }
 
+  private parseAndValidateExpiration(expiration: string, skipMax: boolean) {
+    const parsedExpiration = parseRelativeDateToAbsolute(expiration);
+    const expiresNever = moment(parsedExpiration).isSame(moment(0));
+
+    if (!skipMax) {
+      const maxExpiration = this.config.get("share.maxExpiration");
+      if (
+        maxExpiration.value !== 0 &&
+        (expiresNever ||
+          parsedExpiration >
+            moment().add(maxExpiration.value, maxExpiration.unit).toDate())
+      ) {
+        throw new BadRequestException(
+          "Expiration date exceeds maximum expiration date",
+        );
+      }
+    }
+
+    return parsedExpiration;
+  }
+
+  private async createSecurityUpdateInput(
+    security: UpdateShareDTO["security"],
+    currentSecurity?: CurrentShareSecurity,
+  ) {
+    if (!security) {
+      return undefined;
+    }
+
+    const hasPasswordUpdate = this.hasOwnProperty(security, "password");
+    const hasMaxViewsUpdate = this.hasOwnProperty(security, "maxViews");
+    const hasMaxIpsUpdate = this.hasOwnProperty(security, "maxIps");
+    const hasAllowedIpsUpdate = this.hasOwnProperty(security, "allowedIps");
+
+    const password = hasPasswordUpdate
+      ? await this.getSecurityPasswordUpdate(security.password)
+      : currentSecurity?.password ?? null;
+    const maxViews = hasMaxViewsUpdate
+      ? this.normalizeNullableNumber(security.maxViews)
+      : currentSecurity?.maxViews ?? null;
+    const allowedIps = hasAllowedIpsUpdate
+      ? this.normalizeAllowedIps(security.allowedIps ?? [])
+      : hasMaxIpsUpdate && this.normalizeNullableNumber(security.maxIps)
+        ? []
+        : currentSecurity?.allowedIps.map((ip) => ip.ipAddress) ?? [];
+    const maxIps = hasMaxIpsUpdate
+      ? this.normalizeNullableNumber(security.maxIps)
+      : hasAllowedIpsUpdate
+        ? allowedIps.length > 0
+          ? null
+          : (currentSecurity?.maxIps ?? null)
+        : currentSecurity?.maxIps ?? null;
+
+    if (maxIps && allowedIps.length > 0) {
+      throw new BadRequestException(
+        "Cannot combine a maximum IP limit with specific IP addresses",
+      );
+    }
+
+    const hasSecurity =
+      !!password ||
+      maxViews !== null ||
+      maxIps !== null ||
+      allowedIps.length > 0;
+
+    if (!hasSecurity) {
+      return currentSecurity ? { delete: true } : undefined;
+    }
+
+    const createData = {
+      password,
+      maxViews,
+      maxIps,
+      ...(allowedIps.length > 0
+        ? {
+            allowedIps: {
+              create: allowedIps.map((ipAddress) => ({
+                ipAddress,
+              })),
+            },
+          }
+        : {}),
+    };
+
+    const updateData: any = {};
+
+    if (hasPasswordUpdate) {
+      updateData.password = password;
+    }
+
+    if (hasMaxViewsUpdate) {
+      updateData.maxViews = maxViews;
+    }
+
+    if (hasMaxIpsUpdate || hasAllowedIpsUpdate) {
+      updateData.maxIps = maxIps;
+      updateData.allowedIps = {
+        deleteMany: {},
+        create: allowedIps.map((ipAddress) => ({
+          ipAddress,
+        })),
+      };
+      updateData.assignedIps = {
+        deleteMany: {},
+      };
+    }
+
+    if (Object.keys(updateData).length === 0 && currentSecurity) {
+      return undefined;
+    }
+
+    return {
+      upsert: {
+        create: createData,
+        update: updateData,
+      },
+    };
+  }
+
+  private async getSecurityPasswordUpdate(password?: string | null) {
+    if (password === undefined || password === null) {
+      return null;
+    }
+
+    if (password === "") {
+      return null;
+    }
+
+    return await argon.hash(password);
+  }
+
   private toDetailedOwnerShare(share: {
     createdAt: Date;
+    creator?: { username: string } | null;
     description: string | null;
     expiration: Date;
     files: {
@@ -834,6 +1077,7 @@ export class ShareService {
     name: string | null;
     recipients: { email: string }[];
     security: {
+      id?: string;
       maxViews: number | null;
       password: string | null;
       maxIps: number | null;
@@ -852,6 +1096,7 @@ export class ShareService {
       views: share.views,
       uploadLocked: share.uploadLocked,
       isZipReady: share.isZipReady,
+      creator: share.creator ?? undefined,
       recipients: share.recipients.map((recipient) => recipient.email),
       files: share.files,
       size: share.files.reduce((acc, file) => acc + parseInt(file.size), 0),
@@ -942,12 +1187,18 @@ export class ShareService {
     );
   }
 
-  private normalizeShareSecurity(security?: CreateShareDTO["security"]) {
+  private normalizeShareSecurity(
+    security?: CreateShareDTO["security"],
+    options?: { preserveEmptyPassword?: boolean },
+  ) {
     if (!security) {
       return undefined;
     }
 
-    const password = security.password || undefined;
+    const password =
+      options?.preserveEmptyPassword && security.password === ""
+        ? ""
+        : security.password || undefined;
     const maxViews =
       typeof security.maxViews === "number" ? security.maxViews : undefined;
     const maxIps =
@@ -990,6 +1241,36 @@ export class ShareService {
       maxIps,
       allowedIps: normalizedAllowedIps,
     };
+  }
+
+  private normalizeNullableNumber(value?: number | null) {
+    return typeof value === "number" ? value : null;
+  }
+
+  private normalizeAllowedIps(allowedIps: string[]) {
+    return [
+      ...new Set(
+        allowedIps
+          .map((ip) => ip?.trim())
+          .filter((ip): ip is string => !!ip)
+          .map((ip) => {
+            const normalizedIp = normalizeIpAddress(ip);
+
+            if (!normalizedIp) {
+              throw new BadRequestException(`Invalid IP address: ${ip}`);
+            }
+
+            return normalizedIp;
+          }),
+      ),
+    ];
+  }
+
+  private hasOwnProperty<T extends object>(
+    value: T,
+    property: string,
+  ): boolean {
+    return Object.prototype.hasOwnProperty.call(value, property);
   }
 
   private async assignShareIpAddress(

@@ -32,6 +32,14 @@ export type CreateShare = {
   security: ShareSecurity;
 };
 
+export type UpdateShare = {
+  name?: string;
+  description?: string;
+  recipients?: string[];
+  expiration?: string;
+  security?: ShareSecurity;
+};
+
 export type ShareMetaData = {
   id: string;
   isZipReady: boolean;
@@ -41,6 +49,7 @@ export type MyShare = Omit<Share, "hasPassword"> & {
   views: number;
   createdAt: Date;
   security: MyShareSecurity;
+  recipients: string[];
 };
 
 export type AdminShareAudit = {
@@ -78,10 +87,10 @@ export type MyReverseShare = {
 };
 
 export type ShareSecurity = {
-  maxViews?: number;
-  password?: string;
-  maxIps?: number;
-  allowedIps?: string[];
+  maxViews?: number | null;
+  password?: string | null;
+  maxIps?: number | null;
+  allowedIps?: string[] | null;
 };
 
 export type MyShareSecurity = {

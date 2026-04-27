@@ -15,8 +15,11 @@ import {
 import { SkipThrottle } from "@nestjs/throttler";
 import contentDisposition from "content-disposition";
 import { Response } from "express";
+import { User } from "@prisma/client";
+import { GetUser } from "src/auth/decorator/getUser.decorator";
 import { CreateShareGuard } from "src/share/guard/createShare.guard";
 import { ShareOwnerGuard } from "src/share/guard/shareOwner.guard";
+import { ShareService } from "src/share/share.service";
 import {
   FILE_WEB_VIEW_SNIFF_BYTES,
   getFileWebViewDescriptor,
@@ -36,7 +39,10 @@ const PRIVATE_NO_STORE_HEADERS = {
 
 @Controller("shares/:shareId/files")
 export class FileController {
-  constructor(private fileService: FileService) {}
+  constructor(
+    private fileService: FileService,
+    private shareService: ShareService,
+  ) {}
 
   @Post()
   @SkipThrottle()
@@ -51,7 +57,10 @@ export class FileController {
     },
     @Body() body: string,
     @Param("shareId") shareId: string,
+    @GetUser() user?: User,
   ) {
+    await this.shareService.assertShareFilesMutable(shareId, user?.id);
+
     const { id, name, chunkIndex, totalChunks } = query;
 
     // Data can be empty if the file is empty
@@ -184,7 +193,9 @@ export class FileController {
   async remove(
     @Param("fileId", new ParseUUIDPipe()) fileId: string,
     @Param("shareId") shareId: string,
+    @GetUser() user?: User,
   ) {
+    await this.shareService.assertShareFilesMutable(shareId, user?.id);
     await this.fileService.remove(shareId, fileId);
   }
 }

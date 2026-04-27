@@ -4,6 +4,7 @@ import { createAxiosResponse } from "../../network";
 const apiMock = vi.hoisted(() => ({
   delete: vi.fn(),
   get: vi.fn(),
+  patch: vi.fn(),
   post: vi.fn(),
 }));
 const deleteCookieMock = vi.hoisted(() => vi.fn());
@@ -39,6 +40,7 @@ describe("share.service", () => {
   beforeEach(() => {
     apiMock.delete.mockReset();
     apiMock.get.mockReset();
+    apiMock.patch.mockReset();
     apiMock.post.mockReset();
     deleteCookieMock.mockReset();
     setCookieMock.mockReset();
@@ -127,6 +129,36 @@ describe("share.service", () => {
         sameSite: "lax",
       },
     );
+  });
+
+  it("updates shares", async () => {
+    apiMock.patch.mockResolvedValue(
+      createAxiosResponse({
+        id: "share-1",
+        name: "Updated share",
+      }),
+    );
+
+    await expect(
+      shareService.update("share-1", {
+        name: "Updated share",
+        security: {
+          password: "",
+          maxViews: 5,
+        },
+      }),
+    ).resolves.toEqual({
+      id: "share-1",
+      name: "Updated share",
+    });
+
+    expect(apiMock.patch).toHaveBeenCalledWith("shares/share-1", {
+      name: "Updated share",
+      security: {
+        password: "",
+        maxViews: 5,
+      },
+    });
   });
 
   it("does not clear the reverse-share cookie when creating reverse-share uploads", async () => {

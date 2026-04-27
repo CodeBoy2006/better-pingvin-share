@@ -30,6 +30,36 @@ const defaultConfigVariables: Config[] = [
     value: "better-pingvin-share",
     type: "string",
   },
+  {
+    key: "email.enableShareEmailRecipients",
+    defaultValue: "false",
+    value: "false",
+    type: "boolean",
+  },
+  {
+    key: "share.fileRetentionPeriod",
+    defaultValue: "0 days",
+    value: "0 days",
+    type: "timespan",
+  },
+  {
+    key: "share.defaultExpiration",
+    defaultValue: "7 days",
+    value: "7 days",
+    type: "timespan",
+  },
+  {
+    key: "share.shareIdLength",
+    defaultValue: "8",
+    value: "8",
+    type: "number",
+  },
+  {
+    key: "share.maxExpiration",
+    defaultValue: "0 days",
+    value: "0 days",
+    type: "timespan",
+  },
 ];
 
 interface TestProvidersProps {

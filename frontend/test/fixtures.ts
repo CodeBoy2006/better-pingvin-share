@@ -15,7 +15,7 @@ export const createConfig = (
       : type === "number" || type === "filesize"
         ? "0"
         : type === "timespan"
-          ? "7-days"
+          ? "7 days"
           : "");
 
   return {
@@ -70,9 +70,13 @@ export const createMyShare = (overrides: Partial<MyShare> = {}): MyShare => ({
   ...createShare(),
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
   security: {
+    allowedIps: [],
+    assignedIps: [],
     maxViews: 0,
+    maxIps: undefined,
     passwordProtected: false,
   },
+  recipients: [],
   views: 0,
   ...overrides,
 });

@@ -1,14 +1,15 @@
-import { LoadingOverlay } from "@mantine/core";
+import { LoadingOverlay, Stack } from "@mantine/core";
 import { useModals } from "@mantine/modals";
 import { GetServerSidePropsContext } from "next";
 import { useEffect, useState } from "react";
 import Meta from "../../../components/Meta";
+import { UpdateShareModalBody } from "../../../components/account/showUpdateShareModal";
 import showErrorModal from "../../../components/share/showErrorModal";
 import EditableUpload from "../../../components/upload/EditableUpload";
 import useConfirmLeave from "../../../hooks/confirm-leave.hook";
 import useTranslate from "../../../hooks/useTranslate.hook";
 import shareService from "../../../services/share.service";
-import { Share as ShareType } from "../../../types/share.type";
+import { MyShare } from "../../../types/share.type";
 
 export function getServerSideProps(context: GetServerSidePropsContext) {
   return {
@@ -21,7 +22,7 @@ const Share = ({ shareId }: { shareId: string }) => {
   const modals = useModals();
 
   const [isLoading, setIsLoading] = useState(true);
-  const [share, setShare] = useState<ShareType>();
+  const [share, setShare] = useState<MyShare>();
 
   useConfirmLeave({
     message: t("upload.notify.confirm-leave"),
@@ -79,7 +80,12 @@ const Share = ({ shareId }: { shareId: string }) => {
   return (
     <>
       <Meta title={t("share.edit.title", { shareId })} />
-      <EditableUpload shareId={shareId} files={share?.files || []} />
+      {share && (
+        <Stack>
+          <UpdateShareModalBody share={share} onUpdated={setShare} />
+          <EditableUpload shareId={shareId} files={share.files || []} />
+        </Stack>
+      )}
     </>
   );
 };

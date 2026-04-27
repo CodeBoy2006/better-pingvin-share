@@ -70,6 +70,7 @@ export class ApiV1FileController {
     @Param("shareId") shareId: string,
   ) {
     await this.shareService.assertShareOwnership(shareId, user.id);
+    await this.shareService.assertShareFilesMutable(shareId, user.id);
 
     const { id, name, chunkIndex, totalChunks } = query;
 
@@ -110,6 +111,7 @@ export class ApiV1FileController {
     @UploadedFile() file?: Express.Multer.File,
   ) {
     await this.shareService.assertShareOwnership(shareId, user.id);
+    await this.shareService.assertShareFilesMutable(shareId, user.id);
 
     if (!file) {
       throw new BadRequestException("File is required");
@@ -184,6 +186,7 @@ export class ApiV1FileController {
     @Param("fileId") fileId: string,
   ) {
     await this.shareService.assertShareOwnership(shareId, user.id);
+    await this.shareService.assertShareFilesMutable(shareId, user.id);
     await this.fileService.remove(shareId, fileId);
   }
 }

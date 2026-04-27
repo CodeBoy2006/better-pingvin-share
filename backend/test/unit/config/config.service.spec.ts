@@ -86,6 +86,25 @@ describe("ConfigService", () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it("rejects malformed timespans and expired editable periods beyond retention", async () => {
+    const configs = buildConfigEntries({
+      "share.fileRetentionPeriod": "1 days",
+      "share.expiredEditablePeriod": "0 days",
+    });
+    service = new ConfigService(configs, prisma as never);
+    prisma.config.findUnique.mockResolvedValue(
+      findConfigEntry(configs, "share.expiredEditablePeriod"),
+    );
+
+    await expect(
+      service.update("share.expiredEditablePeriod", "bogus"),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    await expect(
+      service.update("share.expiredEditablePeriod", "2 days"),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
   it("persists config updates, refreshes the cached config list, and emits change events", async () => {
     const configs = buildConfigEntries();
     const updatedEntry = {

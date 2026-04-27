@@ -6,6 +6,7 @@ import {
   HttpCode,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -30,7 +31,6 @@ import {
   getFileWebViewDescriptorFromSample,
 } from "src/file/fileWebView.util";
 import * as mime from "mime-types";
-import { AdminShareDTO } from "./dto/adminShare.dto";
 import { AdminShareAuditDTO } from "./dto/adminShareAudit.dto";
 import { CompletedShareDTO } from "./dto/shareComplete.dto";
 import { CreateShareDTO } from "./dto/createShare.dto";
@@ -39,6 +39,7 @@ import { ShareDTO } from "./dto/share.dto";
 import { ShareFileListDTO } from "./dto/shareFileList.dto";
 import { ShareMetaDataDTO } from "./dto/shareMetaData.dto";
 import { SharePasswordDto } from "./dto/sharePassword.dto";
+import { UpdateShareDTO } from "./dto/updateShare.dto";
 import { CreateShareGuard } from "./guard/createShare.guard";
 import { ShareOwnerGuard } from "./guard/shareOwner.guard";
 import { ShareSecurityGuard } from "./guard/shareSecurity.guard";
@@ -108,7 +109,7 @@ export class ShareController {
   @Get("all")
   @UseGuards(JwtGuard, AdministratorGuard)
   async getAllShares() {
-    return new AdminShareDTO().fromList(await this.shareService.getShares());
+    return new MyShareDTO().fromList(await this.shareService.getShares());
   }
 
   @Get(":id/audit")
@@ -171,7 +172,7 @@ export class ShareController {
   @Get(":id/from-owner")
   @UseGuards(ShareOwnerGuard)
   async getFromOwner(@Param("id") id: string, @GetUser() user?: User) {
-    return new ShareDTO().from(
+    return new MyShareDTO().from(
       await this.shareService.getForOwner(id, user?.id),
     );
   }
@@ -564,7 +565,12 @@ export class ShareController {
   @Post(":id/complete")
   @HttpCode(202)
   @UseGuards(CreateShareGuard, ShareOwnerGuard)
-  async complete(@Param("id") id: string, @Req() request: Request) {
+  async complete(
+    @Param("id") id: string,
+    @Req() request: Request,
+    @GetUser() user?: User,
+  ) {
+    await this.shareService.assertShareFilesMutable(id, user?.id);
     const { reverse_share_token } = request.cookies;
     const share = await this.shareService.complete(id, reverse_share_token);
     return {
@@ -580,8 +586,24 @@ export class ShareController {
 
   @Delete(":id/complete")
   @UseGuards(ShareOwnerGuard)
-  async revertComplete(@Param("id") id: string) {
+  async revertComplete(@Param("id") id: string, @GetUser() user?: User) {
+    await this.shareService.assertShareFilesMutable(id, user?.id);
     return new ShareDTO().from(await this.shareService.revertComplete(id));
+  }
+
+  @Patch(":id")
+  @UseGuards(ShareOwnerGuard)
+  async update(
+    @Param("id") id: string,
+    @Body() body: UpdateShareDTO,
+    @GetUser() user?: User,
+  ) {
+    return new MyShareDTO().from(
+      await this.shareService.update(id, body, {
+        userId: user?.id,
+        isAdmin: user?.isAdmin === true,
+      }),
+    );
   }
 
   @Delete(":id")

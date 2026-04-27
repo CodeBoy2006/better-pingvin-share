@@ -63,13 +63,13 @@ export class ApiV1ShareDTO {
   @Type(() => ApiV1ShareSecurityDTO)
   security?: ApiV1ShareSecurityDTO;
 
-  from(partial: Partial<ApiV1ShareDTO>) {
+  from(partial: Partial<ApiV1ShareDTO> | any) {
     return plainToClass(ApiV1ShareDTO, partial, {
       excludeExtraneousValues: true,
     });
   }
 
-  fromList(partial: Partial<ApiV1ShareDTO>[]) {
+  fromList(partial: (Partial<ApiV1ShareDTO> | any)[]) {
     return partial.map((part) => this.from(part));
   }
 }

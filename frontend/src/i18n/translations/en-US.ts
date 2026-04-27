@@ -155,6 +155,7 @@ export default {
   "account.shares.table.password-protected": "Password protected",
   "account.shares.table.visitor-count": "{count} of {max}",
   "account.shares.table.expiry-never": "Never",
+  "account.shares.table.expired": "Expired",
 
   "account.shares.modal.share-informations": "Share informations",
   "account.shares.modal.share-link": "Share link",
@@ -444,6 +445,7 @@ export default {
 
   // /share/[id]/edit
   "share.edit.title": "Edit {shareId}",
+  "share.edit.settings-title": "Edit share: {shareId}",
   "share.edit.append-upload": "Append file",
   "share.edit.notify.generic-error":
     "An error occurred while finishing your share.",
@@ -574,6 +576,9 @@ export default {
   "admin.config.share.file-retention-period": "File retention period",
   "admin.config.share.file-retention-period.description":
     "Keep expired or owner-deleted shares for an additional period before their files are permanently removed.",
+  "admin.config.share.expired-editable-period": "Expired editable period",
+  "admin.config.share.expired-editable-period.description":
+    "How long owners and administrators can edit expired shares before deletion. Must not exceed the file retention period.",
 
   "admin.config.smtp.enabled": "Enable",
   "admin.config.smtp.enabled.description":

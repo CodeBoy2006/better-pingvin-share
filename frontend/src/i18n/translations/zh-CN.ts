@@ -131,6 +131,7 @@ export default {
   "account.shares.table.password-protected": "密码保护",
   "account.shares.table.visitor-count": "{count}/{max}",
   "account.shares.table.expiry-never": "永不",
+  "account.shares.table.expired": "已过期",
   "account.shares.modal.share-informations": "共享信息",
   "account.shares.modal.share-link": "共享链接",
   "account.shares.modal.security.password": "密码保护",
@@ -359,6 +360,7 @@ export default {
   // END /share/[id]
   // /share/[id]/edit
   "share.edit.title": "编辑 {shareId}",
+  "share.edit.settings-title": "编辑共享：{shareId}",
   "share.edit.append-upload": "追加文件",
   "share.edit.notify.generic-error": "保存共享的过程中发生了错误",
   "share.edit.notify.save-success": "共享已更新成功",
@@ -471,6 +473,9 @@ export default {
   "admin.config.share.file-retention-period": "文件保留期限",
   "admin.config.share.file-retention-period.description":
     "在共享过期或被上传者删除后，继续保留文件一段时间，再执行永久删除。",
+  "admin.config.share.expired-editable-period": "过期后可编辑期限",
+  "admin.config.share.expired-editable-period.description":
+    "共享过期后，所有者和管理员仍可编辑共享信息的时长。必须小于或等于文件保留期限。",
   "admin.config.smtp.enabled": "启用",
   "admin.config.smtp.enabled.description":
     "是否开启 SMTP，仅当输入主机名、端口、发送邮箱、用户名和密码后开启",

@@ -278,6 +278,84 @@ describe("Legacy share endpoints", () => {
     await fixture.updateConfig("share.fileRetentionPeriod", "0 days");
   });
 
+  it("lets owners recover expired retained shares before file deletion", async () => {
+    await fixture.updateConfig("share.fileRetentionPeriod", "7 days");
+    await fixture.updateConfig("share.expiredEditablePeriod", "7 days");
+
+    const owner = await fixture.createSession();
+    const shareId = `recover-expired-${randomUUID().slice(0, 8)}`;
+    const share = await seedShare(fixture, {
+      id: shareId,
+      creatorId: owner.user.id,
+      uploadLocked: true,
+      expiration: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      security: {
+        password: "old-password",
+        maxIps: 1,
+        assignedIps: ["198.51.100.7"],
+      },
+    });
+    await seedStoredFile(fixture, {
+      shareId: share.id,
+      name: "recoverable.txt",
+      contents: "recoverable file",
+    });
+
+    const publicExpiredResponse = await fixture.request.get(
+      `/api/shares/${share.id}`,
+    );
+    expect(publicExpiredResponse.status).toBe(404);
+
+    const recoveredExpiration = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const updateResponse = await owner.agent.patch(`/api/shares/${share.id}`).send({
+      expiration: recoveredExpiration.toISOString(),
+      name: "Recovered share",
+      description: "Recovered before deletion",
+      recipients: ["recipient@example.com"],
+      security: {
+        password: "",
+        maxViews: 5,
+        allowedIps: ["127.0.0.1"],
+      },
+    });
+
+    expect(updateResponse.status).toBe(200);
+    expect(updateResponse.body).toEqual(
+      expect.objectContaining({
+        id: share.id,
+        name: "Recovered share",
+        description: "Recovered before deletion",
+        recipients: ["recipient@example.com"],
+        security: expect.objectContaining({
+          passwordProtected: false,
+          maxViews: 5,
+          maxIps: null,
+          allowedIps: ["127.0.0.1"],
+          assignedIps: [],
+        }),
+      }),
+    );
+
+    const recoveredPublicResponse = await fixture.request.get(
+      `/api/shares/${share.id}`,
+    );
+    expect(recoveredPublicResponse.status).toBe(200);
+
+    await fixture.updateConfig("share.expiredEditablePeriod", "0 days");
+    await fixture.updateConfig("share.fileRetentionPeriod", "0 days");
+  });
+
+  it("rejects expired editable periods beyond file retention", async () => {
+    await fixture.updateConfig("share.expiredEditablePeriod", "0 days");
+    await fixture.updateConfig("share.fileRetentionPeriod", "1 days");
+
+    await expect(
+      fixture.updateConfig("share.expiredEditablePeriod", "2 days"),
+    ).rejects.toThrow();
+
+    await fixture.updateConfig("share.fileRetentionPeriod", "0 days");
+  });
+
   it("refreshes the share cookie for files.json token queries and returns clean URLs", async () => {
     const shareId = `protected-files-json-${randomUUID().slice(0, 8)}`;
     const password = "secret123";

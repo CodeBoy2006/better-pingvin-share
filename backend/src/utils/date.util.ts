@@ -3,6 +3,13 @@ import moment from "moment";
 export function parseRelativeDateToAbsolute(relativeDate: string) {
   if (relativeDate == "never") return moment(0).toDate();
 
+  if (/^\d{4}-\d{2}-\d{2}T/.test(relativeDate)) {
+    const parsedDate = moment(relativeDate);
+    if (parsedDate.isValid()) {
+      return parsedDate.toDate();
+    }
+  }
+
   return moment()
     .add(
       relativeDate.split("-")[0],

@@ -9,7 +9,7 @@ import {
 } from "@mantine/core";
 import { useModals } from "@mantine/modals";
 import moment from "moment";
-import { TbFileSearch, TbLink, TbTrash } from "react-icons/tb";
+import { TbEdit, TbFileSearch, TbLink, TbTrash } from "react-icons/tb";
 import { FormattedMessage } from "react-intl";
 import useConfig from "../../../hooks/config.hook";
 import { MyShare } from "../../../types/share.type";
@@ -20,11 +20,13 @@ const ManageShareTable = ({
   shares,
   auditShare,
   deleteShare,
+  editShare,
   isLoading,
 }: {
   shares: MyShare[];
   auditShare: (share: MyShare) => void;
   deleteShare: (share: MyShare) => void;
+  editShare: (share: MyShare) => void;
   isLoading: boolean;
 }) => {
   const modals = useModals();
@@ -79,11 +81,7 @@ const ManageShareTable = ({
                   </td>
                   <td>{share.views}</td>
                   <td>{byteToHumanSizeString(share.size)}</td>
-                  <td>
-                    {moment(share.expiration).unix() === 0
-                      ? "Never"
-                      : moment(share.expiration).format("LLL")}
-                  </td>
+                  <td>{formatExpiration(share.expiration)}</td>
                   {showDeletesOnColumn && (
                     <td>
                       {moment(share.expiration).unix() === 0
@@ -117,6 +115,15 @@ const ManageShareTable = ({
                         <TbLink />
                       </ActionIcon>
                       <ActionIcon
+                        aria-label={`Edit ${share.id}`}
+                        color="orange"
+                        variant="light"
+                        size={25}
+                        onClick={() => editShare(share)}
+                      >
+                        <TbEdit />
+                      </ActionIcon>
+                      <ActionIcon
                         aria-label={`Delete ${share.id}`}
                         variant="light"
                         color="red"
@@ -133,6 +140,22 @@ const ManageShareTable = ({
       </Table>
     </Box>
   );
+};
+
+const formatExpiration = (expiration: Date) => {
+  if (moment(expiration).unix() === 0) {
+    return <FormattedMessage id="account.shares.table.expiry-never" />;
+  }
+
+  if (moment(expiration).isBefore(moment())) {
+    return (
+      <Text color="orange">
+        <FormattedMessage id="account.shares.table.expired" />
+      </Text>
+    );
+  }
+
+  return <>{moment(expiration).format("LLL")}</>;
 };
 
 const getSkeletonRows = (showDeletesOnColumn: boolean) =>

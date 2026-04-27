@@ -79,6 +79,7 @@ Better Pingvin Share now includes an automation-focused API under `/api/v1`.
 
 - Authentication for `/api/v1` uses bearer tokens, not the browser `access_token` cookie
 - Bearer tokens can be created from the account page and are shown only once
+- Share owners can update metadata, expiration, recipients, and security rules with `PATCH /api/v1/shares/:id`
 - Small uploads can use `multipart/form-data`; large or resumable uploads can keep using chunked `application/octet-stream`
 - Browser-based cross-origin access to `/api/v1` is disabled by default and can be enabled with `api.corsAllowedOrigins`
 
@@ -111,6 +112,10 @@ curl -L \
 ```
 
 In development mode, Swagger documents both the legacy routes and the new automation endpoints at `/api/swagger`.
+
+## ⏳ Expired share editing
+
+Administrators can configure `share.expiredEditablePeriod` to keep expired shares editable by their owner and by administrators before the files are physically deleted by `share.fileRetentionPeriod`. Expired shares remain unavailable through public links and downloads until their expiration is extended.
 
 ## 📄 Machine-readable share listings
 

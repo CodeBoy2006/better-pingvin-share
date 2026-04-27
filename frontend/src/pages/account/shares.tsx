@@ -19,6 +19,7 @@ import { FormattedMessage } from "react-intl";
 import Meta from "../../components/Meta";
 import showShareInformationsModal from "../../components/account/showShareInformationsModal";
 import showShareLinkModal from "../../components/account/showShareLinkModal";
+import showUpdateShareModal from "../../components/account/showUpdateShareModal";
 import CenterLoader from "../../components/core/CenterLoader";
 import useConfig from "../../hooks/config.hook";
 import useTranslate from "../../hooks/useTranslate.hook";
@@ -35,6 +36,14 @@ const MyShares = () => {
   useEffect(() => {
     shareService.getMyShares().then((shares) => setShares(shares));
   }, []);
+
+  const updateShare = (updatedShare: MyShare) => {
+    setShares(
+      shares?.map((share) =>
+        share.id === updatedShare.id ? updatedShare : share,
+      ),
+    );
+  };
 
   if (!shares) return <CenterLoader />;
 
@@ -110,17 +119,26 @@ const MyShares = () => {
                   <td>
                     {moment(share.expiration).unix() === 0 ? (
                       <FormattedMessage id="account.shares.table.expiry-never" />
+                    ) : moment(share.expiration).isBefore(moment()) ? (
+                      <Text color="orange">
+                        <FormattedMessage id="account.shares.table.expired" />
+                      </Text>
                     ) : (
                       moment(share.expiration).format("LLL")
                     )}
                   </td>
                   <td>
                     <Group position="right">
-                      <Link href={`/share/${share.id}/edit`}>
-                        <ActionIcon color="orange" variant="light" size={25}>
-                          <TbEdit />
-                        </ActionIcon>
-                      </Link>
+                      <ActionIcon
+                        color="orange"
+                        variant="light"
+                        size={25}
+                        onClick={() =>
+                          showUpdateShareModal(modals, share, updateShare)
+                        }
+                      >
+                        <TbEdit />
+                      </ActionIcon>
                       <ActionIcon
                         color="blue"
                         variant="light"

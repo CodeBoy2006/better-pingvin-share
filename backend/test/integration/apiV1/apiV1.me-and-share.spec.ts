@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
 import { createApiV1Context } from "../../fixtures/apiV1.fixture";
 import { buildChunkUploadQuery } from "../../fixtures/file.fixture";
-import { buildCreateShareDto } from "../../fixtures/share.fixture";
+import { buildCreateShareDto, seedShare } from "../../fixtures/share.fixture";
 import { createIntegrationApp } from "../../fixtures/test-app.fixture";
 
 describe("Automation API v1: me and shares", () => {
@@ -194,5 +194,59 @@ describe("Automation API v1: me and shares", () => {
       .set("Authorization", outsider.authorization);
 
     expect(outsiderGet.status).toBe(404);
+
+    const outsiderPatch = await fixture.request
+      .patch(`/api/v1/shares/${shareId}`)
+      .set("Authorization", outsider.authorization)
+      .send({ name: "Not yours" });
+
+    expect(outsiderPatch.status).toBe(404);
+  });
+
+  it("updates retained expired shares through API v1", async () => {
+    await fixture.updateConfig("share.fileRetentionPeriod", "7 days");
+    await fixture.updateConfig("share.expiredEditablePeriod", "7 days");
+
+    const context = await createApiV1Context(fixture, {
+      username: "api-v1-update",
+      email: "api-v1-update@test.local",
+      scopes: ["shares:read", "shares:write"],
+    });
+    const share = await seedShare(fixture, {
+      id: `api-v1-update-${randomUUID().slice(0, 8)}`,
+      creatorId: context.user.id,
+      uploadLocked: true,
+      expiration: new Date(Date.now() - 24 * 60 * 60 * 1000),
+    });
+    const expiration = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    const updateResponse = await fixture.request
+      .patch(`/api/v1/shares/${share.id}`)
+      .set("Authorization", context.authorization)
+      .send({
+        expiration: expiration.toISOString(),
+        name: "API recovered share",
+        recipients: ["api@example.com"],
+        security: {
+          password: "new-password",
+          maxViews: 2,
+        },
+      });
+
+    expect(updateResponse.status).toBe(200);
+    expect(updateResponse.body).toEqual(
+      expect.objectContaining({
+        id: share.id,
+        name: "API recovered share",
+        recipients: ["api@example.com"],
+        security: expect.objectContaining({
+          passwordProtected: true,
+          maxViews: 2,
+        }),
+      }),
+    );
+
+    await fixture.updateConfig("share.expiredEditablePeriod", "0 days");
+    await fixture.updateConfig("share.fileRetentionPeriod", "0 days");
   });
 });
