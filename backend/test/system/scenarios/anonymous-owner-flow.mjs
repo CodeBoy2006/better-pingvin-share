@@ -175,6 +175,11 @@ async function main() {
     `${appUrl}/s/${shareId}/files.json`,
     "machine-readable URL should point to the share alias",
   );
+  assert.equal(
+    machineReadableList.json.share.plainTextUrl,
+    `${appUrl}/s/${shareId}/files.txt`,
+    "plain-text URL should point to the share alias",
+  );
   assert.equal(machineReadableList.json.files.length, 1);
   assert.equal(machineReadableList.json.files[0].name, "anonymous-owner.txt");
   assert.equal(

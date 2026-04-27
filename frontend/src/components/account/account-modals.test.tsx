@@ -6,9 +6,8 @@ import { createMyShare } from "../../../test/fixtures";
 import { renderWithProviders } from "../../../test/render";
 
 vi.mock("@mantine/core", async () => {
-  const actual = await vi.importActual<typeof import("@mantine/core")>(
-    "@mantine/core",
-  );
+  const actual =
+    await vi.importActual<typeof import("@mantine/core")>("@mantine/core");
 
   return {
     ...actual,
@@ -86,7 +85,14 @@ describe("account modal helpers", () => {
       screen.getByDisplayValue(`${window.location.origin}/s/share-123`),
     ).toBeInTheDocument();
     expect(
-      screen.getByDisplayValue(`${window.location.origin}/s/share-123/files.json`),
+      screen.getByDisplayValue(
+        `${window.location.origin}/s/share-123/files.json`,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByDisplayValue(
+        `${window.location.origin}/s/share-123/files.txt`,
+      ),
     ).toBeInTheDocument();
     expect(screen.queryByTestId("qr-code")).not.toBeInTheDocument();
 
@@ -122,9 +128,18 @@ describe("account modal helpers", () => {
       screen.getByDisplayValue(`${window.location.origin}/s/share-42`),
     ).toBeInTheDocument();
     expect(
-      screen.getByDisplayValue(`${window.location.origin}/s/share-42/files.json`),
+      screen.getByDisplayValue(
+        `${window.location.origin}/s/share-42/files.json`,
+      ),
     ).toBeInTheDocument();
-    expect(screen.getByText(/512\.0 b \/ 1\.0 kb \(50\.0%\)/i)).toBeInTheDocument();
+    expect(
+      screen.getByDisplayValue(
+        `${window.location.origin}/s/share-42/files.txt`,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/512\.0 b \/ 1\.0 kb \(50\.0%\)/i),
+    ).toBeInTheDocument();
     expect(screen.queryByTestId("qr-code")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /toggle qr/i }));

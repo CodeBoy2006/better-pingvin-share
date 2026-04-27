@@ -10,6 +10,7 @@ import useTranslate, {
 } from "../../../hooks/useTranslate.hook";
 import QRCode from "../../share/QRCode";
 import { CompletedShare } from "../../../types/share.type";
+import { getShareListLinks } from "../../../utils/shareListLinks.util";
 import CopyTextField from "../CopyTextField";
 
 const showCompletedUploadModal = (
@@ -34,8 +35,7 @@ const Body = ({ share }: { share: CompletedShare }) => {
 
   const isReverseShare = !!router.query["reverseShareToken"];
 
-  const link = `${window.location.origin}/s/${share.id}`;
-  const filesJsonLink = `${link}/files.json`;
+  const { link, filesJsonLink, filesTextLink } = getShareListLinks(share.id);
 
   return (
     <Stack align="stretch">
@@ -48,6 +48,7 @@ const Body = ({ share }: { share: CompletedShare }) => {
         <QRCode link={link} />
       </Collapse>
       <CopyTextField label="files.json" link={filesJsonLink} />
+      <CopyTextField label="files.txt" link={filesTextLink} />
       {share.ownerManagementLink && (
         <>
           <Text

@@ -2,6 +2,7 @@ import { Collapse, Stack } from "@mantine/core";
 import { ModalsContextProps } from "@mantine/modals/lib/context";
 import { useState } from "react";
 import { translateOutsideContext } from "../../hooks/useTranslate.hook";
+import { getShareListLinks } from "../../utils/shareListLinks.util";
 import QRCode from "../share/QRCode";
 import CopyTextField from "../upload/CopyTextField";
 
@@ -16,8 +17,7 @@ const showShareLinkModal = (modals: ModalsContextProps, shareId: string) => {
 const Body = ({ shareId }: { shareId: string }) => {
   const [showQRCode, setShowQRCode] = useState(false);
   const t = translateOutsideContext();
-  const link = `${window.location.origin}/s/${shareId}`;
-  const filesJsonLink = `${link}/files.json`;
+  const { link, filesJsonLink, filesTextLink } = getShareListLinks(shareId);
 
   return (
     <Stack align="stretch">
@@ -30,6 +30,7 @@ const Body = ({ shareId }: { shareId: string }) => {
         <QRCode link={link} />
       </Collapse>
       <CopyTextField label="files.json" link={filesJsonLink} />
+      <CopyTextField label="files.txt" link={filesTextLink} />
     </Stack>
   );
 };

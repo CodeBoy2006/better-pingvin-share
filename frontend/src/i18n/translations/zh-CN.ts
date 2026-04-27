@@ -465,9 +465,9 @@ export default {
   "admin.config.share.allow-admin-access-all-shares.description":
     "允许管理员访问已过期、受密码保护或普通用户无法访问的共享。",
   "admin.config.share.files-json-web-view-links-enabled":
-    "在 files.json 中添加网页预览链接",
+    "在文件列表中添加网页预览链接",
   "admin.config.share.files-json-web-view-links-enabled.description":
-    "启用后，files.json 会为受支持的文本类文件、图片、音频、视频和 PDF 返回 webViewUrl。该链接会以内联方式直接渲染内容，不会触发下载，适合无法下载附件的抓取器。",
+    "启用后，files.json 会为受支持的文本类文件、图片、音频、视频和 PDF 返回 webViewUrl，files.txt 会返回网页预览地址。该链接会以内联方式直接渲染内容，不会触发下载，适合无法下载附件的抓取器。",
   "admin.config.share.file-retention-period": "文件保留期限",
   "admin.config.share.file-retention-period.description":
     "在共享过期或被上传者删除后，继续保留文件一段时间，再执行永久删除。",

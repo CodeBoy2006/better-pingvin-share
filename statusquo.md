@@ -242,3 +242,9 @@
 - **Status:** Completed
 - **Next Steps:** If users start sharing UTF-16 or other non-UTF-8 text assets that fail the byte sampler, add explicit encoding-aware text detection rather than broadening binary heuristics.
 - **Context:** Verified with backend `typecheck`, focused backend unit/integration suites for file web views, and backend `lint`; media and PDF `webViewUrl` behavior remains unchanged.
+
+## [2026-04-27 11:06] Plain Text Share Listings
+- **Changes:** Added `files.txt` share listings with compact overview and filename/type/size/download/web-view rows, exposed `plainTextUrl` in `files.json`, added public filename-based file routes without file IDs for the text list, and surfaced `files.txt` links in share modals.
+- **Status:** Completed
+- **Next Steps:** Deploy and verify crawler/client consumers preserve returned cookies for protected or view-limited shares just like `files.json`.
+- **Context:** Verified with focused backend unit/integration tests, focused frontend Vitest tests, and backend/frontend typecheck; `files.txt` intentionally omits internal file IDs while JSON keeps existing metadata.

@@ -116,6 +116,35 @@ describe("FileService", () => {
     expect(s3FileService.get).toHaveBeenCalledWith("share-1", "file-1");
   });
 
+  it("reads bounded samples from stored file streams", async () => {
+    const service = createService(false);
+    const fileStream = Readable.from([Buffer.from("abcdef")]);
+
+    prisma.share.findFirst.mockResolvedValue({
+      id: "share-1",
+      storageProvider: "LOCAL",
+    });
+    prisma.file.findUnique.mockResolvedValue({
+      id: "file-1",
+      shareId: "share-1",
+    });
+    localFileService.get.mockResolvedValue({
+      metaData: {
+        id: "file-1",
+        size: "6",
+        createdAt: new Date("2024-01-01T00:00:00.000Z"),
+        mimeType: "text/plain",
+        name: "hello.txt",
+        shareId: "share-1",
+      },
+      file: fileStream,
+    });
+
+    await expect(service.readSample("share-1", "file-1", 3)).resolves.toEqual(
+      new Uint8Array(Buffer.from("abc")),
+    );
+  });
+
   it("rejects file reads and deletes when the file does not belong to the share", async () => {
     const service = createService(false);
 

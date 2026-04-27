@@ -4,8 +4,10 @@ import {
   Delete,
   Get,
   HttpCode,
+  NotFoundException,
   Param,
   Post,
+  Query,
   Req,
   Res,
   StreamableFile,
@@ -43,6 +45,41 @@ import { ShareSecurityGuard } from "./guard/shareSecurity.guard";
 import { ShareTokenSecurity } from "./guard/shareTokenSecurity.guard";
 import { getShareTokenFromRequest } from "./shareRequest.util";
 import { ShareService } from "./share.service";
+
+type ShareFileListEntry = {
+  id: string;
+  name: string;
+  sizeBytes: string;
+  createdAt: Date;
+  contentType: string;
+  downloadUrl: string;
+  inlineUrl: string;
+  webViewUrl?: string;
+};
+
+type ShareFileListResponse = {
+  type: "pingvin-share-file-list";
+  version: number;
+  share: {
+    id: string;
+    name?: string;
+    description?: string;
+    expiration: Date;
+    hasPassword: boolean;
+    isZipReady: boolean;
+    totalFiles: number;
+    totalSizeBytes: string;
+    url: string;
+    machineReadableUrl: string;
+    plainTextUrl: string;
+    zipDownloadUrl?: string;
+  };
+  files: ShareFileListEntry[];
+};
+
+type ShareFileListResult = ShareFileListResponse & {
+  shareToken?: string;
+};
 
 function hasAnonymousOwnerAccess(value: object): value is {
   ownerToken: string;
@@ -156,6 +193,77 @@ export class ShareController {
       "Content-Type": "application/json; charset=utf-8",
     });
 
+    return new ShareFileListDTO().from(
+      await this.createShareFileListResponse(id, request, response),
+    );
+  }
+
+  @Get(":id/files.txt")
+  async getPlainTextFileList(
+    @Param("id") id: string,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    response.set({
+      ...PRIVATE_NO_STORE_HEADERS,
+      "Content-Type": "text/plain; charset=utf-8",
+    });
+
+    const fileList = await this.createShareFileListResponse(
+      id,
+      request,
+      response,
+    );
+
+    return this.createPlainTextFileList(fileList);
+  }
+
+  @Get(":id/file/:fileName")
+  @UseGuards(ShareSecurityGuard)
+  async getFileByName(
+    @Param("id") id: string,
+    @Param("fileName") fileName: string,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+    @Query("download") download = "true",
+  ) {
+    response.set(PRIVATE_NO_STORE_HEADERS);
+
+    const file = await this.getListedFileByName(
+      id,
+      fileName,
+      request,
+      response,
+    );
+
+    return this.sendListedFile(response, id, file, download);
+  }
+
+  @Get(":id/file/:fileName/web")
+  @UseGuards(ShareSecurityGuard)
+  async getFileWebViewByName(
+    @Param("id") id: string,
+    @Param("fileName") fileName: string,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    response.set(PRIVATE_NO_STORE_HEADERS);
+
+    const file = await this.getListedFileByName(
+      id,
+      fileName,
+      request,
+      response,
+    );
+
+    return this.sendListedFileWebView(response, id, file);
+  }
+
+  private async createShareFileListResponse(
+    id: string,
+    request: Request,
+    response: Response,
+  ): Promise<ShareFileListResult> {
     const shareToken = getShareTokenFromRequest(request, id);
     const user = this.getUserFromRequest(request);
     const fileList = await this.shareService.getFileList(id, request, {
@@ -177,8 +285,6 @@ export class ShareController {
     const includeWebViewLinks = this.configService.get(
       "share.filesJsonWebViewLinksEnabled",
     );
-    const appendTokenQuery = (url: string) =>
-      tokenQuery ? `${url}${url.includes("?") ? "&" : "?"}${tokenQuery}` : url;
 
     if (
       fileList.shareToken &&
@@ -191,7 +297,7 @@ export class ShareController {
       });
     }
 
-    return new ShareFileListDTO().from({
+    return {
       type: "pingvin-share-file-list",
       version: 1,
       share: {
@@ -207,10 +313,12 @@ export class ShareController {
           .toString(),
         url: `${appUrl}/s/${fileList.share.id}`,
         machineReadableUrl: `${appUrl}/s/${fileList.share.id}/files.json`,
+        plainTextUrl: `${appUrl}/s/${fileList.share.id}/files.txt`,
         zipDownloadUrl:
           fileList.share.isZipReady && fileList.share.files.length > 1
-            ? appendTokenQuery(
+            ? this.appendTokenQuery(
                 `${appUrl}/api/shares/${fileList.share.id}/files/zip`,
+                tokenQuery,
               )
             : undefined,
       },
@@ -234,17 +342,178 @@ export class ShareController {
             sizeBytes: file.size,
             createdAt: file.createdAt,
             contentType,
-            downloadUrl: appendTokenQuery(fileUrl),
-            inlineUrl: appendTokenQuery(`${fileUrl}?download=false`),
+            downloadUrl: this.appendTokenQuery(fileUrl, tokenQuery),
+            inlineUrl: this.appendTokenQuery(
+              `${fileUrl}?download=false`,
+              tokenQuery,
+            ),
             ...(descriptor
               ? {
-                  webViewUrl: appendTokenQuery(`${fileUrl}/web`),
+                  webViewUrl: this.appendTokenQuery(
+                    `${fileUrl}/web`,
+                    tokenQuery,
+                  ),
                 }
               : {}),
           };
         }),
       ),
+      shareToken: fileList.shareToken,
+    };
+  }
+
+  private createPlainTextFileList(fileList: ShareFileListResult) {
+    const tokenQuery =
+      fileList.share.hasPassword &&
+      fileList.shareToken &&
+      this.configService.get(
+        "share.filesJsonPasswordProtectedLinksIncludeToken",
+      )
+        ? `token=${encodeURIComponent(fileList.shareToken)}`
+        : undefined;
+    const lines = [
+      "Pingvin Share File List",
+      `Share: ${fileList.share.name || fileList.share.id}`,
+      `URL: ${fileList.share.url}`,
+      `Files: ${fileList.share.totalFiles}`,
+      `Total size: ${fileList.share.totalSizeBytes} bytes`,
+      "",
+    ];
+
+    for (const file of fileList.files) {
+      lines.push(
+        [
+          this.normalizePlainTextField(file.name),
+          this.normalizePlainTextField(file.contentType),
+          `${file.sizeBytes} bytes`,
+          this.appendTokenQuery(
+            this.createPublicFileByNameUrl(fileList.share.id, file.name),
+            tokenQuery,
+          ),
+          file.webViewUrl
+            ? this.appendTokenQuery(
+                `${this.createPublicFileByNameUrl(
+                  fileList.share.id,
+                  file.name,
+                )}/web`,
+                tokenQuery,
+              )
+            : "",
+        ].join("\t"),
+      );
+    }
+
+    return `${lines.join("\n")}\n`;
+  }
+
+  private decodePublicFileName(fileName: string) {
+    try {
+      return decodeURIComponent(fileName);
+    } catch {
+      return fileName;
+    }
+  }
+
+  private normalizePlainTextField(value: string) {
+    return value.replace(/[\r\n\t]+/g, " ").trim();
+  }
+
+  private async getListedFileByName(
+    id: string,
+    fileName: string,
+    request: Request,
+    response: Response,
+  ) {
+    const decodedFileName = this.decodePublicFileName(fileName);
+    const fileList = await this.createShareFileListResponse(
+      id,
+      request,
+      response,
+    );
+    const file = fileList.files.find((entry) => entry.name === decodedFileName);
+
+    if (!file) {
+      throw new NotFoundException("File not found");
+    }
+
+    return file;
+  }
+
+  private async sendListedFile(
+    response: Response,
+    shareId: string,
+    file: ShareFileListEntry,
+    download = "true",
+  ) {
+    const storedFile = await this.fileService.get(shareId, file.id);
+
+    const headers = {
+      ...PRIVATE_NO_STORE_HEADERS,
+      "Content-Type": file.contentType,
+      "Content-Length": file.sizeBytes,
+      "Content-Security-Policy": "sandbox",
+    };
+
+    if (download === "true") {
+      headers["Content-Disposition"] = contentDisposition(file.name);
+    } else {
+      headers["Content-Disposition"] = contentDisposition(file.name, {
+        type: "inline",
+      });
+    }
+
+    response.set(headers);
+
+    return new StreamableFile(storedFile.file);
+  }
+
+  private async sendListedFileWebView(
+    response: Response,
+    shareId: string,
+    file: ShareFileListEntry,
+  ) {
+    const storedFile = await this.fileService.get(shareId, file.id);
+    const descriptor = await this.getShareFileWebViewDescriptor(
+      shareId,
+      file.id,
+      file.name,
+      file.contentType,
+    );
+
+    if (!descriptor) {
+      throw new NotFoundException("Web view not available");
+    }
+
+    response.set({
+      ...PRIVATE_NO_STORE_HEADERS,
+      "Content-Disposition": contentDisposition(file.name, {
+        type: "inline",
+      }),
+      "Content-Type":
+        descriptor.kind === "image" ||
+        descriptor.kind === "audio" ||
+        descriptor.kind === "video" ||
+        descriptor.kind === "pdf"
+          ? descriptor.contentType || file.contentType
+          : "text/plain; charset=utf-8",
+      "Content-Length": file.sizeBytes,
+      "X-Content-Type-Options": "nosniff",
     });
+
+    return new StreamableFile(storedFile.file);
+  }
+
+  private createPublicFileByNameUrl(shareId: string, fileName: string) {
+    const appUrl = this.configService.get("general.appUrl");
+    return `${appUrl}/api/shares/${shareId}/file/${encodeURIComponent(
+      fileName,
+    )}`;
+  }
+
+  private appendTokenQuery(url: string, tokenQuery?: string) {
+    return tokenQuery
+      ? `${url}${url.includes("?") ? "&" : "?"}${tokenQuery}`
+      : url;
   }
 
   private async getShareFileWebViewDescriptor(

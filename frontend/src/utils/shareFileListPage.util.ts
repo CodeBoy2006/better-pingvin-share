@@ -5,6 +5,55 @@ const apiUrl = process.env.API_URL || "http://localhost:8080";
 export async function proxyShareFileListResponse(
   context: GetServerSidePropsContext,
 ) {
+  return proxyShareListResponse(context, {
+    apiPath: "files.json",
+    accept: "application/json",
+    fallbackContentType: "application/json; charset=utf-8",
+  });
+}
+
+export async function proxySharePlainTextFileListResponse(
+  context: GetServerSidePropsContext,
+) {
+  return proxyShareListResponse(context, {
+    apiPath: "files.txt",
+    accept: "text/plain",
+    fallbackContentType: "text/plain; charset=utf-8",
+  });
+}
+
+export async function proxyShareFileByNameResponse(
+  context: GetServerSidePropsContext,
+) {
+  const fileName = encodeURIComponent(String(context.params?.fileName || ""));
+
+  return proxyShareListResponse(context, {
+    apiPath: `file/${fileName}`,
+    accept: "*/*",
+    fallbackContentType: "application/octet-stream",
+  });
+}
+
+export async function proxyShareFileWebViewByNameResponse(
+  context: GetServerSidePropsContext,
+) {
+  const fileName = encodeURIComponent(String(context.params?.fileName || ""));
+
+  return proxyShareListResponse(context, {
+    apiPath: `file/${fileName}/web`,
+    accept: "*/*",
+    fallbackContentType: "application/octet-stream",
+  });
+}
+
+async function proxyShareListResponse(
+  context: GetServerSidePropsContext,
+  options: {
+    apiPath: string;
+    accept: string;
+    fallbackContentType: string;
+  },
+) {
   context.res.setHeader(
     "Cache-Control",
     "private, no-store, max-age=0, must-revalidate",
@@ -20,10 +69,10 @@ export async function proxyShareFileListResponse(
     : "";
 
   const upstreamResponse = await fetch(
-    `${apiUrl}/api/shares/${shareId}/files.json${queryString}`,
+    `${apiUrl}/api/shares/${shareId}/${options.apiPath}${queryString}`,
     {
       headers: {
-        Accept: "application/json",
+        Accept: options.accept,
         Cookie: context.req.headers.cookie || "",
       },
     },
@@ -46,8 +95,7 @@ export async function proxyShareFileListResponse(
   context.res.statusCode = upstreamResponse.status;
   context.res.setHeader(
     "Content-Type",
-    upstreamResponse.headers.get("content-type") ||
-      "application/json; charset=utf-8",
+    upstreamResponse.headers.get("content-type") || options.fallbackContentType,
   );
 
   if (cacheControl) {

@@ -58,6 +58,9 @@ class ShareFileListShareDTO {
   machineReadableUrl: string;
 
   @Expose()
+  plainTextUrl: string;
+
+  @Expose()
   zipDownloadUrl?: string;
 }
 

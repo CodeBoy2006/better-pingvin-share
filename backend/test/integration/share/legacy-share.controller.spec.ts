@@ -123,6 +123,7 @@ describe("Legacy share endpoints", () => {
           id: shareId,
           totalFiles: 1,
           machineReadableUrl: `http://localhost:3000/s/${shareId}/files.json`,
+          plainTextUrl: `http://localhost:3000/s/${shareId}/files.txt`,
         }),
         files: [
           expect.objectContaining({
@@ -145,6 +146,34 @@ describe("Legacy share endpoints", () => {
       ]),
     );
 
+    const plainTextListResponse = await publicAgent.get(
+      `/api/shares/${shareId}/files.txt`,
+    );
+
+    expect(plainTextListResponse.status).toBe(200);
+    expect(plainTextListResponse.headers["content-type"]).toMatch(
+      /^text\/plain\b/,
+    );
+    expect(plainTextListResponse.text).toBe(
+      [
+        "Pingvin Share File List",
+        `Share: ${shareId}`,
+        `URL: http://localhost:3000/s/${shareId}`,
+        "Files: 1",
+        `Total size: ${fileListResponse.body.share.totalSizeBytes} bytes`,
+        "",
+        [
+          "anonymous-owner.txt",
+          "text/plain",
+          `${fileListResponse.body.files[0].sizeBytes} bytes`,
+          `http://localhost:3000/api/shares/${shareId}/file/anonymous-owner.txt`,
+          "",
+        ].join("\t"),
+        "",
+      ].join("\n"),
+    );
+    expect(plainTextListResponse.text).not.toContain(uploadResponse.body.id);
+
     const downloadUrl = new URL(fileListResponse.body.files[0].downloadUrl);
     const downloadResponse = await publicAgent
       .get(`${downloadUrl.pathname}${downloadUrl.search}`)
@@ -156,6 +185,16 @@ describe("Legacy share endpoints", () => {
       "Anonymous owner integration test file",
     );
     expect(downloadResponse.headers["cache-control"]).toContain("no-store");
+
+    const plainTextDownloadResponse = await publicAgent
+      .get(`/api/shares/${shareId}/file/anonymous-owner.txt`)
+      .buffer(true)
+      .parse(binaryResponseParser);
+
+    expect(plainTextDownloadResponse.status).toBe(200);
+    expect(plainTextDownloadResponse.body.toString()).toBe(
+      "Anonymous owner integration test file",
+    );
 
     const deleteResponse = await fixture.request
       .delete(`/api/shares/${shareId}`)
@@ -654,6 +693,31 @@ describe("Legacy share endpoints", () => {
     expect(fileListResponse.body.files[0].webViewUrl).toBe(
       `http://localhost:3000/api/shares/${shareId}/files/${uploadResponse.body.id}/web?token=${encodeURIComponent(tokenResponse.body.token)}`,
     );
+
+    const plainTextListResponse = await fixture.request
+      .get(`/api/shares/${shareId}/files.txt`)
+      .set("Cookie", `share_${shareId}_token=${tokenResponse.body.token}`);
+
+    expect(plainTextListResponse.status).toBe(200);
+    expect(plainTextListResponse.text).toContain(
+      `http://localhost:3000/api/shares/${shareId}/file/protected-tokenized.txt?token=${encodeURIComponent(tokenResponse.body.token)}`,
+    );
+    expect(plainTextListResponse.text).toContain(
+      `http://localhost:3000/api/shares/${shareId}/file/protected-tokenized.txt/web?token=${encodeURIComponent(tokenResponse.body.token)}`,
+    );
+    expect(plainTextListResponse.text).not.toContain(uploadResponse.body.id);
+
+    const protectedPlainTextListResponse = await fixture.request.get(
+      `/api/shares/${shareId}/files.txt`,
+    );
+
+    expect(protectedPlainTextListResponse.status).toBe(403);
+
+    const protectedPlainTextDownloadResponse = await fixture.request.get(
+      `/api/shares/${shareId}/file/protected-tokenized.txt`,
+    );
+
+    expect(protectedPlainTextDownloadResponse.status).toBe(403);
 
     await fixture.updateConfig(
       "share.filesJsonPasswordProtectedLinksIncludeToken",

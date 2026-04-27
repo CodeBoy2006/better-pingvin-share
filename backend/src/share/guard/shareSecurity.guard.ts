@@ -34,6 +34,7 @@ export class ShareSecurityGuard extends JwtGuard {
       : request.params.id;
 
     const shareToken = getShareTokenFromRequest(request, shareId);
+    const hasShareToken = !!shareToken;
 
     const share = await this.prisma.share.findUnique({
       where: { id: shareId },
@@ -88,15 +89,32 @@ export class ShareSecurityGuard extends JwtGuard {
       );
     }
 
-    if (!(await this.shareService.verifyShareToken(shareId, shareToken)))
+    if (
+      hasShareToken &&
+      !(await this.shareService.verifyShareToken(shareId, shareToken))
+    )
       throw new ForbiddenException(
         "Share token required",
         "share_token_required",
       );
 
-    await this.shareService.assertShareIpAccess(share, request, {
-      assignIfNeeded: true,
-    });
+    if (hasShareToken) {
+      await this.shareService.assertShareIpAccess(share, request, {
+        assignIfNeeded: true,
+      });
+    } else {
+      if (share.security?.maxViews && share.security.maxViews <= share.views) {
+        throw new ForbiddenException(
+          "Maximum views exceeded",
+          "share_max_views_exceeded",
+        );
+      }
+
+      await this.shareService.assertShareIpAccess(share, request, {
+        assignIfNeeded: true,
+      });
+      await this.shareService.increaseViewCount(share);
+    }
 
     return true;
   }

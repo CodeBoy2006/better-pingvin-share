@@ -564,13 +564,13 @@ export default {
   "admin.config.share.allow-admin-access-all-shares.description":
     "Allow administrators to access shares even when they are expired, password protected, or otherwise inaccessible to normal users.",
   "admin.config.share.files-json-password-protected-links-include-token":
-    "Include token in password-protected files.json links",
+    "Include token in password-protected file-list links",
   "admin.config.share.files-json-password-protected-links-include-token.description":
-    "When enabled, files.json can embed a share token in download URLs for password-protected shares. Unprotected shares always return plain URLs.",
+    "When enabled, files.json and files.txt can embed a share token in download and web-view URLs for password-protected shares. Unprotected shares always return plain URLs.",
   "admin.config.share.files-json-web-view-links-enabled":
-    "Add web-view links to files.json",
+    "Add web-view links to file lists",
   "admin.config.share.files-json-web-view-links-enabled.description":
-    "When enabled, files.json adds a webViewUrl for supported text-like files, images, audio, video, and PDFs. The link renders inline instead of forcing a download, which helps crawlers that cannot fetch attachments.",
+    "When enabled, files.json adds a webViewUrl and files.txt adds a web-view address for supported text-like files, images, audio, video, and PDFs. The link renders inline instead of forcing a download, which helps crawlers that cannot fetch attachments.",
   "admin.config.share.file-retention-period": "File retention period",
   "admin.config.share.file-retention-period.description":
     "Keep expired or owner-deleted shares for an additional period before their files are permanently removed.",

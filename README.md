@@ -114,13 +114,13 @@ In development mode, Swagger documents both the legacy routes and the new automa
 
 ## 📄 Machine-readable share listings
 
-Every public share exposes a JSON file list at `<share-url>/files.json` (for example `http://localhost:3000/s/my-share/files.json`).
+Every public share exposes a JSON file list at `<share-url>/files.json` (for example `http://localhost:3000/s/my-share/files.json`) and a compact plain-text list at `<share-url>/files.txt`.
 
-- The response uses `application/json`
-- It includes share metadata, per-file metadata, and direct download URLs for every file
+- `files.json` uses `application/json` and includes share metadata, per-file metadata, and direct download URLs for every file
+- `files.txt` uses `text/plain`, starts with a short plain-text overview, and then lists one file per line as filename, type, size, download URL, and web-view URL when available
 - Returned URLs stay stable and do not embed a `token=` query parameter
 - Admins can opt in to tokenized URLs for password-protected shares with `share.filesJsonPasswordProtectedLinksIncludeToken`
-- Admins can opt in to per-file `webViewUrl` links for supported text-like files, images, audio, video, and PDFs with `share.filesJsonWebViewLinksEnabled`; these render inline without extra page chrome
+- Admins can opt in to per-file web-view links for supported text-like files, images, audio, video, and PDFs with `share.filesJsonWebViewLinksEnabled`; these render inline without extra page chrome
 - Password-protected shares still require a valid share token before the JSON listing can be fetched
 - Shares can optionally restrict access to a fixed IP allow list or the first `N` unique client IPs that reach the share
-- Clients that access protected or view-limited shares through `files.json` should preserve the `Set-Cookie` header returned by that response
+- Clients that access protected or view-limited shares through these lists should preserve the `Set-Cookie` header returned by that response

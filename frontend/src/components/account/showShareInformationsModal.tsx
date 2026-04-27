@@ -6,6 +6,7 @@ import { FormattedMessage } from "react-intl";
 import { translateOutsideContext } from "../../hooks/useTranslate.hook";
 import { MyShare } from "../../types/share.type";
 import { byteToHumanSizeString } from "../../utils/fileSize.util";
+import { getShareListLinks } from "../../utils/shareListLinks.util";
 import QRCode from "../share/QRCode";
 import CopyTextField from "../upload/CopyTextField";
 
@@ -30,8 +31,7 @@ const Body = ({
 }) => {
   const [showQRCode, setShowQRCode] = useState(false);
   const t = translateOutsideContext();
-  const link = `${window.location.origin}/s/${share.id}`;
-  const filesJsonLink = `${link}/files.json`;
+  const { link, filesJsonLink, filesTextLink } = getShareListLinks(share.id);
 
   const formattedShareSize = byteToHumanSizeString(share.size);
   const formattedMaxShareSize = byteToHumanSizeString(maxShareSize);
@@ -139,6 +139,7 @@ const Body = ({
         <QRCode link={link} />
       </Collapse>
       <CopyTextField label="files.json" link={filesJsonLink} />
+      <CopyTextField label="files.txt" link={filesTextLink} />
       <Divider />
       <Text size="sm">
         <b>

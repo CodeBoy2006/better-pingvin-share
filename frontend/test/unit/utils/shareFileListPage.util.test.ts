@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { proxyShareFileListResponse } from "../../../src/utils/shareFileListPage.util";
+import {
+  proxyShareFileByNameResponse,
+  proxyShareFileListResponse,
+  proxyShareFileWebViewByNameResponse,
+  proxySharePlainTextFileListResponse,
+} from "../../../src/utils/shareFileListPage.util";
 
 describe("shareFileListPage.util", () => {
   afterEach(() => {
@@ -158,5 +163,146 @@ describe("shareFileListPage.util", () => {
       "application/problem+json",
     );
     expect(context.res.statusCode).toBe(503);
+  });
+
+  it("proxies files.txt responses as plain text", async () => {
+    const upstreamHeaders = new Headers({
+      "content-type": "text/plain; charset=utf-8",
+    });
+    const fetchMock = vi.fn().mockResolvedValue({
+      headers: upstreamHeaders,
+      status: 200,
+      text: vi.fn().mockResolvedValue("Files: 0\n"),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const setHeader = vi.fn();
+    const end = vi.fn();
+    const context = {
+      params: { shareId: "demo" },
+      resolvedUrl: "/s/demo/files.txt",
+      req: {
+        headers: {
+          cookie: "share_demo_token=token",
+        },
+      },
+      res: {
+        statusCode: 500,
+        setHeader,
+        end,
+      },
+    } as any;
+
+    await proxySharePlainTextFileListResponse(context);
+
+    const apiUrl = process.env.API_URL || "http://localhost:8080";
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${apiUrl}/api/shares/demo/files.txt`,
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Accept: "text/plain",
+          Cookie: "share_demo_token=token",
+        }),
+      }),
+    );
+    expect(setHeader).toHaveBeenCalledWith(
+      "Content-Type",
+      "text/plain; charset=utf-8",
+    );
+    expect(context.res.statusCode).toBe(200);
+    expect(end).toHaveBeenCalledWith("Files: 0\n");
+  });
+
+  it("proxies public filename-based file links", async () => {
+    const upstreamHeaders = new Headers({
+      "content-type": "text/plain; charset=utf-8",
+    });
+    const fetchMock = vi.fn().mockResolvedValue({
+      headers: upstreamHeaders,
+      status: 200,
+      text: vi.fn().mockResolvedValue("hello"),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const setHeader = vi.fn();
+    const end = vi.fn();
+    const context = {
+      params: { shareId: "demo", fileName: "notes and data.txt" },
+      resolvedUrl: "/s/demo/file/notes%20and%20data.txt?download=false",
+      req: {
+        headers: {
+          cookie: "share_demo_token=token",
+        },
+      },
+      res: {
+        statusCode: 500,
+        setHeader,
+        end,
+      },
+    } as any;
+
+    await proxyShareFileByNameResponse(context);
+
+    const apiUrl = process.env.API_URL || "http://localhost:8080";
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${apiUrl}/api/shares/demo/file/notes%20and%20data.txt?download=false`,
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Accept: "*/*",
+          Cookie: "share_demo_token=token",
+        }),
+      }),
+    );
+    expect(setHeader).toHaveBeenCalledWith(
+      "Content-Type",
+      "text/plain; charset=utf-8",
+    );
+    expect(end).toHaveBeenCalledWith("hello");
+  });
+
+  it("proxies public filename-based web-view links", async () => {
+    const upstreamHeaders = new Headers();
+    const fetchMock = vi.fn().mockResolvedValue({
+      headers: upstreamHeaders,
+      status: 200,
+      text: vi.fn().mockResolvedValue("preview"),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const setHeader = vi.fn();
+    const end = vi.fn();
+    const context = {
+      params: { shareId: "demo", fileName: "notes.md" },
+      resolvedUrl: "/s/demo/file/notes.md/web",
+      req: {
+        headers: {},
+      },
+      res: {
+        statusCode: 500,
+        setHeader,
+        end,
+      },
+    } as any;
+
+    await proxyShareFileWebViewByNameResponse(context);
+
+    const apiUrl = process.env.API_URL || "http://localhost:8080";
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${apiUrl}/api/shares/demo/file/notes.md/web`,
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Accept: "*/*",
+          Cookie: "",
+        }),
+      }),
+    );
+    expect(setHeader).toHaveBeenCalledWith(
+      "Content-Type",
+      "application/octet-stream",
+    );
+    expect(end).toHaveBeenCalledWith("preview");
   });
 });

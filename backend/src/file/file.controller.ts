@@ -5,6 +5,7 @@ import {
   Get,
   NotFoundException,
   Param,
+  ParseUUIDPipe,
   Post,
   Query,
   Res,
@@ -86,7 +87,15 @@ export class FileController {
   async getFileWebView(
     @Res({ passthrough: true }) res: Response,
     @Param("shareId") shareId: string,
-    @Param("fileId") fileId: string,
+    @Param("fileId", new ParseUUIDPipe()) fileId: string,
+  ) {
+    return this.sendFileWebView(res, shareId, fileId);
+  }
+
+  private async sendFileWebView(
+    res: Response,
+    shareId: string,
+    fileId: string,
   ) {
     res.set(PRIVATE_NO_STORE_HEADERS);
 
@@ -132,8 +141,17 @@ export class FileController {
   async getFile(
     @Res({ passthrough: true }) res: Response,
     @Param("shareId") shareId: string,
-    @Param("fileId") fileId: string,
+    @Param("fileId", new ParseUUIDPipe()) fileId: string,
     @Query("download") download = "true",
+  ) {
+    return this.sendFile(res, shareId, fileId, download);
+  }
+
+  private async sendFile(
+    res: Response,
+    shareId: string,
+    fileId: string,
+    download = "true",
   ) {
     res.set(PRIVATE_NO_STORE_HEADERS);
 
@@ -164,7 +182,7 @@ export class FileController {
   @SkipThrottle()
   @UseGuards(ShareOwnerGuard)
   async remove(
-    @Param("fileId") fileId: string,
+    @Param("fileId", new ParseUUIDPipe()) fileId: string,
     @Param("shareId") shareId: string,
   ) {
     await this.fileService.remove(shareId, fileId);
