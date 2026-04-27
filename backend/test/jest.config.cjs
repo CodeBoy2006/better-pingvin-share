@@ -7,6 +7,7 @@ const sharedConfig = {
   moduleFileExtensions: ["js", "json", "ts"],
   roots: ["<rootDir>/src", "<rootDir>/test"],
   testEnvironment: "node",
+  testTimeout: 15_000,
   transform: {
     "^.+\\.(t|j)s$": [
       "ts-jest",

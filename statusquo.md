@@ -266,3 +266,9 @@
 - **Status:** Completed
 - **Next Steps:** Keep `files.txt` consumers on file-id URLs to avoid ambiguity when duplicate filenames exist.
 - **Context:** The deleted `/api/shares/:id/file/:fileName` path now falls through to 404; `files.txt` may expose internal file IDs just like `files.json`.
+
+## [2026-04-27 22:28] CI Backend And E2E Stabilization
+- **Changes:** Increased backend Jest hook timeout, hardened share edit forms for shares without security rules, renamed the file-save action to avoid duplicate accessible Save buttons, and updated the authenticated-share E2E selector.
+- **Status:** Completed
+- **Next Steps:** Push the fix and rerun GitHub Actions for Backend and Browser E2E.
+- **Context:** Verified with backend lint/typecheck/test:coverage, frontend lint/typecheck/build/test:coverage, and full npm run test:e2e locally.

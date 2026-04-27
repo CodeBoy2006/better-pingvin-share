@@ -46,8 +46,8 @@ const getExpirationInitialValues = (expiration: Date) => {
 };
 
 const getIpRestrictionMode = (share: MyShare) => {
-  if (share.security.allowedIps?.length) return "allowedIps";
-  if (share.security.maxIps) return "maxIps";
+  if (share.security?.allowedIps?.length) return "allowedIps";
+  if (share.security?.maxIps) return "maxIps";
   return "disabled";
 };
 
@@ -122,10 +122,10 @@ export const UpdateShareModalBody = ({
       name: share.name ?? undefined,
       recipients: share.recipients ?? [],
       password: undefined,
-      maxViews: share.security.maxViews || undefined,
+      maxViews: share.security?.maxViews || undefined,
       ipRestrictionMode: getIpRestrictionMode(share),
-      maxIps: share.security.maxIps || undefined,
-      allowedIps: share.security.allowedIps ?? [],
+      maxIps: share.security?.maxIps || undefined,
+      allowedIps: share.security?.allowedIps ?? [],
       description: share.description ?? undefined,
       ...getExpirationInitialValues(share.expiration),
     },

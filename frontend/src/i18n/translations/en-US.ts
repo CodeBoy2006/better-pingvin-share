@@ -446,6 +446,7 @@ export default {
   // /share/[id]/edit
   "share.edit.title": "Edit {shareId}",
   "share.edit.settings-title": "Edit share: {shareId}",
+  "share.edit.save-files": "Save files",
   "share.edit.append-upload": "Append file",
   "share.edit.notify.generic-error":
     "An error occurred while finishing your share.",

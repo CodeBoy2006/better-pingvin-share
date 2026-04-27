@@ -241,7 +241,7 @@ const EditableUpload = ({
     <>
       <Group position="right" mb={20}>
         <Button loading={isUploading} disabled={!dirty} onClick={() => save()}>
-          <FormattedMessage id="common.button.save" />
+          <FormattedMessage id="share.edit.save-files" />
         </Button>
       </Group>
       <Dropzone

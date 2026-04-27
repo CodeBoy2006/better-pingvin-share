@@ -51,7 +51,7 @@ test("signed-in users can upload, download a ZIP bundle, and delete a file", asy
   await userPage.goto(`/share/${upload.shareId}/edit`);
   const alphaRow = userPage.locator("tr", { hasText: "alpha.txt" });
   await alphaRow.getByRole("button", { name: /^delete$/i }).click();
-  await userPage.getByRole("button", { name: /^save$/i }).click();
+  await userPage.getByRole("button", { name: /^save files$/i }).click();
 
   await expect(userPage).toHaveURL(
     new RegExp(`(?:/s/${upload.shareId}|/share/${upload.shareId})$`),
