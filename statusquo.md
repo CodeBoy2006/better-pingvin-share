@@ -254,3 +254,9 @@
 - **Status:** Completed
 - **Next Steps:** Run full repository quality checks before release if time allows.
 - **Context:** Verified with backend/frontend typecheck, focused backend unit/integration suites, and focused frontend Vitest suites including admin share table and page smoke coverage.
+
+## [2026-04-27 19:24] Backend Lint Fix
+- **Changes:** Updated backend/src/share/share.service.ts to use the normalized security return type and renamed the has-own-property helper to avoid ESLint no-prototype-builtins false positives.
+- **Status:** Completed
+- **Next Steps:** Run the CI backend lint job again to confirm the GitHub Actions failure is resolved.
+- **Context:** Verified locally with npm --prefix backend run lint and npm --prefix backend run typecheck.

@@ -958,10 +958,10 @@ export class ShareService {
       return undefined;
     }
 
-    const hasPasswordUpdate = this.hasOwnProperty(security, "password");
-    const hasMaxViewsUpdate = this.hasOwnProperty(security, "maxViews");
-    const hasMaxIpsUpdate = this.hasOwnProperty(security, "maxIps");
-    const hasAllowedIpsUpdate = this.hasOwnProperty(security, "allowedIps");
+    const hasPasswordUpdate = this.hasProperty(security, "password");
+    const hasMaxViewsUpdate = this.hasProperty(security, "maxViews");
+    const hasMaxIpsUpdate = this.hasProperty(security, "maxIps");
+    const hasAllowedIpsUpdate = this.hasProperty(security, "allowedIps");
 
     const password = hasPasswordUpdate
       ? await this.getSecurityPasswordUpdate(security.password)
@@ -1190,7 +1190,7 @@ export class ShareService {
   private normalizeShareSecurity(
     security?: CreateShareDTO["security"],
     options?: { preserveEmptyPassword?: boolean },
-  ) {
+  ): NormalizedShareSecurity | undefined {
     if (!security) {
       return undefined;
     }
@@ -1266,10 +1266,7 @@ export class ShareService {
     ];
   }
 
-  private hasOwnProperty<T extends object>(
-    value: T,
-    property: string,
-  ): boolean {
+  private hasProperty<T extends object>(value: T, property: string): boolean {
     return Object.prototype.hasOwnProperty.call(value, property);
   }
 
