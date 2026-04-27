@@ -22,30 +22,6 @@ export async function proxySharePlainTextFileListResponse(
   });
 }
 
-export async function proxyShareFileByNameResponse(
-  context: GetServerSidePropsContext,
-) {
-  const fileName = encodeURIComponent(String(context.params?.fileName || ""));
-
-  return proxyShareListResponse(context, {
-    apiPath: `file/${fileName}`,
-    accept: "*/*",
-    fallbackContentType: "application/octet-stream",
-  });
-}
-
-export async function proxyShareFileWebViewByNameResponse(
-  context: GetServerSidePropsContext,
-) {
-  const fileName = encodeURIComponent(String(context.params?.fileName || ""));
-
-  return proxyShareListResponse(context, {
-    apiPath: `file/${fileName}/web`,
-    accept: "*/*",
-    fallbackContentType: "application/octet-stream",
-  });
-}
-
 async function proxyShareListResponse(
   context: GetServerSidePropsContext,
   options: {

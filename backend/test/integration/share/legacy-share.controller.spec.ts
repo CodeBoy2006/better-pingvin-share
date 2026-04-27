@@ -166,13 +166,18 @@ describe("Legacy share endpoints", () => {
           "anonymous-owner.txt",
           "text/plain",
           `${fileListResponse.body.files[0].sizeBytes} bytes`,
-          `http://localhost:3000/api/shares/${shareId}/file/anonymous-owner.txt`,
+          `http://localhost:3000/api/shares/${shareId}/files/${uploadResponse.body.id}`,
           "",
         ].join("\t"),
         "",
       ].join("\n"),
     );
-    expect(plainTextListResponse.text).not.toContain(uploadResponse.body.id);
+
+    const removedFileNameRouteResponse = await publicAgent.get(
+      `/api/shares/${shareId}/file/anonymous-owner.txt`,
+    );
+
+    expect(removedFileNameRouteResponse.status).toBe(404);
 
     const downloadUrl = new URL(fileListResponse.body.files[0].downloadUrl);
     const downloadResponse = await publicAgent
@@ -185,16 +190,6 @@ describe("Legacy share endpoints", () => {
       "Anonymous owner integration test file",
     );
     expect(downloadResponse.headers["cache-control"]).toContain("no-store");
-
-    const plainTextDownloadResponse = await publicAgent
-      .get(`/api/shares/${shareId}/file/anonymous-owner.txt`)
-      .buffer(true)
-      .parse(binaryResponseParser);
-
-    expect(plainTextDownloadResponse.status).toBe(200);
-    expect(plainTextDownloadResponse.body.toString()).toBe(
-      "Anonymous owner integration test file",
-    );
 
     const deleteResponse = await fixture.request
       .delete(`/api/shares/${shareId}`)
@@ -778,24 +773,17 @@ describe("Legacy share endpoints", () => {
 
     expect(plainTextListResponse.status).toBe(200);
     expect(plainTextListResponse.text).toContain(
-      `http://localhost:3000/api/shares/${shareId}/file/protected-tokenized.txt?token=${encodeURIComponent(tokenResponse.body.token)}`,
+      `http://localhost:3000/api/shares/${shareId}/files/${uploadResponse.body.id}?token=${encodeURIComponent(tokenResponse.body.token)}`,
     );
     expect(plainTextListResponse.text).toContain(
-      `http://localhost:3000/api/shares/${shareId}/file/protected-tokenized.txt/web?token=${encodeURIComponent(tokenResponse.body.token)}`,
+      `http://localhost:3000/api/shares/${shareId}/files/${uploadResponse.body.id}/web?token=${encodeURIComponent(tokenResponse.body.token)}`,
     );
-    expect(plainTextListResponse.text).not.toContain(uploadResponse.body.id);
 
     const protectedPlainTextListResponse = await fixture.request.get(
       `/api/shares/${shareId}/files.txt`,
     );
 
     expect(protectedPlainTextListResponse.status).toBe(403);
-
-    const protectedPlainTextDownloadResponse = await fixture.request.get(
-      `/api/shares/${shareId}/file/protected-tokenized.txt`,
-    );
-
-    expect(protectedPlainTextDownloadResponse.status).toBe(403);
 
     await fixture.updateConfig(
       "share.filesJsonPasswordProtectedLinksIncludeToken",

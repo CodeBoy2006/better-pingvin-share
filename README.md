@@ -122,7 +122,7 @@ Administrators can configure `share.expiredEditablePeriod` to keep expired share
 Every public share exposes a JSON file list at `<share-url>/files.json` (for example `http://localhost:3000/s/my-share/files.json`) and a compact plain-text list at `<share-url>/files.txt`.
 
 - `files.json` uses `application/json` and includes share metadata, per-file metadata, and direct download URLs for every file
-- `files.txt` uses `text/plain`, starts with a short plain-text overview, and then lists one file per line as filename, type, size, download URL, and web-view URL when available
+- `files.txt` uses `text/plain`, starts with a short plain-text overview, and then lists one file per line as filename, type, size, download URL, and web-view URL when available; file links use the same stable file-id based URLs as `files.json`
 - Returned URLs stay stable and do not embed a `token=` query parameter
 - Admins can opt in to tokenized URLs for password-protected shares with `share.filesJsonPasswordProtectedLinksIncludeToken`
 - Admins can opt in to per-file web-view links for supported text-like files, images, audio, video, and PDFs with `share.filesJsonWebViewLinksEnabled`; these render inline without extra page chrome

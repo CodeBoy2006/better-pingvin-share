@@ -260,3 +260,9 @@
 - **Status:** Completed
 - **Next Steps:** Run the CI backend lint job again to confirm the GitHub Actions failure is resolved.
 - **Context:** Verified locally with npm --prefix backend run lint and npm --prefix backend run typecheck.
+
+## [2026-04-27 19:45] Remove Filename File Routes
+- **Changes:** Removed public filename-based share file proxy pages and backend routes, updated `files.txt` to reuse the same file-id based download and web-view URLs as `files.json`, and adjusted backend/frontend tests plus README copy.
+- **Status:** Completed
+- **Next Steps:** Keep `files.txt` consumers on file-id URLs to avoid ambiguity when duplicate filenames exist.
+- **Context:** The deleted `/api/shares/:id/file/:fileName` path now falls through to 404; `files.txt` may expose internal file IDs just like `files.json`.

@@ -2,21 +2,15 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";
 
 const {
-  proxyShareFileByNameResponse,
   proxyShareFileListResponse,
-  proxyShareFileWebViewByNameResponse,
   proxySharePlainTextFileListResponse,
 } = vi.hoisted(() => ({
-  proxyShareFileByNameResponse: vi.fn(),
   proxyShareFileListResponse: vi.fn(),
-  proxyShareFileWebViewByNameResponse: vi.fn(),
   proxySharePlainTextFileListResponse: vi.fn(),
 }));
 
 vi.mock("../../../src/utils/shareFileListPage.util", () => ({
-  proxyShareFileByNameResponse,
   proxyShareFileListResponse,
-  proxyShareFileWebViewByNameResponse,
   proxySharePlainTextFileListResponse,
 }));
 
@@ -29,24 +23,12 @@ import ShareFileListAliasPage, {
 import SharePlainTextFileListAliasPage, {
   getServerSideProps as getSharePlainTextFileListAliasProps,
 } from "../../../src/pages/s/[shareId]/files.txt";
-import ShareFileByNameAliasPage, {
-  getServerSideProps as getShareFileByNameAliasProps,
-} from "../../../src/pages/s/[shareId]/file/[fileName]";
-import ShareFileWebViewByNameAliasPage, {
-  getServerSideProps as getShareFileWebViewByNameAliasProps,
-} from "../../../src/pages/s/[shareId]/file/[fileName]/web";
 import ShareFileListPage, {
   getServerSideProps as getShareFileListProps,
 } from "../../../src/pages/share/[shareId]/files.json";
 import SharePlainTextFileListPage, {
   getServerSideProps as getSharePlainTextFileListProps,
 } from "../../../src/pages/share/[shareId]/files.txt";
-import ShareFileByNamePage, {
-  getServerSideProps as getShareFileByNameProps,
-} from "../../../src/pages/share/[shareId]/file/[fileName]";
-import ShareFileWebViewByNamePage, {
-  getServerSideProps as getShareFileWebViewByNameProps,
-} from "../../../src/pages/share/[shareId]/file/[fileName]/web";
 
 describe("share routing pages", () => {
   it("redirects short share aliases to the canonical share page", () => {
@@ -77,17 +59,6 @@ describe("share routing pages", () => {
     );
   });
 
-  it("re-exports filename-based file proxies for both public routes", () => {
-    expect(getShareFileByNameAliasProps).toBe(proxyShareFileByNameResponse);
-    expect(getShareFileByNameProps).toBe(proxyShareFileByNameResponse);
-    expect(getShareFileWebViewByNameAliasProps).toBe(
-      proxyShareFileWebViewByNameResponse,
-    );
-    expect(getShareFileWebViewByNameProps).toBe(
-      proxyShareFileWebViewByNameResponse,
-    );
-  });
-
   it("renders null for alias pages because they are server-side redirects or proxies", () => {
     const shareAliasRender = render(<ShareAliasPage />);
     const shareFileListAliasRender = render(<ShareFileListAliasPage />);
@@ -96,21 +67,11 @@ describe("share routing pages", () => {
       <SharePlainTextFileListAliasPage />,
     );
     const sharePlainTextFileListRender = render(<SharePlainTextFileListPage />);
-    const shareFileByNameAliasRender = render(<ShareFileByNameAliasPage />);
-    const shareFileByNameRender = render(<ShareFileByNamePage />);
-    const shareFileWebViewByNameAliasRender = render(
-      <ShareFileWebViewByNameAliasPage />,
-    );
-    const shareFileWebViewByNameRender = render(<ShareFileWebViewByNamePage />);
 
     expect(shareAliasRender.container.firstChild).toBeNull();
     expect(shareFileListAliasRender.container.firstChild).toBeNull();
     expect(shareFileListRender.container.firstChild).toBeNull();
     expect(sharePlainTextFileListAliasRender.container.firstChild).toBeNull();
     expect(sharePlainTextFileListRender.container.firstChild).toBeNull();
-    expect(shareFileByNameAliasRender.container.firstChild).toBeNull();
-    expect(shareFileByNameRender.container.firstChild).toBeNull();
-    expect(shareFileWebViewByNameAliasRender.container.firstChild).toBeNull();
-    expect(shareFileWebViewByNameRender.container.firstChild).toBeNull();
   });
 });
