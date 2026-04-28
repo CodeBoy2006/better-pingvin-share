@@ -278,3 +278,9 @@
 - **Status:** Completed
 - **Next Steps:** Watch CI timing to confirm GitHub Actions matches local improvements.
 - **Context:** `npm --prefix backend run test:coverage` passes in ~10.9s locally; `npm run test:e2e` passes in ~33.4s after removing the slow ZIP polling from browser smoke coverage.
+
+## [2026-04-28 08:14] Release 1.16.0
+- **Changes:** Bumped root, backend, and frontend package versions to 1.16.0; regenerated CHANGELOG.md for features and fixes since v1.15.3; pushed tag v1.16.0.
+- **Status:** Completed
+- **Next Steps:** Create the GitHub release with gh and monitor CI/GHCR publication for the v1.16.0 tag.
+- **Context:** Local quality gate passed before release: lint, typecheck, build, backend Jest, and frontend Vitest. Existing lint/test warnings remain non-fatal.
