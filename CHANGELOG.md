@@ -1,3 +1,20 @@
+## [1.16.0](https://github.com/CodeBoy2006/better-pingvin-share/compare/v1.15.3...v1.16.0) (2026-04-28)
+
+
+### Features
+
+* add expired share editing ([d82376a](https://github.com/CodeBoy2006/better-pingvin-share/commit/d82376acefc9fd438479f24e59c1cedc8cc01b9f))
+* add plain text share listings ([574b057](https://github.com/CodeBoy2006/better-pingvin-share/commit/574b05795592bc6e5773e40a902f3f482446555f))
+* expand text file web views ([ac6cdbc](https://github.com/CodeBoy2006/better-pingvin-share/commit/ac6cdbc0fdd805ebafccc61d116ec912cb514598))
+
+
+### Bug Fixes
+
+* reduce ci test runtime ([5afd37f](https://github.com/CodeBoy2006/better-pingvin-share/commit/5afd37fd266a76dac81d15a4ea075025715f487f))
+* remove filename share file routes ([7cfa603](https://github.com/CodeBoy2006/better-pingvin-share/commit/7cfa60308b3f42dcecd8ed3dd589cff3fd24bd15))
+* resolve backend lint errors ([2bbd560](https://github.com/CodeBoy2006/better-pingvin-share/commit/2bbd5600001749c46170ee4d0e141f770b3e469f))
+* stabilize backend and e2e ci ([a4429cb](https://github.com/CodeBoy2006/better-pingvin-share/commit/a4429cb0e5d3d5a9836fa1a9fefafc2f9c7dc69b))
+
 # Changelog
 
 All notable changes to this project will be documented in this file.

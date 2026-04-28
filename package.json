@@ -1,6 +1,6 @@
 {
   "name": "pingvin-share",
-  "version": "1.15.3",
+  "version": "1.16.0",
   "scripts": {
     "build": "npm --prefix backend run build && npm --prefix frontend run build",
     "format": "cd frontend && npm run format && cd ../backend && npm run format",
