@@ -290,3 +290,9 @@
 - **Status:** Completed
 - **Next Steps:** Deploy and verify production `/account/shares` and `/share/:id/edit` no longer throw missing `share.maxExpiration`.
 - **Context:** Root cause was upgraded instances whose config table lacked newly defined public config rows; backend `get()` had defaults, but `/api/configs` and frontend config lookup did not.
+
+## [2026-04-29 14:49] Complete Public Config Fallbacks
+- **Changes:** Expanded `frontend/src/services/config.service.ts` fallback coverage from only share expiration keys to every public config key currently read by the frontend, including `email.enableShareEmailRecipients`; added unit coverage for missing email/share/general config rows.
+- **Status:** Completed
+- **Next Steps:** Redeploy the frontend image and force the browser service worker to activate the new bundle if the old Workbox cache remains active.
+- **Context:** Production `/api/configs` already returns `email.enableShareEmailRecipients`; the remaining crash came from a client bundle/context path that could still read an incomplete config array.

@@ -5,10 +5,112 @@ import { stringToTimespan } from "../utils/date.util";
 
 const fallbackConfigVariables: Config[] = [
   {
-    key: "share.maxExpiration",
-    defaultValue: "0 days",
-    value: "0 days",
+    key: "api.corsAllowedOrigins",
+    defaultValue: "",
+    value: "",
+    type: "string",
+  },
+  {
+    key: "email.enableShareEmailRecipients",
+    defaultValue: "false",
+    value: "false",
+    type: "boolean",
+  },
+  {
+    key: "general.appName",
+    defaultValue: "Better Pingvin Share",
+    value: "Better Pingvin Share",
+    type: "string",
+  },
+  {
+    key: "general.appUrl",
+    defaultValue: "http://localhost:3000",
+    value: "http://localhost:3000",
+    type: "string",
+  },
+  {
+    key: "general.sessionDuration",
+    defaultValue: "3 months",
+    value: "3 months",
     type: "timespan",
+  },
+  {
+    key: "general.showHomePage",
+    defaultValue: "true",
+    value: "true",
+    type: "boolean",
+  },
+  {
+    key: "ldap.enabled",
+    defaultValue: "false",
+    value: "false",
+    type: "boolean",
+  },
+  {
+    key: "legal.enabled",
+    defaultValue: "false",
+    value: "false",
+    type: "boolean",
+  },
+  {
+    key: "legal.imprintText",
+    defaultValue: "",
+    value: "",
+    type: "text",
+  },
+  {
+    key: "legal.imprintUrl",
+    defaultValue: "",
+    value: "",
+    type: "string",
+  },
+  {
+    key: "legal.privacyPolicyText",
+    defaultValue: "",
+    value: "",
+    type: "text",
+  },
+  {
+    key: "legal.privacyPolicyUrl",
+    defaultValue: "",
+    value: "",
+    type: "string",
+  },
+  {
+    key: "oauth.disablePassword",
+    defaultValue: "false",
+    value: "false",
+    type: "boolean",
+  },
+  {
+    key: "share.allowAdminAccessAllShares",
+    defaultValue: "false",
+    value: "false",
+    type: "boolean",
+  },
+  {
+    key: "share.allowRegistration",
+    defaultValue: "true",
+    value: "true",
+    type: "boolean",
+  },
+  {
+    key: "share.allowUnauthenticatedShares",
+    defaultValue: "false",
+    value: "false",
+    type: "boolean",
+  },
+  {
+    key: "share.autoOpenShareModal",
+    defaultValue: "false",
+    value: "false",
+    type: "boolean",
+  },
+  {
+    key: "share.chunkSize",
+    defaultValue: "10000000",
+    value: "10000000",
+    type: "filesize",
   },
   {
     key: "share.defaultExpiration",
@@ -16,7 +118,65 @@ const fallbackConfigVariables: Config[] = [
     value: "7 days",
     type: "timespan",
   },
+  {
+    key: "share.expiredEditablePeriod",
+    defaultValue: "0 days",
+    value: "0 days",
+    type: "timespan",
+  },
+  {
+    key: "share.fileRetentionPeriod",
+    defaultValue: "0 days",
+    value: "0 days",
+    type: "timespan",
+  },
+  {
+    key: "share.filesJsonPasswordProtectedLinksIncludeToken",
+    defaultValue: "false",
+    value: "false",
+    type: "boolean",
+  },
+  {
+    key: "share.filesJsonWebViewLinksEnabled",
+    defaultValue: "false",
+    value: "false",
+    type: "boolean",
+  },
+  {
+    key: "share.maxExpiration",
+    defaultValue: "0 days",
+    value: "0 days",
+    type: "timespan",
+  },
+  {
+    key: "share.maxSize",
+    defaultValue: "1000000000",
+    value: "1000000000",
+    type: "filesize",
+  },
+  {
+    key: "share.shareIdLength",
+    defaultValue: "8",
+    value: "8",
+    type: "number",
+  },
+  {
+    key: "smtp.allowUnauthorizedCertificates",
+    defaultValue: "false",
+    value: "false",
+    type: "boolean",
+  },
+  {
+    key: "smtp.enabled",
+    defaultValue: "false",
+    value: "false",
+    type: "boolean",
+  },
 ];
+
+const fallbackConfigVariablesByKey = new Map(
+  fallbackConfigVariables.map((variable) => [variable.key, variable]),
+);
 
 const list = async (): Promise<Config[]> => {
   return (await api.get("/configs")).data;
@@ -35,7 +195,7 @@ const get = (key: string, configVariables: Config[]): any => {
 
   const configVariable =
     configVariables.filter((variable) => variable.key == key)[0] ??
-    fallbackConfigVariables.filter((variable) => variable.key == key)[0];
+    fallbackConfigVariablesByKey.get(key);
 
   if (!configVariable) throw new Error(`Config variable ${key} not found`);
 

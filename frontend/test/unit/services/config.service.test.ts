@@ -131,6 +131,13 @@ describe("config.service", () => {
       unit: "days",
       value: 0,
     });
+    expect(configService.get("email.enableShareEmailRecipients", [])).toBe(
+      false,
+    );
+    expect(configService.get("share.maxSize", [])).toBe(1000000000);
+    expect(configService.get("general.appName", [])).toBe(
+      "Better Pingvin Share",
+    );
     expect(() => configService.get("missing", configEntries)).toThrow(
       "Config variable missing not found",
     );
