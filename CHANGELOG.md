@@ -1,3 +1,11 @@
+## [1.16.1](https://github.com/CodeBoy2006/better-pingvin-share/compare/v1.16.0...v1.16.1) (2026-04-29)
+
+
+### Bug Fixes
+
+* cover public config fallbacks ([c1eab26](https://github.com/CodeBoy2006/better-pingvin-share/commit/c1eab26adf3dcbbb77545ce7dc05b2bb83518ffb))
+* provide default config fallbacks ([41bcba3](https://github.com/CodeBoy2006/better-pingvin-share/commit/41bcba38ca74916cc4c7ee5242f1c20be55a2073))
+
 ## [1.16.0](https://github.com/CodeBoy2006/better-pingvin-share/compare/v1.15.3...v1.16.0) (2026-04-28)
 
 

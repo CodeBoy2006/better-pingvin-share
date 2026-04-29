@@ -296,3 +296,9 @@
 - **Status:** Completed
 - **Next Steps:** Redeploy the frontend image and force the browser service worker to activate the new bundle if the old Workbox cache remains active.
 - **Context:** Production `/api/configs` already returns `email.enableShareEmailRecipients`; the remaining crash came from a client bundle/context path that could still read an incomplete config array.
+
+## [2026-04-29 20:12] Release 1.16.1
+- **Changes:** Bumped root, backend, and frontend package versions to 1.16.1 and regenerated CHANGELOG.md for the public config fallback fixes.
+- **Status:** Completed
+- **Next Steps:** Create and publish the GitHub release, then monitor CI/image publication for v1.16.1.
+- **Context:** Patch release includes backend default config merging plus frontend fallbacks for all public config keys used by the UI.
