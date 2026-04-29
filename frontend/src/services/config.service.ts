@@ -3,6 +3,21 @@ import Config, { AdminConfig, UpdateConfig } from "../types/config.type";
 import api from "./api.service";
 import { stringToTimespan } from "../utils/date.util";
 
+const fallbackConfigVariables: Config[] = [
+  {
+    key: "share.maxExpiration",
+    defaultValue: "0 days",
+    value: "0 days",
+    type: "timespan",
+  },
+  {
+    key: "share.defaultExpiration",
+    defaultValue: "7 days",
+    value: "7 days",
+    type: "timespan",
+  },
+];
+
 const list = async (): Promise<Config[]> => {
   return (await api.get("/configs")).data;
 };
@@ -18,9 +33,9 @@ const updateMany = async (data: UpdateConfig[]): Promise<AdminConfig[]> => {
 const get = (key: string, configVariables: Config[]): any => {
   if (!configVariables) return null;
 
-  const configVariable = configVariables.filter(
-    (variable) => variable.key == key,
-  )[0];
+  const configVariable =
+    configVariables.filter((variable) => variable.key == key)[0] ??
+    fallbackConfigVariables.filter((variable) => variable.key == key)[0];
 
   if (!configVariable) throw new Error(`Config variable ${key} not found`);
 

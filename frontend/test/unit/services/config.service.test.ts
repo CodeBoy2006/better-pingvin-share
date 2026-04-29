@@ -127,6 +127,10 @@ describe("config.service", () => {
     );
     expect(configService.get("legal.imprintText", configEntries)).toBe("");
     expect(configService.get("anything", null as unknown as Config[])).toBeNull();
+    expect(configService.get("share.maxExpiration", [])).toEqual({
+      unit: "days",
+      value: 0,
+    });
     expect(() => configService.get("missing", configEntries)).toThrow(
       "Config variable missing not found",
     );

@@ -15,6 +15,7 @@ import { parse as yamlParse } from "yaml";
 import { CONFIG_FILE } from "src/constants";
 import {
   getDefinedConfigVariable,
+  getDefinedConfigVariables,
   YamlConfig,
 } from "./configDefinitions";
 
@@ -131,7 +132,7 @@ export class ConfigService extends EventEmitter {
   }
 
   async getByCategory(category: string) {
-    const configVariables = this.configVariables
+    const configVariables = this.getMergedConfigVariables()
       .filter((c) => !c.locked && category == c.category)
       .sort((c) => c.order);
 
@@ -146,7 +147,9 @@ export class ConfigService extends EventEmitter {
   }
 
   async list() {
-    const configVariables = this.configVariables.filter((c) => !c.secret);
+    const configVariables = this.getMergedConfigVariables().filter(
+      (c) => !c.secret,
+    );
 
     return configVariables.map((variable) => {
       return {
@@ -279,12 +282,48 @@ export class ConfigService extends EventEmitter {
     return value === "" ? null : value;
   }
 
+  private getMergedConfigVariables(): Config[] {
+    const storedConfigVariablesByKey = new Map(
+      this.configVariables.map((variable) => [
+        `${variable.category}.${variable.name}`,
+        variable,
+      ]),
+    );
+
+    return getDefinedConfigVariables().map((definition) => {
+      const storedConfigVariable = storedConfigVariablesByKey.get(
+        `${definition.category}.${definition.name}`,
+      );
+
+      return {
+        updatedAt: storedConfigVariable?.updatedAt ?? new Date(0),
+        category: definition.category,
+        name: definition.name,
+        type: definition.properties.type,
+        defaultValue: definition.properties.defaultValue ?? "",
+        value:
+          storedConfigVariable?.value ??
+          definition.properties.value?.toString() ??
+          null,
+        obscured:
+          storedConfigVariable?.obscured ??
+          definition.properties.obscured ??
+          false,
+        secret:
+          storedConfigVariable?.secret ?? definition.properties.secret ?? true,
+        locked:
+          storedConfigVariable?.locked ?? definition.properties.locked ?? false,
+        order: definition.order,
+      };
+    });
+  }
+
   private createConfigValueMap(): Record<
     string,
     string | number | boolean | null
   > {
     return Object.fromEntries(
-      this.configVariables.map((variable) => [
+      this.getMergedConfigVariables().map((variable) => [
         `${variable.category}.${variable.name}`,
         variable.value ?? variable.defaultValue,
       ]),

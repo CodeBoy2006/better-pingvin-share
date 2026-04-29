@@ -284,3 +284,9 @@
 - **Status:** Completed
 - **Next Steps:** Create the GitHub release with gh and monitor CI/GHCR publication for the v1.16.0 tag.
 - **Context:** Local quality gate passed before release: lint, typecheck, build, backend Jest, and frontend Vitest. Existing lint/test warnings remain non-fatal.
+
+## [2026-04-29 13:47] Config Fallback For Share Editing
+- **Changes:** Made backend config listing merge persisted rows with defined defaults, added a frontend fallback for missing share expiration configs, and covered the upgrade-missing-row case with backend/frontend tests.
+- **Status:** Completed
+- **Next Steps:** Deploy and verify production `/account/shares` and `/share/:id/edit` no longer throw missing `share.maxExpiration`.
+- **Context:** Root cause was upgraded instances whose config table lacked newly defined public config rows; backend `get()` had defaults, but `/api/configs` and frontend config lookup did not.

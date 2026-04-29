@@ -60,6 +60,24 @@ describe("ConfigService", () => {
     expect(configs.some((entry) => entry.locked)).toBe(false);
   });
 
+  it("lists default definitions when persisted config rows are missing", async () => {
+    const configs = buildConfigEntries().filter(
+      (config) =>
+        `${config.category}.${config.name}` !== "share.maxExpiration",
+    );
+    service = new ConfigService(configs, prisma as never);
+
+    await expect(service.list()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "share.maxExpiration",
+          type: "timespan",
+          value: "0 days",
+        }),
+      ]),
+    );
+  });
+
   it("rejects config writes when yaml config is driving the application", async () => {
     service.yamlConfig = {} as never;
 
